@@ -4,6 +4,9 @@ import { generateBasicStrategy, roundEV } from '../engine/strategy/generate';
 import { fullComp } from '../engine/shoe';
 import type { Chart } from '../engine/strategy/chart';
 import type { ActionEVs } from '../engine/ev/engine';
+import { analyzeDecision, type DecisionEVs } from '../engine/ev/analyze';
+import type { Comp } from '../engine/shoe';
+import type { Avail } from '../engine/strategy/chart';
 
 export interface StrategyResult {
   chart: Chart;
@@ -14,6 +17,9 @@ export interface StrategyResult {
 }
 
 export const handlers = {
+  analyzeDecision(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail, splitHands: number): DecisionEVs {
+    return analyzeDecision(unseen, values, up, rules, avail, splitHands);
+  },
   generateStrategy(rules: Rules): StrategyResult {
     const g = generateBasicStrategy(rules);
     return { chart: g.chart, cellEVs: g.cellEVs, exceptions: g.exceptions, baseEdge: roundEV(fullComp(rules.decks), rules, g.chart, g.records) };
