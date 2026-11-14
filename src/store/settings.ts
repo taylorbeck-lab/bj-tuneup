@@ -1,6 +1,7 @@
 import { BUILT_IN_PRESETS, DEFAULT_RULES, normalizeRules, type Preset, type Rules } from '../engine/rules';
 
-export type Rounding = 'floor' | 'round' | 'trunc';
+import type { Rounding } from '../engine/count';
+export type { Rounding };
 export interface CountSettings {
   /** Deck estimation granularity in decks: 1, 0.5 or 0.25 (0 = exact). */
   deckGranularity: number;
