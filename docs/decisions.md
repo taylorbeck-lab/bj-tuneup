@@ -98,3 +98,15 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Onboarding** is one screen on first launch: what the app is, the legal line, pick your usual game. It can be shown again from Settings.
 - **Backup:** Settings → Export my data (JSON). Import is listed in docs/next.md.
 - **Offline verified:** after one load the service worker serves everything. Offline, a reload works, lazy screens open, and the worker still computes strategy.
+
+# V2
+
+## V2-1
+- **Name:** "MESA" is a placeholder code name (a desert table mountain; Spanish for "table"). Brand strings live in `src/v2/brand.ts` and all colours in `src/v2/theme.css`.
+- **V1 retired, engine kept.** The V1 screens were deleted (V1 is in history at `3d979b7`). The engine (`src/engine`), the worker and all engine tests stay; V2 is a new UI in `src/v2`.
+- **Fixed card spots.** Positions are computed from (spot, hand, card index) in container units. Each card gets a stable id: once it lands it never re-renders elsewhere or re-animates. A split moves the second card with a short glide, as a dealer does. Cards fan right by half a card width so every corner index stays readable (essential for counting); after four cards a hand wraps to a second row.
+- **Sizes:** your cards are larger than the other players' cards (phone legibility). Dealer cards are in between.
+- **Pace** (per card / linger before the sweep): slow 1050/3400 ms, average 720/2500, fast 470/1800, extra fast 300/1200. Bots take 1.5× a card's time to decide. Tapping the felt skips the linger.
+- **Engine additions:** several human spots (`humanSeats`), per-spot bets (0 = empty spot, not dealt), per-spot insurance, bot bets (`botBet`) and occasional bot misplays on stiff hands (`botMistakeRate`, 6% in the app).
+- **Default table:** 6 decks, H17, DAS, 3:2, 75% penetration, 5 players, you in seat 4, $25 minimum ($2,500 max), $1,000 bankroll. These are the most common conditions friends will meet; everything can be changed.
+- **The felt is sized to the screen height** (the controls dock has a fixed area), so nothing moves when the controls change.

@@ -23,7 +23,7 @@
 
 - **M9 — side bets:** done, merged (PR #9). Exact EV by card for Perfect Pairs, Lucky Ladies, 21+3, Match the Dealer, Buster and a custom pair template (K♠/Q♥ jackpots), editable paytables, off-the-top EV with a positive-EV warning; `#/sidebets`: Side Bet Hunter with the exact EV curve and timing score.
 
-- **M10 — polish:** done (PR open):
+- **M10 — polish:** done, merged (PR #10):
   - route code-splitting
   - accessibility pass (axe clean, light-theme contrast fixes)
   - one-screen onboarding
@@ -33,8 +33,23 @@
   - docs/next.md
   - offline verified
 
+**V1 complete** — all ten milestones merged. V1 is preserved at merge commit `3d979b7` (the tag could not be pushed from this environment).
+
+# V2: MESA (see docs/v2/BRIEF.md and docs/v2/PLAN.md)
+
+## Status
+- **V2-1 Table:** done (PR open).
+  - V1 UI retired; the engine, worker and tests are kept.
+  - MESA brand (placeholder) and desert-modern theme.
+  - Portrait felt with fixed card spots. Cards slide in from the shoe and never move; every corner index stays visible; long hands wrap.
+  - Dealer speeds: slow, average, fast, extra fast. Results linger, then the sweep.
+  - 1–7 players; your seat; 1 or 2 spots.
+  - $5, $25, $100 and $500 chips, table limits, a persistent bankroll.
+  - Bots bet chips and occasionally misplay.
+  - Shoe and discard tray; settings page; chart page with count plays.
+
 ## Next
-- All milestones are complete once the M10 PR is merged. Further ideas are in docs/next.md.
+- V2-2 Coach: feedback after every decision (right or wrong, win chances, the why); deviations toggle; insurance and bet feedback.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
