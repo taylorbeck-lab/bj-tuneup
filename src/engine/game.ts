@@ -146,6 +146,12 @@ export class Table {
     if (this.dealer.length >= 2 && !this.holeRevealed) c[valueOf(this.dealer[1])]++;
     return c;
   }
+  /** Unseen cards by physical card (side bets): remaining shoe + burn + unrevealed hole card. */
+  unseenByCard(): number[] {
+    const c = this.shoe.unseenByCard();
+    if (this.dealer.length >= 2 && !this.holeRevealed) c[this.dealer[1]]++;
+    return c;
+  }
   unseenCount(): number {
     return this.shoe.remaining + this.shoe.burned.length + (this.dealer.length >= 2 && !this.holeRevealed ? 1 : 0);
   }
