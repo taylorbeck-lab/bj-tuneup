@@ -41,3 +41,10 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Count check** at each shuffle (optional): the player enters the running count before the reshuffle.
 - **Coach whisper** shows its hint only after the decision is made, once the worker returns (typically < 30 ms in 2 decks).
 - **Simulation sanity tests:** a shuffle-every-round simulation (1.5M rounds) must match the exact combinatorial round EV within 3 standard errors; a cut-card simulation (2M rounds, 6D S17 DAS LS, one seat) must be within 3.5 SE of Wizard's "basic strategy with cut card" figure. Sessions and their rounds are stored so Hand Review (M7) can replay them.
+
+## M5
+- **Tune-Up plan** (`src/engine/tuneup.ts`): countdown (1 deck) → running count at speed (4 checkpoints) → true count with tray (8) → [basic strategy flash (15), only if BS accuracy in the last 14 days is below target] → deviations flash (15) → table (30 hands, coach off, betting). Each stage whose recent accuracy is below target gets more reps. Deviation and BS items are already weighted to misses by spaced repetition. Roughly 12–16 minutes at normal pace.
+- **Tune-Up table** uses the active rules (2D by default) rather than forcing 2 decks, so the chart, indices and the game always agree.
+- **READY** = every check passes: countdown ≤ target s/deck *and* correct, overall accuracy ≥ target (all scored answers across stages: drill items, table decisions, bets, insurance), table EV lost per 100 hands ≤ target. The "3 mistakes" are the three most costly distinct mistakes (by exact EV), then the first uncosted ones (count, bet).
+- **Spaced repetition is fed by table play too**: every two-card table decision updates the BS item (or the index play's item when an index applied), hit or miss.
+- **Stats** trends are single-series lines (dataviz rules: 2px line, recessive axis, dashed mid-grey target line, crosshair tooltip, table view under each chart). The accent is used only when the latest value misses the target.

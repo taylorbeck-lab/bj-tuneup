@@ -4,7 +4,7 @@ import { Keypad } from '../../ui/Keypad';
 import { DiscardTray } from '../../ui/DiscardTray';
 import { discardDecks, randomRc, tcAnswer } from '../../engine/drills';
 import { mulberry32, randomSeed, randInt } from '../../engine/rng';
-import { DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
+import { type Embed, DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
 import { useSettings } from '../../store/SettingsContext';
 
 type Phase = 'intro' | 'run' | 'done';
@@ -22,7 +22,7 @@ function useItems(n: number, decks: number, pen: number) {
 }
 
 /** Deck / discard estimation: read the tray, say how many decks are discarded. */
-export function DiscardDrill() {
+export function DiscardDrill({ embed }: { embed?: Embed } = {}) {
   const { settings } = useSettings();
   const r = settings.rules;
   const gran = settings.count.deckGranularity || 0.25;
@@ -45,7 +45,7 @@ export function DiscardDrill() {
 
   if (phase === 'intro')
     return (
-      <DrillIntro
+      <DrillIntro auto={!!embed}
         title="Discard estimation"
         onStart={() => {
           setItems(make(randomSeed()));
@@ -65,7 +65,7 @@ export function DiscardDrill() {
       </DrillIntro>
     );
   if (phase === 'done')
-    return <DrillResult kind="drill:discard" title="Discard estimation" tally={tally} durationMs={performance.now() - t0} metrics={{ meanAbsErrDecks: errSum / Math.max(1, tally.total) }} onAgain={() => setPhase('intro')} />;
+    return <DrillResult embed={embed?.onDone} kind="drill:discard" title="Discard estimation" tally={tally} durationMs={performance.now() - t0} metrics={{ meanAbsErrDecks: errSum / Math.max(1, tally.total) }} onAgain={() => setPhase('intro')} />;
 
   const it = items[i];
   const truth = discardDecks(it.discarded, gran);
@@ -103,7 +103,8 @@ export function DiscardDrill() {
 }
 
 /** True count conversion with the tray. */
-export function TrueCountDrill({ n = 15, onDone }: { n?: number; onDone?: (acc: number) => void } = {}) {
+export function TrueCountDrill({ embed }: { embed?: Embed } = {}) {
+  const n = embed?.n ?? 15;
   const { settings } = useSettings();
   const r = settings.rules;
   const { deckGranularity: gran, rounding } = settings.count;
@@ -118,7 +119,7 @@ export function TrueCountDrill({ n = 15, onDone }: { n?: number; onDone?: (acc: 
 
   if (phase === 'intro')
     return (
-      <DrillIntro
+      <DrillIntro auto={!!embed}
         title="True count"
         onStart={() => {
           setItems(make(randomSeed()));
@@ -137,13 +138,12 @@ export function TrueCountDrill({ n = 15, onDone }: { n?: number; onDone?: (acc: 
     );
   if (phase === 'done') {
     return (
-      <DrillResult
+      <DrillResult embed={embed?.onDone}
         kind="drill:truecount"
         title="True count"
         tally={tally}
         durationMs={performance.now() - t0}
         onAgain={() => setPhase('intro')}
-        onSaved={() => onDone?.(tally.total ? tally.correct / tally.total : 0)}
       />
     );
   }

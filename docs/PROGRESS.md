@@ -9,10 +9,14 @@
 
 - **M3 — drills:** done, merged (PR #3). `#/drills`: deck countdown, running count (game speed, random checkpoints), discard estimation (visual tray), true count, basic strategy flash and deviations flash (weighted to misses via spaced repetition), bet sizing (ramp / half Kelly), ace side count, key cards.
 
-- **M4 — table sim:** done (PR open). `#/sim`: 1–6 seats, seat position, dealer speed, coach off/whisper, insurance/even money, splits/doubles/surrender, count check at shuffle; results screen with exact EV lost per error, bet and insurance errors; sessions + rounds stored for review.
+- **M4 — table sim:** done, merged (PR #4). `#/sim`: 1–6 seats, seat position, dealer speed, coach off/whisper, insurance/even money, splits/doubles/surrender, count check at shuffle; results screen with exact EV lost per error, bet and insurance errors; sessions + rounds stored for review.
+
+- **M5 — Tune-Up, stats, spaced repetition:** done (PR open).
+
+> **FIRST USABLE RELEASE.** Open https://taylorbeck-lab.github.io/bj-tuneup/ on your phone and use *Add to Home Screen* (it then works offline). Start with **Start 15-minute Tune-Up** on the home screen. Set your targets, bankroll and ramp in **Settings** and your game in **Table rules** first. Everything is stored only on that device.
 
 ## Next
-- M5: Tune-Up flow, stats history, spaced repetition. First usable release.
+- M6: exact EV analyzer screen + Hi-Lo index generation for the active rules, validated with tests.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).

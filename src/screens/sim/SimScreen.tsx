@@ -8,12 +8,14 @@ import { useIndexPlays } from '../../store/indices';
 import { useSim, type SimConfig } from './useSim';
 import { TableView } from './TableView';
 import { summarize, type SimSummary } from './summary';
-import { SimResultsView, usePersistSession } from './SimResults';
+import { SimResultsView, persistSession } from './SimResults';
 import { gradeDecision } from '../../engine/grade';
 import { ACTION_LABEL } from '../../engine/strategy/chart';
 import { buzzError } from '../../ui/haptics';
 import { navigate } from '../../router';
 import { rulesLabel } from '../../engine/rules';
+import { bsItemKey } from '../../engine/drills';
+import { recordSrs } from '../../store/srs';
 
 type Coach = 'off' | 'whisper';
 
@@ -59,12 +61,18 @@ export function SimRun({ cfg, coach, hands, countCheck, title, kind, onFinish, e
   const [summary, setSummary] = useState<SimSummary | null>(null);
   const t0 = useRef(performance.now());
   const [ending, setEnding] = useState(false);
-  usePersistSession(kind, embedded ? null : summary, sim.logs, cfg.rules, performance.now() - t0.current);
 
   const handsPlayed = sim.logs.length;
   const finish = async () => {
     setEnding(true);
     const s = await summarize(sim.logs, sim.analyses, cfg.chart, plays, settings.bet.ramp, checks.current);
+    // Feed spaced repetition: missed situations come back more often in the flash drills.
+    for (const d of s.decisions) {
+      if (d.snap.values.length !== 2 || d.snap.splitHands > 1) continue;
+      const key = d.g.indexPlayId ? 'dev:' + d.g.indexPlayId : bsItemKey(d.snap.values, d.snap.up);
+      recordSrs(key, !d.g.error);
+    }
+    persistSession(kind, s, sim.logs, cfg.rules, performance.now() - t0.current);
     setSummary(s);
     onFinish?.(s);
   };

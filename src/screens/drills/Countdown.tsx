@@ -4,13 +4,13 @@ import { Keypad } from '../../ui/Keypad';
 import { countdownDeck } from '../../engine/drills';
 import { mulberry32, randomSeed } from '../../engine/rng';
 import { cardLabel } from '../../engine/cards';
-import { DrillIntro, DrillResult, useTally, Progress } from './common';
+import { type Embed, DrillIntro, DrillResult, useTally, Progress } from './common';
 import { TopBar } from '../../ui/components';
 import { useSettings } from '../../store/SettingsContext';
 
 type Phase = 'intro' | 'run' | 'answer' | 'done';
 
-export function Countdown({ onDone }: { onDone?: (r: { secPerDeck: number; correct: boolean }) => void } = {}) {
+export function Countdown({ embed }: { embed?: Embed } = {}) {
   const { settings } = useSettings();
   const [phase, setPhase] = useState<Phase>('intro');
   const [removeK, setRemoveK] = useState(1);
@@ -51,7 +51,7 @@ export function Countdown({ onDone }: { onDone?: (r: { secPerDeck: number; corre
 
   if (phase === 'intro')
     return (
-      <DrillIntro title="Deck countdown" onStart={start}>
+      <DrillIntro auto={!!embed} title="Deck countdown" onStart={start}>
         <p>Count down one deck as fast as you can. Tap the card (or press space) to flip the next one. Some cards may be removed: give the final running count.</p>
         <Field name="Cards removed" hint="Final count reveals what is missing">
           <Seg options={[0, 1, 2, 3].map((n) => ({ value: n, label: String(n) }))} value={removeK} onChange={setRemoveK} />
@@ -99,7 +99,6 @@ export function Countdown({ onDone }: { onDone?: (r: { secPerDeck: number; corre
               setSaid(n);
               answer(ok, ok ? undefined : { key: 'countdown', label: 'Deck countdown', detail: `Said ${n}, was ${deck.answer}` });
               setPhase('done');
-              onDone?.({ secPerDeck: (elapsed / 1000) * (52 / deck.cards.length), correct: ok });
             }}
           />
         </main>
@@ -108,7 +107,7 @@ export function Countdown({ onDone }: { onDone?: (r: { secPerDeck: number; corre
 
   const secPerDeck = (elapsed / 1000) * (52 / deck.cards.length);
   return (
-    <DrillResult
+    <DrillResult embed={embed?.onDone}
       kind="drill:countdown"
       title="Countdown"
       tally={{ ...tally, times: [elapsed] }}

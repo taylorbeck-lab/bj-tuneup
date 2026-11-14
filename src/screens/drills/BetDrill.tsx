@@ -5,14 +5,14 @@ import { rampBet, approxEdge, kellyBet } from '../../engine/drills';
 import { mulberry32, randomSeed, randInt, type Rng } from '../../engine/rng';
 import { useSettings } from '../../store/SettingsContext';
 import { useStrategy } from '../../store/strategy';
-import { DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
+import { type Embed, DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
 
 type Phase = 'intro' | 'run' | 'done';
 type Mode = 'ramp' | 'kelly';
 
 const money = (x: number) => '$' + Math.round(x).toLocaleString();
 
-export function BetDrill() {
+export function BetDrill({ embed }: { embed?: Embed } = {}) {
   const { settings } = useSettings();
   const { bankroll, unit, ramp } = settings.bet;
   const st = useStrategy(settings.rules);
@@ -31,7 +31,7 @@ export function BetDrill() {
 
   if (phase === 'intro')
     return (
-      <DrillIntro
+      <DrillIntro auto={!!embed}
         title="Bet sizing"
         onStart={() => {
           const r = mulberry32(randomSeed());
@@ -60,7 +60,7 @@ export function BetDrill() {
         )}
       </DrillIntro>
     );
-  if (phase === 'done') return <DrillResult kind={`drill:bet-${mode}`} title="Bet sizing" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} />;
+  if (phase === 'done') return <DrillResult embed={embed?.onDone} kind={`drill:bet-${mode}`} title="Bet sizing" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} />;
 
   const advance = () => {
     if (i + 1 >= n) setPhase('done');

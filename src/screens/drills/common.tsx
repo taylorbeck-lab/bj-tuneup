@@ -36,7 +36,27 @@ export function useTally() {
   return { tally: t, answer, markStart, reset };
 }
 
-export function DrillIntro({ title, children, onStart, startLabel = 'Start' }: { title: string; children: ReactNode; onStart: () => void; startLabel?: string }) {
+/** Result of a drill run inside a larger flow (Tune-Up). */
+export interface StageResult {
+  kind: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+  avgMs: number;
+  evLost: number;
+  mistakes: Mistake[];
+  metrics?: Record<string, number>;
+}
+export interface Embed {
+  onDone: (r: StageResult) => void;
+  n?: number;
+}
+
+export function DrillIntro({ title, children, onStart, startLabel = 'Start', auto }: { title: string; children: ReactNode; onStart: () => void; startLabel?: string; auto?: boolean }) {
+  useEffect(() => {
+    if (auto) onStart();
+  });
+  if (auto) return <main className="stack"><p className="mono muted">Loading…</p></main>;
   return (
     <>
       <TopBar title={title} />
@@ -64,6 +84,7 @@ export function DrillResult({
   extra,
   onAgain,
   onSaved,
+  embed,
 }: {
   kind: string;
   title: string;
@@ -73,6 +94,7 @@ export function DrillResult({
   extra?: ReactNode;
   onAgain: () => void;
   onSaved?: (s: SessionRecord) => void;
+  embed?: (r: StageResult) => void;
 }) {
   const saved = useRef(false);
   useEffect(() => {
@@ -88,8 +110,21 @@ export function DrillResult({
       evLost: tally.evLost || undefined,
       metrics,
       mistakes: tally.mistakes.slice(0, 50),
-    }).then((s) => onSaved?.(s));
-  }, [kind, durationMs, tally, metrics, onSaved]);
+    }).then((s) => {
+      onSaved?.(s);
+      embed?.({
+        kind,
+        total: tally.total,
+        correct: tally.correct,
+        accuracy: tally.total ? tally.correct / tally.total : 0,
+        avgMs: avg(tally.times),
+        evLost: tally.evLost,
+        mistakes: tally.mistakes,
+        metrics,
+      });
+    });
+  }, [kind, durationMs, tally, metrics, onSaved, embed]);
+  if (embed) return <main className="stack"><p className="mono muted">…</p></main>;
   const acc = tally.total ? (100 * tally.correct) / tally.total : 0;
   return (
     <>

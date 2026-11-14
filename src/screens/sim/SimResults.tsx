@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import { Instrument, Instruments, fmtSigned } from '../../ui/components';
 import type { SimSummary } from './summary';
 import { saveSession } from '../../store/sessions';
@@ -16,36 +15,32 @@ export interface StoredShoe {
   evs: unknown[];
 }
 
-/** Persist a session + its rounds (for Hand Review) once. Returns the shoe id. */
-export function usePersistSession(kind: string, summary: SimSummary | null, logs: RoundLog[], rules: Rules, durationMs: number, extraMetrics?: Record<string, number>) {
-  const done = useRef(false);
-  useEffect(() => {
-    if (!summary || done.current) return;
-    done.current = true;
-    const shoeId = uid();
-    const shoe: StoredShoe = { id: shoeId, at: Date.now(), kind, rules, logs, evs: summary.decisions.map((d) => d.evs) };
-    put('shoes', shoe);
-    saveSession({
-      kind,
-      durationMs,
-      total: summary.decisions.length,
-      correct: summary.decisions.length - summary.playErrors,
-      accuracy: summary.accuracy,
-      evLost: summary.evLost,
-      hands: summary.hands,
-      shoeId,
-      metrics: {
-        net: summary.net,
-        playErrors: summary.playErrors,
-        betErrors: summary.betErrors,
-        insErrors: summary.insErrors,
-        evLostPer100: summary.evLostPer100,
-        evLostVsBest: summary.evLostVsBest,
-        ...extraMetrics,
-      },
-      mistakes: summary.mistakes.slice(0, 60),
-    });
-  }, [kind, summary, logs, rules, durationMs, extraMetrics]);
+/** Persist a session + its rounds (for Hand Review). Returns the shoe id. */
+export function persistSession(kind: string, summary: SimSummary, logs: RoundLog[], rules: Rules, durationMs: number, extraMetrics?: Record<string, number>): string {
+  const shoeId = uid();
+  const shoe: StoredShoe = { id: shoeId, at: Date.now(), kind, rules, logs, evs: summary.decisions.map((d) => d.evs) };
+  put('shoes', shoe);
+  saveSession({
+    kind,
+    durationMs,
+    total: summary.decisions.length,
+    correct: summary.decisions.length - summary.playErrors,
+    accuracy: summary.accuracy,
+    evLost: summary.evLost,
+    hands: summary.hands,
+    shoeId,
+    metrics: {
+      net: summary.net,
+      playErrors: summary.playErrors,
+      betErrors: summary.betErrors,
+      insErrors: summary.insErrors,
+      evLostPer100: summary.evLostPer100,
+      evLostVsBest: summary.evLostVsBest,
+      ...extraMetrics,
+    },
+    mistakes: summary.mistakes.slice(0, 60),
+  });
+  return shoeId;
 }
 
 export function SimResultsView({ summary }: { summary: SimSummary }) {
