@@ -21,3 +21,13 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **2D H17 A,3 vs 4 = double.** Our generator says double by 0.0005; Wizard's Appendix 9 gives the same numbers (hit 0.086531, double 0.087059). The published-chart fixture uses D.
 - **Unseen composition:** the burn card is unknown to the player, so all player-side math uses "remaining shoe + burned cards".
 - **Strategy cache:** generated charts are cached in IndexedDB per rule set (`strategy:v<gen>:<rulesKey>`); user overrides are stored per rule set as a cell → code map, so regenerating never loses edits.
+
+## M3
+- **Drill scoring.** Every drill saves a session record (`sessions` store) with accuracy, average answer time, mistakes and, where meaningful, EV lost. BS-flash EV loss uses the exact full-shoe EVs of that chart cell (probability-weighted over its two-card compositions).
+- **Weighted to misses** = Leitner spaced repetition (`src/store/srs.ts`): a miss sends the item to box 0; hits move it up; selection weight 10/5/3/2/1/0.6 by box, ×2 when due. M5 reuses this.
+- **BS items** are one per decision class (hard total / soft total / pair × upcard). Trivial cells (hard ≤ 8, hard 17+ unless surrender, soft 20) are excluded.
+- **Deviation items** draw the true count from index −2…+2, so the drill trains the boundary. Until rule-specific indices are generated (M6), the index chart is the Illustrious 18 + Fab 4 reference (multi-deck S17 values, as published).
+- **Index precedence:** surrender indices first (when offered), then other matching plays; a pair the chart splits is not overridden by hard-total indices (8,8 isn't hard 16); doubling indices only apply to two-card hands.
+- **Running-count rounds** are dealt with a simple realistic player policy (hit stiffs vs 7+, etc.) plus an occasional random stand; the dealer doesn't draw if every seat busted. The burn card is never shown.
+- **Kelly drill** uses a placeholder edge model (off-the-top edge from the generated chart + 0.5% per TC, variance 1.33) until M8 replaces it with the effect-of-removal model.
+- **Discard tray** renders a side view with ragged card edges and no scale (optional half-deck "learning marks"). Answers are graded to the user's deck-estimation granularity.

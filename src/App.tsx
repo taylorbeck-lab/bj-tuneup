@@ -8,6 +8,12 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { DesignScreen } from './screens/DesignScreen';
 import { StrategyScreen } from './screens/StrategyScreen';
+import { DrillsMenu } from './screens/drills/DrillsMenu';
+import { Countdown } from './screens/drills/Countdown';
+import { RunningCount } from './screens/drills/RunningCount';
+import { DiscardDrill, TrueCountDrill } from './screens/drills/TrayDrills';
+import { BsFlash, DevFlash } from './screens/drills/FlashDrills';
+import { BetDrill } from './screens/drills/BetDrill';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement;
@@ -17,6 +23,16 @@ const ROUTES: Record<string, Screen> = {
   '/about': AboutScreen,
   '/design': DesignScreen,
   '/strategy': StrategyScreen,
+  '/drills': DrillsMenu,
+  '/drills/countdown': () => <Countdown />,
+  '/drills/running': () => <RunningCount mode="rc" />,
+  '/drills/acecount': () => <RunningCount mode="ace" />,
+  '/drills/keycard': () => <RunningCount mode="key" />,
+  '/drills/discard': DiscardDrill,
+  '/drills/truecount': () => <TrueCountDrill />,
+  '/drills/bs': () => <BsFlash />,
+  '/drills/dev': () => <DevFlash />,
+  '/drills/bet': BetDrill,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */
@@ -41,5 +57,6 @@ export function App() {
   useEffect(() => setHaptics(settings.haptics), [settings.haptics]);
   const base = '/' + (path.split('/')[1] ?? '');
   const S = ROUTES[path] ?? ROUTES[base];
-  return <div className="app">{path === '/' ? <Home ready={READY} /> : S ? <S /> : <NotYet path={path} />}</div>;
+  // key by path so navigating between drills remounts state
+  return <div className="app">{path === '/' ? <Home ready={READY} /> : S ? <S key={path} /> : <NotYet path={path} />}</div>;
 }
