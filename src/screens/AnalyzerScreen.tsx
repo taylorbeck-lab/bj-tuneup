@@ -14,6 +14,9 @@ import { call } from '../workers/client';
 import type { DecisionEVs } from '../engine/ev/analyze';
 import { hiLoTag } from '../engine/count';
 import { rulesLabel, canDoubleTotal } from '../engine/rules';
+import { useEdgeModel } from '../store/edge';
+import { edgeEOR, edgeHiLo, edgeHiLoAce, countsOf, kelly } from '../engine/edge';
+import { rampBet } from '../engine/drills';
 
 const VALS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const rng = mulberry32(3);
@@ -73,6 +76,14 @@ export function AnalyzerScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unseen, hand, up, rules]);
 
+  const model = useEdgeModel(rules, st.chart);
+  const nextRound = useMemo(() => {
+    if (!model) return null;
+    // edge of the next round from the shoe as it stands (hand and upcard back in the shoe)
+    const c = countsOf(model, shoe);
+    return { eor: edgeEOR(model, shoe), hilo: edgeHiLo(model, c.tc, c.decksRemaining), ace: edgeHiLoAce(model, c.tc, c.aceSurplusPerDeck, c.decksRemaining), ...c };
+  }, [model, shoe]);
+  const money = (x: number) => '$' + Math.round(x).toLocaleString();
   const legal = (['hit', 'stand', 'double', 'split', 'surrender'] as Action[]).filter((a) => res?.evs?.[a] !== undefined);
   const best = legal.reduce<Action | null>((b, a) => (b === null || (res!.evs![a] as number) > (res!.evs![b] as number) ? a : b), null);
   const chartPlay = st.chart && hand.length >= 2 ? chartAction(st.chart, hand, up, avail) : null;
@@ -159,6 +170,17 @@ export function AnalyzerScreen() {
           </Box>
         )}
 
+        {nextRound && (
+          <Box title="Next round: edge & bet" right={<span className="mono">TC {nextRound.tc.toFixed(1)} · aces {nextRound.aceSurplusPerDeck >= 0 ? '+' : ''}{nextRound.aceSurplusPerDeck.toFixed(1)}/deck</span>}>
+            <Instruments>
+              <Instrument label="Edge (EOR)" value={fmtSigned(nextRound.eor * 100, 2) + '%'} unit="full composition" tone={nextRound.eor > 0 ? 'pos' : undefined} />
+              <Instrument label="Hi-Lo" value={fmtSigned(nextRound.hilo * 100, 2) + '%'} unit="from TC only" />
+              <Instrument label="Hi-Lo + aces" value={fmtSigned(nextRound.ace * 100, 2) + '%'} unit="ace-adjusted" />
+              <Instrument label="Kelly" value={money(kelly(settings.bet.bankroll, nextRound.eor).full)} unit={'half Kelly ' + money(kelly(settings.bet.bankroll, nextRound.eor).half)} />
+              <Instrument label="Your ramp" value={rampBet(settings.bet.ramp, Math.floor(nextRound.tc)) + 'u'} unit={money(rampBet(settings.bet.ramp, Math.floor(nextRound.tc)) * settings.bet.unit)} />
+            </Instruments>
+          </Box>
+        )}
         <Box title="Shoe composition" right={<span className="mono">{shoe.reduce((a, b) => a + b, 0)} cards</span>}>
           <div className="stack" style={{ gap: 'var(--s2)' }}>
             <div className="row" style={{ gap: 'var(--s1)' }}>

@@ -34,6 +34,7 @@ export interface SimSummary {
   mistakes: Mistake[];
   accuracy: number;
   countChecks: { said: number; truth: number }[];
+  bets: { units: number; tc: number; unseen: number[] }[];
 }
 
 export function handName(values: readonly number[]): string {
@@ -115,5 +116,6 @@ export async function summarize(logs: RoundLog[], analyses: Analysed[], chart: C
     mistakes,
     accuracy: decisionsTotal ? 1 - errorsTotal / decisionsTotal : 1,
     countChecks,
+    bets: logs.map((l) => ({ units: l.bet.units, tc: l.bet.tc, unseen: l.bet.unseen })),
   };
 }

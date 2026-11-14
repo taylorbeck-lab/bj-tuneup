@@ -17,6 +17,7 @@
 import type { Comp } from '../shoe';
 import type { Rules } from '../rules';
 import { canDoubleTotal } from '../rules';
+import type { Chart } from '../strategy/chart';
 import { POW, dealerProbs, standEV, type DealerVec } from './dealer';
 
 export const total = (sum: number, ace: boolean): number => (ace && sum + 10 <= 21 ? sum + 10 : sum);
@@ -31,11 +32,18 @@ export class EvEngine {
   private dcache = new Map<number, DealerVec>();
   private solvers = new Map<number, HandSolver>();
 
-  constructor(base: Comp, up: number, rules: Rules) {
+  /**
+   * Optional hit/stand policy after the first decision: when set, continuation hits or stands as the
+   * chart says (a basic-strategy player) instead of the composition-optimal choice.
+   */
+  readonly continuation?: Chart;
+
+  constructor(base: Comp, up: number, rules: Rules, continuation?: Chart) {
     this.base = base.slice();
     this.up = up;
     this.rules = rules;
     this.excl = up === 1 ? 10 : up === 10 ? 1 : 0;
+    this.continuation = continuation;
   }
 
   /** Dealer distribution for the shoe B - R, where `shoe` currently equals B - R and `rkey` = key(R). */
@@ -162,7 +170,14 @@ export class HandSolver {
     if (ev !== undefined) return ev;
     const t = total(sum, ace);
     const s = this.stand(hk, t);
-    ev = t >= 21 ? s : Math.max(s, this.hit(hk, sum, ace));
+    const ch = this.eng.continuation;
+    if (t >= 21) ev = s;
+    else if (ch) {
+      const soft = isSoft(sum, ace);
+      const code = soft ? ch.soft[t] : ch.hard[Math.max(4, t)];
+      const c = code?.[this.eng.up === 1 ? 9 : this.eng.up - 2];
+      ev = c === 'S' || c === 'Ds' || c === 'Rs' ? s : this.hit(hk, sum, ace);
+    } else ev = Math.max(s, this.hit(hk, sum, ace));
     this.bestMemo.set(hk, ev);
     return ev;
   }

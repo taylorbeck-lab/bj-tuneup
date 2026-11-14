@@ -17,10 +17,12 @@
 
 - **M6 — exact EV analyzer + index generation:** done, merged (PR #6). `#/analyzer`: any composition / hand / upcard → exact EV of hit, stand, double, split, surrender, insurance, dealer outcome table, chart vs index vs exact play. `#/indices`: risk-neutral Hi-Lo indices generated for your rules (≈15 s in the worker, cached), I18 + Fab 4 reference, custom edits; EV-gain curve per play. Drills/sim use the selected source.
 
-- **M7 — Feel Lab + Hand Review + Feel rating:** done (PR open). `#/feel`: play on feel (natural or hot shoes), every decision scored vs chart / index / exact; fringe plays, hit rate, EV gained/lost, missed EV, Feel rating (documented formula) with trend, sharp/leaky situations and plain-language takeaways. `#/review`: replay any session hand by hand with exact EVs; export JSON.
+- **M7 — Feel Lab + Hand Review + Feel rating:** done, merged (PR #7). `#/feel`: play on feel (natural or hot shoes), every decision scored vs chart / index / exact; fringe plays, hit rate, EV gained/lost, missed EV, Feel rating (documented formula) with trend, sharp/leaky situations and plain-language takeaways. `#/review`: replay any session hand by hand with exact EVs; export JSON.
+
+- **M8 — player edge, ace adjustment, Kelly, goal mode, Strike Mode:** done (PR open). EOR edge model (depth-corrected, calibrated, verified by simulation) with Hi-Lo and ace-adjusted estimates; Kelly / half Kelly vs your ramp in the analyzer; Kelly drill uses the model; Feel Lab scores bets; `#/strike`: five scenarios graded on P(goal) vs EV for bet and play.
 
 ## Next
-- M8: player edge (EOR), ace adjustment, Kelly sizing, goal-mode math, Strike Mode.
+- M9: side bet calculators, custom paytables, Side Bet Hunter.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).

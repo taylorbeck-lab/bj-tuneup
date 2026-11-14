@@ -25,13 +25,13 @@ export interface HandEVRecord {
 }
 
 /** EVs of all initial two-card hands vs every upcard from composition `comp`. */
-export function allInitialEVs(comp: Comp, rules: Rules, ups: readonly number[] = UPS): HandEVRecord[] {
+export function allInitialEVs(comp: Comp, rules: Rules, ups: readonly number[] = UPS, continuation?: Chart): HandEVRecord[] {
   const out: HandEVRecord[] = [];
   for (const up of ups) {
     if (comp[up] <= 0) continue;
     const base = comp.slice();
     base[up]--;
-    const eng = new EvEngine(base, up, rules);
+    const eng = new EvEngine(base, up, rules, continuation);
     for (let a = 1; a <= 10; a++) {
       for (let b = a; b <= 10; b++) {
         const w = a === b ? base[a] * (base[a] - 1) : 2 * base[a] * base[b];
@@ -156,12 +156,13 @@ export function generateBasicStrategy(rules: Rules, comp: Comp = fullComp(rules.
 
 /**
  * Expected value of one round (per unit initial bet) from composition `comp`:
- * with `chart` the initial decision follows the chart (hit/stand continuation is optimal);
+ * with `chart` the initial decision follows the chart (hit/stand continuation is composition-optimal,
+ * or follows the chart too with `chartContinuation`);
  * without, the initial decision is composition-dependent optimal.
  * Insurance is never taken. Dealer peeks for blackjack.
  */
-export function roundEV(comp: Comp, rules: Rules, chart?: Chart, recs?: HandEVRecord[]): number {
-  const records = recs ?? allInitialEVs(comp, rules);
+export function roundEV(comp: Comp, rules: Rules, chart?: Chart, recs?: HandEVRecord[], chartContinuation = false): number {
+  const records = recs ?? allInitialEVs(comp, rules, UPS, chartContinuation ? chart : undefined);
   let n = 0;
   for (let v = 1; v <= 10; v++) n += comp[v];
   let ev = 0;
