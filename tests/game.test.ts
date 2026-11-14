@@ -198,3 +198,36 @@ describe('simulation sanity', () => {
     expect(sd).toBeLessThan(1.2);
   });
 });
+
+describe('V2 table: two spots, dollar bets, bots', () => {
+  it('deals two human spots, asks insurance per spot, and sums the result', () => {
+    const r = { ...DEFAULT_RULES, burn: 0 };
+    const t = new Table({ rules: r, seats: 3, humanSeat: 0, humanSeats: [0, 1], chart: chart2, seed: 3, granularity: 0, rounding: 'floor', botBet: () => 25 });
+    // deal order: s0, s1, s2, dealer up, s0, s1, s2, hole
+    t.shoe.stack([C(10), C(9), C(5), C(1), C(10, 1), C(9, 1), C(6), C(7)]);
+    t.placeBet({ 0: 50, 1: 100 });
+    expect(t.seats[2].baseBet).toBe(25);
+    t.runToHuman();
+    expect(t.phase).toBe('insurance');
+    expect(t.pendingInsurance).toEqual([0, 1]);
+    t.insure(false);
+    expect(t.phase).toBe('insurance');
+    t.insure(false);
+    t.runToHuman();
+    // human 20 and 18 vs dealer A,7 = soft 18
+    t.act('stand');
+    t.act('stand');
+    t.runToHuman();
+    expect(t.phase).toBe('settled');
+    const log = t.logs[t.logs.length - 1];
+    expect(log.playerHands.length).toBe(2);
+    expect(log.net).toBe(50 + 0);
+  });
+  it('an empty human spot (bet 0) is not dealt', () => {
+    const t = new Table({ rules: { ...DEFAULT_RULES, burn: 0 }, seats: 2, humanSeat: 0, humanSeats: [0, 1], chart: chart2, seed: 4, granularity: 0, rounding: 'floor' });
+    t.placeBet({ 0: 25, 1: 0 });
+    t.runToHuman();
+    expect(t.seats[1].hands.length).toBe(0);
+    expect(t.current!.dealt.filter((d) => d.who === 1).length).toBe(0);
+  });
+});

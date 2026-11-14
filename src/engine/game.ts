@@ -11,6 +11,7 @@ import type { Rules } from './rules';
 import { canDoubleTotal } from './rules';
 import { chartAction, type Action, type Avail, type Chart } from './strategy/chart';
 import { hiLoCard, roundTc, estimateDecks, type Rounding } from './count';
+import { mulberry32 } from './rng';
 
 export interface Hand {
   cards: CardId[];
@@ -102,6 +103,12 @@ export interface TableOptions {
   rounding: Rounding;
   /** Hot shoes for Feel Lab (see Shoe.skew). */
   skew?: number;
+  /** Human-controlled seats (V2: one or two spots). Defaults to [humanSeat]. */
+  humanSeats?: number[];
+  /** Bet placed by a bot seat each round (default 1). */
+  botBet?: (seat: number) => number;
+  /** Probability a bot misplays a stiff hard 12-16 (realistic tables). Default 0. */
+  botMistakeRate?: number;
 }
 
 export class Table {
@@ -130,11 +137,20 @@ export class Table {
     this.rules = opts.rules;
     this.chart = opts.chart;
     this.shoe = new Shoe(opts.rules.decks, opts.rules.penetration, opts.rules.burn, opts.seed, opts.skew ?? 0);
-    this.seats = Array.from({ length: opts.seats }, (_, i) => ({ human: i === opts.humanSeat, hands: [], insurance: 0, baseBet: 1 }));
+    const humans = opts.humanSeats ?? [opts.humanSeat];
+    this.humanSeats = humans;
+    this.seats = Array.from({ length: opts.seats }, (_, i) => ({ human: humans.includes(i), hands: [], insurance: 0, baseBet: 1 }));
+    this.botRng = mulberry32((opts.seed ?? 1) ^ 0x9e3779b9);
   }
 
+  readonly humanSeats: number[];
+  private botRng: () => number;
+  /** Human seats still to decide on insurance this round. */
+  pendingInsurance: number[] = [];
+
+  /** The first human seat (single-spot play). */
   get human(): Seat {
-    return this.seats[this.opts.humanSeat];
+    return this.seats[this.humanSeats[0]];
   }
   get upCard(): CardId {
     return this.dealer[0];
@@ -167,18 +183,23 @@ export class Table {
     this.seenCount++;
   }
 
-  /** Start a round with the human's bet (units). Bots bet 1 unit. */
-  placeBet(units: number): void {
+  /**
+   * Start a round. `bets` is the human's bet (units or dollars) for a single spot, or a map
+   * seat -> bet for several spots (a bet of 0 leaves that spot empty). Bots bet `botBet` (default 1).
+   */
+  placeBet(bets: number | Record<number, number>): void {
     if (this.phase !== 'bet' && this.phase !== 'settled') throw new Error('Not betting');
     if (this.needsShuffle) this.reshuffle();
+    const humanBet = (i: number) => (typeof bets === 'number' ? (i === this.humanSeats[0] ? bets : 0) : bets[i] ?? 0);
+    const units = typeof bets === 'number' ? bets : Object.values(bets).reduce((a, b) => a + b, 0);
     this.round++;
     this.dealer = [];
     this.holeRevealed = false;
-    for (const s of this.seats) {
-      s.baseBet = s.human ? units : 1;
+    this.seats.forEach((s, i) => {
+      s.baseBet = s.human ? humanBet(i) : (this.opts.botBet?.(i) ?? 1);
       s.insurance = 0;
-      s.hands = [{ cards: [], bet: s.baseBet, doubled: false, surrendered: false, fromSplit: false, splitAces: false, done: false }];
-    }
+      s.hands = s.baseBet > 0 ? [{ cards: [], bet: s.baseBet, doubled: false, surrendered: false, fromSplit: false, splitAces: false, done: false }] : [];
+    });
     this.current = {
       round: this.round,
       bet: { round: this.round, units, tc: this.tcPlayer(), tcExact: this.tcExact(), rc: this.rc, unseen: this.unseen() },
@@ -191,7 +212,7 @@ export class Table {
     };
     this.dealQueue = [];
     for (let r = 0; r < 2; r++) {
-      for (let i = 0; i < this.seats.length; i++) this.dealQueue.push({ who: i, hand: 0 });
+      for (let i = 0; i < this.seats.length; i++) if (this.seats[i].hands.length) this.dealQueue.push({ who: i, hand: 0 });
       this.dealQueue.push({ who: -1, hand: 0 });
     }
     this.phase = 'deal';
@@ -215,11 +236,10 @@ export class Table {
 
   /** Is the game waiting for the human? */
   get waitingForHuman(): boolean {
-    if (this.phase === 'insurance') return !this.insuranceDecided;
+    if (this.phase === 'insurance') return this.pendingInsurance.length > 0;
     if (this.phase === 'play') return this.seats[this.turn.seat]?.human ?? false;
     return this.phase === 'bet' || this.phase === 'settled';
   }
-  private insuranceDecided = false;
 
   /** Perform one automatic step (deal a card, a bot action, a dealer draw). Returns false if nothing to do. */
   step(): boolean {
@@ -254,21 +274,21 @@ export class Table {
 
   private afterDeal(): void {
     const up = valueOf(this.dealer[0]);
-    this.insuranceDecided = false;
-    if (up === 1 && this.human) {
+    this.pendingInsurance = up === 1 ? this.humanSeats.filter((i) => this.seats[i].hands.length > 0) : [];
+    if (this.pendingInsurance.length) {
       this.phase = 'insurance';
       return;
     }
     this.peekAndContinue();
   }
 
-  /** Human insurance decision (insurance stake = half the bet). */
+  /** Human insurance decision for the next undecided spot (insurance stake = half the bet). */
   insure(take: boolean): void {
-    if (this.phase !== 'insurance') throw new Error('No insurance offered');
-    const s = this.human;
+    if (this.phase !== 'insurance' || !this.pendingInsurance.length) throw new Error('No insurance offered');
+    const seat = this.pendingInsurance.shift()!;
+    const s = this.seats[seat];
     if (take) s.insurance = s.baseBet / 2;
-    this.insuranceDecided = true;
-    if (this.current)
+    if (this.current && !this.current.insurance)
       this.current.insurance = {
         round: this.round,
         unseen: this.unseen(),
@@ -277,7 +297,7 @@ export class Table {
         take,
         evenMoney: isBlackjack(s.hands[0].cards.map(valueOf)),
       };
-    this.peekAndContinue();
+    if (!this.pendingInsurance.length) this.peekAndContinue();
   }
 
   private peekAndContinue(): void {
@@ -291,7 +311,7 @@ export class Table {
     // Player blackjacks are paid at settlement; mark them done.
     for (const s of this.seats) {
       const h = s.hands[0];
-      if (isBlackjack(h.cards.map(valueOf))) h.done = true;
+      if (h && isBlackjack(h.cards.map(valueOf))) h.done = true;
     }
     this.phase = 'play';
     this.turn = { seat: 0, hand: 0 };
@@ -369,7 +389,9 @@ export class Table {
 
   private botAction(h: Hand, s: Seat): Action {
     const a = this.availFor(h, s);
-    const act = chartAction(this.chart, h.cards.map(valueOf), valueOf(this.dealer[0]), a);
+    let act = chartAction(this.chart, h.cards.map(valueOf), valueOf(this.dealer[0]), a);
+    const t = handTotal(h.cards.map(valueOf));
+    if (!t.soft && t.total >= 12 && t.total <= 16 && (act === 'hit' || act === 'stand') && this.botRng() < (this.opts.botMistakeRate ?? 0)) act = act === 'hit' ? 'stand' : 'hit';
     return this.legalActions().includes(act) ? act : 'stand';
   }
 
@@ -457,7 +479,12 @@ export class Table {
   private settle(dealerBJ: boolean): void {
     const dv = this.dealer.map(valueOf);
     const dt = handTotal(dv).total;
+    if (this.current) {
+      this.current.net = 0;
+      this.current.playerHands = [];
+    }
     for (const s of this.seats) {
+      if (!s.hands.length) continue;
       let seatNet = 0;
       if (s.insurance) seatNet += dealerBJ ? 2 * s.insurance : -s.insurance;
       for (const h of s.hands) {
@@ -476,10 +503,10 @@ export class Table {
         seatNet += net;
       }
       if (s.human && this.current) {
-        this.current.net = seatNet;
+        this.current.net += seatNet;
         this.current.dealerBJ = dealerBJ;
         this.current.dealer = [...this.dealer];
-        this.current.playerHands = s.hands.map((h) => ({ cards: [...h.cards], bet: h.bet, net: h.net ?? 0 }));
+        this.current.playerHands.push(...s.hands.map((h) => ({ cards: [...h.cards], bet: h.bet, net: h.net ?? 0 })));
       }
     }
     if (this.current) {
