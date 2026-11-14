@@ -22,6 +22,7 @@ import { IndicesScreen } from './screens/IndicesScreen';
 import { FeelLabScreen } from './screens/FeelLabScreen';
 import { ReviewList, ReviewDetail } from './screens/ReviewScreen';
 import { StrikeScreen } from './screens/StrikeScreen';
+import { SideBetScreen } from './screens/SideBetScreen';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement | null;
@@ -49,6 +50,7 @@ const ROUTES: Record<string, Screen> = {
   '/feel': FeelLabScreen,
   '/review': ReviewList,
   '/strike': StrikeScreen,
+  '/sidebets': SideBetScreen,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */
