@@ -10,7 +10,7 @@ import { loadSrs, recordSrs, pickWeighted, weight, type SrsItem } from '../../st
 import { chartAction, ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { handTotal, valueLabel } from '../../engine/cards';
 import { playLabel, type IndexPlay } from '../../engine/indices';
-import { DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
+import { type Embed, DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
 import type { ActionEVs } from '../../engine/ev/engine';
 
 type Phase = 'intro' | 'run' | 'done';
@@ -38,7 +38,8 @@ function evLoss(evs: ActionEVs | undefined, chosen: Action, best: Action): numbe
 }
 
 /** Basic strategy flash cards, weighted to your misses. */
-export function BsFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (acc: number) => void } = {}) {
+export function BsFlash({ embed }: { embed?: Embed } = {}) {
+  const nDefault = embed?.n ?? 30;
   const { settings } = useSettings();
   const rules = settings.rules;
   const st = useStrategy(rules);
@@ -67,7 +68,7 @@ export function BsFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (ac
 
   if (phase === 'intro')
     return (
-      <DrillIntro
+      <DrillIntro auto={!!embed}
         title="Basic strategy flash"
         startLabel={st.chart ? 'Start' : 'Computing chart…'}
         onStart={() => {
@@ -88,7 +89,7 @@ export function BsFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (ac
       </DrillIntro>
     );
   if (phase === 'done')
-    return <DrillResult kind="drill:bs" title="Basic strategy" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} onSaved={() => onDone?.(tally.total ? tally.correct / tally.total : 0)} />;
+    return <DrillResult embed={embed?.onDone} kind="drill:bs" title="Basic strategy" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} />;
 
   if (!cur || !st.chart) return null;
   const { item } = cur;
@@ -131,7 +132,8 @@ export function BsFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (ac
 }
 
 /** Deviation flash cards (index plays + insurance), weighted to your misses. */
-export function DevFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (acc: number) => void } = {}) {
+export function DevFlash({ embed }: { embed?: Embed } = {}) {
+  const nDefault = embed?.n ?? 30;
   const { settings } = useSettings();
   const rules = settings.rules;
   const st = useStrategy(rules);
@@ -160,7 +162,7 @@ export function DevFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (a
 
   if (phase === 'intro')
     return (
-      <DrillIntro
+      <DrillIntro auto={!!embed}
         title="Deviations flash"
         startLabel={st.chart ? 'Start' : 'Computing chart…'}
         onStart={() => {
@@ -181,7 +183,7 @@ export function DevFlash({ n: nDefault = 30, onDone }: { n?: number; onDone?: (a
       </DrillIntro>
     );
   if (phase === 'done')
-    return <DrillResult kind="drill:dev" title="Deviations" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} onSaved={() => onDone?.(tally.total ? tally.correct / tally.total : 0)} />;
+    return <DrillResult embed={embed?.onDone} kind="drill:dev" title="Deviations" tally={tally} durationMs={performance.now() - t0} onAgain={() => setPhase('intro')} />;
   if (!cur || !st.chart) return null;
   const { item } = cur;
   const isIns = item.play.hand.kind === 'insurance';

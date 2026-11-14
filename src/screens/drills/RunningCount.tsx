@@ -6,7 +6,7 @@ import { mulberry32, randomSeed, type Rng } from '../../engine/rng';
 import { Shoe } from '../../engine/shoe';
 import { hiLoCard } from '../../engine/count';
 import { cardLabel, cardName, rankOf, makeCard, type CardId } from '../../engine/cards';
-import { DrillIntro, DrillResult, useTally, Progress } from './common';
+import { type Embed, DrillIntro, DrillResult, useTally, Progress } from './common';
 import { useSettings } from '../../store/SettingsContext';
 
 export type CountMode = 'rc' | 'ace' | 'key';
@@ -14,7 +14,8 @@ type Phase = 'intro' | 'run' | 'check' | 'done';
 
 const TITLES: Record<CountMode, string> = { rc: 'Running count', ace: 'Ace side count', key: 'Key cards' };
 
-export function RunningCount({ mode = 'rc', checkpointsTarget = 8, onDone }: { mode?: CountMode; checkpointsTarget?: number; onDone?: (acc: number, avgMs: number) => void }) {
+export function RunningCount({ mode = 'rc', embed }: { mode?: CountMode; embed?: Embed }) {
+  const checkpointsTarget = embed?.n ?? 8;
   const { settings } = useSettings();
   const rules = settings.rules;
   const keyCards = settings.count.keyCards.length ? settings.count.keyCards : [makeCard(12, 0), makeCard(11, 1)];
@@ -91,18 +92,9 @@ export function RunningCount({ mode = 'rc', checkpointsTarget = 8, onDone }: { m
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, round, revealed, speed]);
 
-  const doneRef = useRef(false);
-  useEffect(() => {
-    if (phase === 'done' && !doneRef.current) {
-      doneRef.current = true;
-      onDone?.(tally.total ? tally.correct / tally.total : 0, tally.times.length ? tally.times.reduce((a, b) => a + b, 0) / tally.times.length : 0);
-    }
-    if (phase === 'run') doneRef.current = false;
-  }, [phase, tally, onDone]);
-
   if (phase === 'intro')
     return (
-      <DrillIntro title={TITLES[mode]} onStart={start}>
+      <DrillIntro auto={!!embed} title={TITLES[mode]} onStart={start}>
         <p>
           {mode === 'rc' && 'Keep the Hi-Lo running count while rounds are dealt at game speed. The burn card is not counted. At random checkpoints, enter the count.'}
           {mode === 'ace' && 'Track aces while rounds are dealt. At checkpoints, say how many aces are still unseen (burn card counts as unseen).'}
@@ -121,7 +113,7 @@ export function RunningCount({ mode = 'rc', checkpointsTarget = 8, onDone }: { m
     );
 
   if (phase === 'done') {
-    return <DrillResult kind={`drill:${mode === 'rc' ? 'running' : mode === 'ace' ? 'acecount' : 'keycard'}`} title={TITLES[mode]} tally={tally} durationMs={elapsed} metrics={{ speedMs: speed }} onAgain={() => setPhase('intro')} />;
+    return <DrillResult embed={embed?.onDone} kind={`drill:${mode === 'rc' ? 'running' : mode === 'ace' ? 'acecount' : 'keycard'}`} title={TITLES[mode]} tally={tally} durationMs={elapsed} metrics={{ speedMs: speed }} onAgain={() => setPhase('intro')} />;
   }
 
   const r = round!;
