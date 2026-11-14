@@ -7,6 +7,7 @@ import { RulesScreen } from './screens/RulesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { AboutScreen } from './screens/AboutScreen';
 import { DesignScreen } from './screens/DesignScreen';
+import { StrategyScreen } from './screens/StrategyScreen';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement;
@@ -15,6 +16,7 @@ const ROUTES: Record<string, Screen> = {
   '/settings': SettingsScreen,
   '/about': AboutScreen,
   '/design': DesignScreen,
+  '/strategy': StrategyScreen,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */

@@ -10,6 +10,7 @@ interface Entry {
 }
 
 export const MODES: Entry[] = [
+  { path: '/strategy', title: 'Strategy chart', sub: 'Exact basic strategy for your rules, editable', ready: false },
   { path: '/drills', title: 'Drills', sub: 'Countdown, running count, discards, true count, flash cards, bets', ready: false },
   { path: '/sim', title: 'Table sim', sub: 'Full game, 1–6 seats, coach off or whisper', ready: false },
   { path: '/feel', title: 'Feel Lab', sub: 'Play on feel, scored against exact math', ready: false },
