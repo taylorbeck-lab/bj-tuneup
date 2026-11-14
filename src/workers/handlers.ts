@@ -29,7 +29,35 @@ export interface GoalHandResult {
   pWin: number;
 }
 
+export interface ActionOdds {
+  action: Action;
+  win: number;
+  push: number;
+  lose: number;
+  /** Average result per unit bet. */
+  ev: number;
+}
+
 export const handlers = {
+  /** Win / push / lose chances of every legal action (rest of the hand played max-EV). */
+  coachOdds(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail): ActionOdds[] {
+    const base = unseen.slice();
+    for (const v of values) base[v]++;
+    const eng = engineFor(base, up, rules);
+    const d = new GoalSolver(eng, (n) => n).actions(values, avail);
+    return (Object.keys(d) as Action[]).map((a) => {
+      const dist = d[a] as Dist;
+      let win = 0;
+      let push = 0;
+      let lose = 0;
+      for (const [n, p] of dist) {
+        if (n > 0) win += p;
+        else if (n < 0) lose += p;
+        else push += p;
+      }
+      return { action: a, win, push, lose, ev: mean(dist) };
+    });
+  },
   edgeModel(rules: Rules, chart: Chart): EdgeModel {
     return computeEdgeModel(rules, chart);
   },

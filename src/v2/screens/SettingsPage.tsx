@@ -39,6 +39,17 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+type Coach = V2Settings['coach'];
+/** One-tap learning path: each step turns on the next layer. */
+const PATH: { title: string; sub: string; coach: Partial<Coach> }[] = [
+  { title: 'Play every hand right', sub: 'basic strategy with a coach', coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'off', betCoach: false } },
+  { title: 'Start counting', sub: 'the count shown, plus easy quizzes', coach: { deviations: false, showCount: true, countQuiz: 'sometimes', betCoach: false } },
+  { title: 'Count on your own', sub: 'no helper, more quizzes', coach: { deviations: false, showCount: false, countQuiz: 'often', betCoach: false } },
+  { title: 'Count plays', sub: 'the right play changes with the count', coach: { deviations: true, showCount: false, countQuiz: 'sometimes', betCoach: false } },
+  { title: 'Bet the count', sub: 'raise when the shoe is yours', coach: { deviations: true, showCount: false, countQuiz: 'sometimes', betCoach: true } },
+];
+const matches = (c: Coach, p: Partial<Coach>) => (Object.keys(p) as (keyof Coach)[]).every((k) => k === 'feedback' || c[k] === p[k]);
+
 export function SettingsPage() {
   const { s, set } = useV2();
   const { br, reset } = useBankroll(s.startBankroll);
@@ -57,6 +68,24 @@ export function SettingsPage() {
         </span>
       </header>
       <div className="page">
+        <Group title="Learning path">
+          <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+            {PATH.map((p, i) => {
+              const on = matches(s.coach, p.coach);
+              return (
+                <button key={i} className={'act' + (on ? ' stand' : ' quiet')} style={{ textAlign: 'left', padding: '8px 12px', minHeight: 0 }} onClick={() => C(p.coach)}>
+                  <span className="display" style={{ fontSize: 18 }}>
+                    {i + 1}. {p.title}
+                  </span>{' '}
+                  <span className="serif" style={{ fontSize: 17, textTransform: 'none' }}>
+                    {p.sub}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Group>
+
         <Group title="Learning">
           <Row label="Coach" hint="Feedback after your decisions">
             <Seg label="Coach" value={s.coach.feedback} onChange={(v) => C({ feedback: v })} options={[{ v: 'always', l: 'Always' }, { v: 'mistakes', l: 'Mistakes' }, { v: 'off', l: 'Off' }]} />

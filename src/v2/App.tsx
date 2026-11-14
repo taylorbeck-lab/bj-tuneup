@@ -1,6 +1,6 @@
 import { useRoute } from '../router';
 import { useV2 } from './settings';
-import { TableScreen } from './table/TableScreen';
+import { PlayScreen } from './play/PlayScreen';
 import { SettingsPage } from './screens/SettingsPage';
 import { ChartPage } from './screens/ChartPage';
 import { Welcome } from './screens/Welcome';
@@ -12,5 +12,5 @@ export function App() {
   if (!s.onboarded) return <Welcome />;
   if (path === '/settings') return <SettingsPage />;
   if (path === '/chart') return <ChartPage />;
-  return <TableScreen />;
+  return <PlayScreen />;
 }

@@ -38,7 +38,7 @@
 # V2: MESA (see docs/v2/BRIEF.md and docs/v2/PLAN.md)
 
 ## Status
-- **V2-1 Table:** done (PR open).
+- **V2-1 Table:** done, merged (PR #11).
   - V1 UI retired; the engine, worker and tests are kept.
   - MESA brand (placeholder) and desert-modern theme.
   - Portrait felt with fixed card spots. Cards slide in from the shoe and never move; every corner index stays visible; long hands wrap.
@@ -48,8 +48,24 @@
   - Bots bet chips and occasionally misplay.
   - Shoe and discard tray; settings page; chart page with count plays.
 
+- **V2-2 Coach + V2-3 Count:** done (PR open).
+  - Coach card after every decision:
+    - right or not, with a short why;
+    - each play's chance to win (exact, for the cards left);
+    - what a mistake costs per $100.
+  - Count plays (deviations) when switched on; insurance feedback.
+  - Count check, available any time: running count → true count, with the discard-tray reading, the arithmetic and what it means.
+  - Dealer quizzes between rounds.
+  - Count badge (training wheels).
+  - Bet coach with a 1-2-4-6-8 spread.
+  - One-tap learning path (1 Play right → 5 Bet the count).
+  - Look refresh from the owner's references: Palm Springs palette, ink outlines and hard shadows, Anton plus Instrument Serif italic, desert icons drawn in-house, action colours shared with the chart.
+  - The table pauses while the count sheet is open.
+
 ## Next
-- V2-2 Coach: feedback after every decision (right or wrong, win chances, the why); deviations toggle; insurance and bet feedback.
+- V2-4 Progress: stats page (strategy %, most-missed hands, count %, deviations, bets, bankroll chart) and a "practice my misses" mode.
+- V2-5 Ask the coach (key-gated AI chat), PWA polish, README.
+- Aesthetics: refine fonts and look once the teaching loop is complete (owner is open to more serif/fancy type).
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
