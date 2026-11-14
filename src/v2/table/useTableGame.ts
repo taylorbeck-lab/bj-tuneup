@@ -166,7 +166,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
   }, [phase, speed.linger, bump, paused]);
 
-  const deal = (bets: Record<number, number>) => {
+  const deal = (bets: Record<number, number>, practice?: { values: [number, number]; up: number } | null) => {
     if (!t) return;
     const bySeat: Record<number, number> = {};
     for (const [spot, amt] of Object.entries(bets)) {
@@ -175,6 +175,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
     placed.current = [];
     t.placeBet(bySeat);
+    if (practice) t.stackPractice(practice.values, practice.up);
     setResult(null);
     setPhase('dealing');
     bump();

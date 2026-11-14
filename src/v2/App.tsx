@@ -4,6 +4,7 @@ import { PlayScreen } from './play/PlayScreen';
 import { SettingsPage } from './screens/SettingsPage';
 import { ChartPage } from './screens/ChartPage';
 import { Welcome } from './screens/Welcome';
+import { StatsPage } from './screens/StatsPage';
 
 export function App() {
   const path = useRoute();
@@ -12,5 +13,6 @@ export function App() {
   if (!s.onboarded) return <Welcome />;
   if (path === '/settings') return <SettingsPage />;
   if (path === '/chart') return <ChartPage />;
+  if (path === '/stats') return <StatsPage />;
   return <PlayScreen />;
 }

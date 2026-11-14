@@ -125,3 +125,8 @@ Judgment calls made while building, newest at the bottom of each milestone.
   - Anton display, Instrument Serif italic accents, Bricolage Grotesque body, JetBrains Mono labels.
 
   The icons are drawn in-house (no licensed assets). Aesthetics will be refined once the teaching loop is complete.
+
+## V2-4
+- **Practice my misses:** when the table opens a round, with probability 35% one of your "leaks" (a situation with a miss in its last three tries, weighted by those misses) is dealt to your first spot. `Table.stackPractice` swaps the needed cards forward in the undealt shoe, so the composition and the count stay real. Only the order changes, and only when the right cards are still in the shoe. The coach marks these hands with ↻ and says "you fixed a leak" when you get one right.
+- **Mastered** = right on the last three tries.
+- **Stats live on the device** (`v2stats` in IndexedDB): per situation, the totals plus the last 10 results; count checks (running exact, true within ±1); insurance; bets; daily totals.

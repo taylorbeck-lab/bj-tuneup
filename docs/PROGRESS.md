@@ -62,8 +62,11 @@
   - Look refresh from the owner's references: Palm Springs palette, ink outlines and hard shadows, Anton plus Instrument Serif italic, desert icons drawn in-house, action colours shared with the chart.
   - The table pauses while the count sheet is open.
 
+- **V2-4 Progress:** done.
+  - Stats page (★): right calls overall and today, count checks, count plays, insurance, bets, a bankroll chart, and the hands to work on with the right play for each.
+  - "Practice my misses" (on by default): on about a third of rounds, a hand you've recently missed is dealt again. Only the order of the undealt cards changes. A hand stays in the list until you get it right three times in a row.
+
 ## Next
-- V2-4 Progress: stats page (strategy %, most-missed hands, count %, deviations, bets, bankroll chart) and a "practice my misses" mode.
 - V2-5 Ask the coach (key-gated AI chat), PWA polish, README.
 - Aesthetics: refine fonts and look once the teaching loop is complete (owner is open to more serif/fancy type).
 

@@ -26,6 +26,8 @@ export interface TableHooks {
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
   paused?: boolean;
+  /** Optional practice hand for the next deal (practice my misses). */
+  practiceHand?: () => { values: [number, number]; up: number } | null;
 }
 
 function totalText(values: number[]): string {
@@ -75,7 +77,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (!t) return;
     setLastBets(b);
     hooks.onBet?.(b, t);
-    g.deal(b);
+    g.deal(b, hooks.practiceHand?.());
     setBets({});
   };
   const rebetAmount = Object.values(lastBets).reduce((a, b) => a + b, 0);
@@ -111,13 +113,16 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       <header className="hud">
         <a className="brand" href="#/" aria-label={BRAND.long}>
           <Mark size={26} color="var(--ink)" />
-          {BRAND.name}
+          <span className="brand-text">{BRAND.name}</span>
         </a>
         <span className="spacer" />
         {hooks.hudExtra}
         <span className="pill mono mustard" aria-label="Bankroll" title="Bankroll">
           {money(br.balance)}
         </span>
+        <a className="pill icon" href="#/stats" aria-label="Your stats">
+          ★
+        </a>
         <a className="pill icon" href="#/chart" aria-label="Strategy chart">
           ▦
         </a>

@@ -139,6 +139,14 @@ a {
   letter-spacing: 0.06em;
   text-decoration: none;
 }
+@media (max-width: 420px) {
+  .hud .brand-text {
+    display: none;
+  }
+  .hud {
+    gap: 6px;
+  }
+}
 .hud .spacer {
   flex: 1;
 }

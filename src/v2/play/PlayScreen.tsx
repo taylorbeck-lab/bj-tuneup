@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TableScreen } from '../table/TableScreen';
 import { useV2 } from '../settings';
 import { useStrategy } from '../../store/strategy';
 import { useIndexPlays } from '../../store/indices';
 import { gradeDecision, gradeInsurance } from '../coach/grade';
 import { CoachCard, type CoachMsg } from '../coach/CoachCard';
-import { recordDecision, recordHand, recordInsurance, recordBet } from '../stats';
+import { recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, type V2Stats } from '../stats';
+import { pickPractice } from '../practice';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
 import { gradeBet } from '../count/bet';
@@ -24,6 +25,12 @@ export function PlayScreen() {
   const n = useRef(0);
   const seq = useRef(0);
   const lastQuizSeen = useRef(-1);
+  const stats = useRef<V2Stats | null>(null);
+  const practiceKey = useRef<string | null>(null);
+  useEffect(() => {
+    loadStats().then((x) => (stats.current = x));
+    return onStats((x) => (stats.current = x));
+  }, []);
 
   const show = (m: CoachMsg) => {
     if (s.coach.feedback === 'off' && m.kind !== 'count') return;
@@ -36,6 +43,13 @@ export function PlayScreen() {
       <TableScreen
         hooks={{
           paused: !!countOpen,
+          practiceHand: () => {
+            practiceKey.current = null;
+            if (!s.coach.practiceMisses || !stats.current || Math.random() > 0.35) return null;
+            const p = pickPractice(stats.current, Math.random);
+            if (p) practiceKey.current = p.key;
+            return p;
+          },
           hudExtra: (
             <button className="pill coral" onClick={() => tableRef.current && setCountOpen({ t: tableRef.current, quiz: false })} aria-label="Count check">
               Count?
@@ -76,7 +90,8 @@ export function PlayScreen() {
             const v = gradeDecision(snap, st.chart, plays, s.coach.deviations, n.current++);
             recordDecision(v.key, v.hand, v.right, !!v.countPlay);
             const id = ++seq.current;
-            const base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: v.accent, hand: v.hand, text: v.why, verdict: v };
+            const practiced = practiceKey.current === v.key;
+            const base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
             show(base);
             call('coachOdds', snap.unseen, snap.values, snap.up, s.rules, snap.avail).then((odds) => {
               if (seq.current === id) show({ ...base, odds });
