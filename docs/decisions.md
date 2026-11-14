@@ -31,3 +31,13 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Running-count rounds** are dealt with a simple realistic player policy (hit stiffs vs 7+, etc.) plus an occasional random stand; the dealer doesn't draw if every seat busted. The burn card is never shown.
 - **Kelly drill** uses a placeholder edge model (off-the-top edge from the generated chart + 0.5% per TC, variance 1.33) until M8 replaces it with the effect-of-removal model.
 - **Discard tray** renders a side view with ragged card edges and no scale (optional half-deck "learning marks"). Answers are graded to the user's deck-estimation granularity.
+
+## M4
+- **Table engine** (`src/engine/game.ts`) is pure and step-driven: the UI calls `step()` at dealer speed so dealing is animated, and blocks only on human decisions (bet, insurance, play, count check). Bots play the generated basic strategy and flat-bet 1 unit.
+- **Unseen composition at a decision** = remaining shoe + burn card + the dealer's unrevealed hole card. Every human decision is snapshotted with it; the exact analyzer scores it in the worker (cached per base composition, so a whole hand reuses one engine).
+- **Errors** are measured against the user's strategy: chart + index plays at the *player's* true count (settings granularity + rounding, computed from the cards actually seen). "EV lost" is the exact EV gap between that play and the chosen one, times the bet (only when positive). The gap to the exact composition-perfect play is reported separately ("vs exact best").
+- **Bet errors** = bet differs from the user's ramp at the player's true count. Their EV cost needs the edge model (M8), so for now they are counted, not costed.
+- **Insurance / even money** offered whenever the dealer shows an ace; graded by the insurance index and costed with the exact ten density.
+- **Count check** at each shuffle (optional): the player enters the running count before the reshuffle.
+- **Coach whisper** shows its hint only after the decision is made, once the worker returns (typically < 30 ms in 2 decks).
+- **Simulation sanity tests:** a shuffle-every-round simulation (1.5M rounds) must match the exact combinatorial round EV within 3 standard errors; a cut-card simulation (2M rounds, 6D S17 DAS LS, one seat) must be within 3.5 SE of Wizard's "basic strategy with cut card" figure. Sessions and their rounds are stored so Hand Review (M7) can replay them.

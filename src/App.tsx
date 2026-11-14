@@ -14,6 +14,7 @@ import { RunningCount } from './screens/drills/RunningCount';
 import { DiscardDrill, TrueCountDrill } from './screens/drills/TrayDrills';
 import { BsFlash, DevFlash } from './screens/drills/FlashDrills';
 import { BetDrill } from './screens/drills/BetDrill';
+import { SimScreen } from './screens/sim/SimScreen';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement;
@@ -33,6 +34,7 @@ const ROUTES: Record<string, Screen> = {
   '/drills/bs': () => <BsFlash />,
   '/drills/dev': () => <DevFlash />,
   '/drills/bet': BetDrill,
+  '/sim': SimScreen,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */

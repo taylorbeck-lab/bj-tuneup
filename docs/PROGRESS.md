@@ -7,10 +7,12 @@
   - Generator reproduces the published 2D H17 DAS, 2D S17 DAS, 6D H17 DAS LS, 6D S17 DAS LS charts cell for cell.
   - Chart editor at `#/strategy`: override any cell, import/export JSON/CSV, CD exceptions.
 
-- **M3 — drills:** done (PR open). `#/drills`: deck countdown, running count (game speed, random checkpoints), discard estimation (visual tray), true count, basic strategy flash and deviations flash (weighted to misses via spaced repetition), bet sizing (ramp / half Kelly), ace side count, key cards.
+- **M3 — drills:** done, merged (PR #3). `#/drills`: deck countdown, running count (game speed, random checkpoints), discard estimation (visual tray), true count, basic strategy flash and deviations flash (weighted to misses via spaced repetition), bet sizing (ramp / half Kelly), ace side count, key cards.
+
+- **M4 — table sim:** done (PR open). `#/sim`: 1–6 seats, seat position, dealer speed, coach off/whisper, insurance/even money, splits/doubles/surrender, count check at shuffle; results screen with exact EV lost per error, bet and insurance errors; sessions + rounds stored for review.
 
 ## Next
-- M4: table sim (coach off / whisper), betting, insurance, results screen.
+- M5: Tune-Up flow, stats history, spaced repetition. First usable release.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
