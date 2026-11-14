@@ -82,3 +82,19 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Buster** is valued with the dealer drawing straight from the unseen cards (players' cards and draws unknown when the bet is made). Wizard's figures use the same model; our 6D H17 values match to 1e-6. In the Hunter's *actual results* a Buster bet can show as lost on a round where every player busted (the table engine doesn't play the dealer's hand then); the EV scoring is unaffected.
 - **Validation:** every bet matches Wizard of Odds full-shoe values (PP 2/6/8D, 21+3 V1/V4/V5 with category counts, Lucky Ladies A at 2/6D including the jackpot permutations, Match the Dealer 2D/6D, Buster 6D H17/S17), and matches brute-force enumeration of every deal from a small physical shoe.
 - **Side Bet Hunter:** the main hand is auto-played at 1 unit with the chart, so the attention goes to tracking key cards and the on/off decision. The exact side-bet EV is recorded before every deal. Timing score = Σ EV of rounds bet ÷ Σ EV of all positive rounds. Also reported: +EV rounds caught, bets made at negative EV, and the actual result. A warning shows when a paytable is positive off the top (probably mis-entered).
+
+## M10
+- **Performance:** every screen is a lazily loaded chunk; the initial bundle went from 383 kB to 245 kB (77 kB gzipped, mostly React). All chunks and fonts are precached by the service worker, so lazy loading never needs the network. Heavy math stays in the worker, and its results are cached in IndexedDB:
+  - strategy ≈ 1.5 s
+  - indices ≈ 15 s
+  - edge model ≈ 10–40 s
+  - decisions ≤ 25 ms
+- **Accessibility:**
+  - axe-core (WCAG 2 A/AA) is clean on 15 screens in both themes.
+  - The light theme uses a darker accent (`#c8290f`) and a darker positive tone for ≥ 4.5:1 contrast.
+  - Progress bars have accessible names; feedback lines are live regions.
+  - Keyboard shortcuts: digits / Enter on keypads; H S D P R on action bars; space in the countdown.
+  - Reduced-motion users get no animation.
+- **Onboarding** is one screen on first launch: what the app is, the legal line, pick your usual game. It can be shown again from Settings.
+- **Backup:** Settings → Export my data (JSON). Import is listed in docs/next.md.
+- **Offline verified:** after one load the service worker serves everything. Offline, a reload works, lazy screens open, and the worker still computes strategy.

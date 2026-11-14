@@ -1,6 +1,6 @@
 import { TopBar, Field, Seg, Switch, Button } from '../ui/components';
 import { useSettings } from '../store/SettingsContext';
-import { clearAll } from '../store/db';
+import { clearAll, getAll, kvGet } from '../store/db';
 import { cardLabel, parseCard } from '../engine/cards';
 import { useState } from 'react';
 
@@ -105,6 +105,28 @@ export function SettingsScreen() {
           </Field>
         </div>
 
+        <div className="grid2" style={{ gap: 'var(--s2)' }}>
+          <Button
+            onClick={async () => {
+              const data = {
+                exportedAt: new Date().toISOString(),
+                settings: await kvGet('settings'),
+                sessions: await getAll('sessions'),
+                srs: await getAll('srs'),
+                shoes: await getAll('shoes'),
+              };
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+              a.download = `tuneup-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+            }}
+          >
+            Export my data
+          </Button>
+          <Button variant="ghost" onClick={() => update({ onboarded: false })}>
+            Show intro
+          </Button>
+        </div>
         <Button
           variant="danger"
           onClick={async () => {

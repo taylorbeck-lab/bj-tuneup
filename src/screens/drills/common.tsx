@@ -179,7 +179,7 @@ export function Feedback({ fb }: { fb: { ok: boolean; text: string } | null }) {
 
 export function Progress({ value, max }: { value: number; max: number }) {
   return (
-    <div className="progress" role="progressbar" aria-valuenow={value} aria-valuemax={max}>
+    <div className="progress" role="progressbar" aria-label="Progress" aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}>
       <i style={{ width: `${Math.min(100, (100 * value) / max)}%` }} />
     </div>
   );

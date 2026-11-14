@@ -56,8 +56,10 @@
 :root[data-theme='light'] {
   --bg: var(--paper);
   --fg: var(--ink);
-  --mid: #6f6e69;
-  --pos: #4f7a5c;
+  --mid: #6a6964;
+  /* same hue, darker for ≥ 4.5:1 text contrast on off-white */
+  --accent: #c8290f;
+  --pos: #3c6447;
   --suit-s: var(--fg);
   --suit-h: #b04a4a;
   --suit-d: #2f68b0;
