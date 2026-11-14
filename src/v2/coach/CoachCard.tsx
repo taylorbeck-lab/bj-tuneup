@@ -17,7 +17,7 @@ const pct = (x: number) => Math.round(x * 100) + '%';
 const per100 = (x: number) => (x >= 0 ? `+$${Math.round(x * 100)}` : `−$${Math.round(-x * 100)}`);
 
 /** The coach's card: verdict, the odds of each play in plain words, and the why. */
-export function CoachCard({ msg, onClose }: { msg: CoachMsg; onClose?: () => void }) {
+export function CoachCard({ msg, onClose, askHref }: { msg: CoachMsg; onClose?: () => void; askHref?: string }) {
   const v = msg.verdict;
   const odds = msg.odds ? [...msg.odds].sort((a, b) => b.ev - a.ev) : null;
   const best = odds?.[0];
@@ -46,7 +46,17 @@ export function CoachCard({ msg, onClose }: { msg: CoachMsg; onClose?: () => voi
             ))}
         </div>
       )}
-      <p>{msg.text}</p>
+      <p>
+        {msg.text}
+        {askHref && (
+          <>
+            {' '}
+            <a href={askHref} onClick={(e) => e.stopPropagation()} style={{ fontWeight: 700 }}>
+              Ask the coach →
+            </a>
+          </>
+        )}
+      </p>
       {v && !v.right && chosen && correct && correct.ev > chosen.ev && (
         <p className="muted" style={{ fontSize: 13 }}>
           Over time, {ACTION_LABEL[v.chosen].toLowerCase()} here costs about <b>${Math.max(1, Math.round((correct.ev - chosen.ev) * 100))}</b> per $100 bet. ({ACTION_LABEL[v.correct]}: {per100(correct.ev)}, {ACTION_LABEL[v.chosen]}: {per100(chosen.ev)} per $100 on average.)

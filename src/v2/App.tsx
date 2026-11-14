@@ -5,6 +5,8 @@ import { SettingsPage } from './screens/SettingsPage';
 import { ChartPage } from './screens/ChartPage';
 import { Welcome } from './screens/Welcome';
 import { StatsPage } from './screens/StatsPage';
+import { lazy, Suspense } from 'react';
+const CoachPage = lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage })));
 
 export function App() {
   const path = useRoute();
@@ -14,5 +16,11 @@ export function App() {
   if (path === '/settings') return <SettingsPage />;
   if (path === '/chart') return <ChartPage />;
   if (path === '/stats') return <StatsPage />;
+  if (path.split('?')[0] === '/coach')
+    return (
+      <Suspense fallback={null}>
+        <CoachPage />
+      </Suspense>
+    );
   return <PlayScreen />;
 }

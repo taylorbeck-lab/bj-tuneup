@@ -88,6 +88,9 @@ export function StatsPage() {
           ← Table
         </a>
         <span className="spacer" />
+        <a className="pill coral" href="#/coach">
+          ✦ Ask the coach
+        </a>
         <Starburst color="var(--coral)" />
       </header>
       <div className="page">
