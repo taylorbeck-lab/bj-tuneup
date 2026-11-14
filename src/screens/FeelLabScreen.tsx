@@ -6,10 +6,14 @@ import { useStrategy } from '../store/strategy';
 import { listSessions, type SessionRecord } from '../store/sessions';
 import { SimRun } from './sim/SimScreen';
 import type { SimSummary } from './sim/summary';
+import type { EdgeModel } from '../engine/edge';
 import type { SimConfig } from './sim/useSim';
 import { toFeelRecord, feelStats, takeaways, situations, isRight, type FeelRecord, type FeelStats } from '../engine/feel';
 import { ACTION_LABEL } from '../engine/strategy/chart';
 import { navigate } from '../router';
+import { useEdgeModel } from '../store/edge';
+import { scoreBets } from '../engine/edge';
+import { rampBet } from '../engine/drills';
 
 type Tab = 'play' | 'history';
 
@@ -94,9 +98,26 @@ function FeelSummary({ st, recs }: { st: FeelStats; recs: FeelRecord[] }) {
   );
 }
 
+function BetFeel({ bets, model, ramp }: { bets: SimSummary['bets']; model: EdgeModel; ramp: number[] }) {
+  const b = scoreBets(bets, model, (tc) => rampBet(ramp, tc));
+  return (
+    <Box title="Bet feel">
+      <Instruments>
+        <Instrument label="Your bets" value={fmtSigned(b.betEV, 2)} unit={`units EV · ${b.units} units bet`} tone={b.betEV < 0 ? 'bad' : 'pos'} />
+        <Instrument label="Your ramp" value={fmtSigned(b.rampEV, 2)} unit={`units EV · ${b.rampUnits} units bet`} />
+        <Instrument label="Difference" value={fmtSigned(b.diff, 2)} unit="units: feel bets vs ramp" tone={b.diff < 0 ? 'bad' : b.diff > 0 ? 'pos' : undefined} />
+      </Instruments>
+      <p className="muted" style={{ fontSize: 'var(--t-xs)', marginTop: 'var(--s2)' }}>
+        Edge of each round from the effect-of-removal model for the cards left; EV = units × edge.
+      </p>
+    </Box>
+  );
+}
+
 export function FeelLabScreen() {
   const { settings } = useSettings();
   const st = useStrategy(settings.rules);
+  const model = useEdgeModel(settings.rules, st.chart);
   const [tab, setTab] = useState<Tab>('play');
   const [hands, setHands] = useState(60);
   const [hot, setHot] = useState(0.08);
@@ -156,6 +177,7 @@ export function FeelLabScreen() {
           <>
             <span className="label">This session · {done.summary.hands} hands</span>
             <FeelSummary st={feelStats(done.recs)} recs={done.recs} />
+            {model && <BetFeel bets={done.summary.bets} model={model} ramp={settings.bet.ramp} />}
             <div className="grid2" style={{ gap: 'var(--s2)' }}>
               <Button variant="primary" onClick={() => (setDone(null), setStarted(false))}>
                 New session

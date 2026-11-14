@@ -5,6 +5,8 @@ import { rampBet, approxEdge, kellyBet } from '../../engine/drills';
 import { mulberry32, randomSeed, randInt, type Rng } from '../../engine/rng';
 import { useSettings } from '../../store/SettingsContext';
 import { useStrategy } from '../../store/strategy';
+import { useEdgeModel } from '../../store/edge';
+import { edgeHiLo } from '../../engine/edge';
 import { type Embed, DrillIntro, DrillResult, useTally, Feedback, Progress } from './common';
 
 type Phase = 'intro' | 'run' | 'done';
@@ -16,7 +18,9 @@ export function BetDrill({ embed }: { embed?: Embed } = {}) {
   const { settings } = useSettings();
   const { bankroll, unit, ramp } = settings.bet;
   const st = useStrategy(settings.rules);
-  const base = st.generated?.baseEdge ?? -0.005;
+  const model = useEdgeModel(settings.rules, st.chart);
+  const base = model?.base ?? st.generated?.baseEdge ?? -0.005;
+  const edgeAt = (tc: number) => (model ? edgeHiLo(model, tc) : approxEdge(base, tc));
   const [mode, setMode] = useState<Mode>('ramp');
   const [phase, setPhase] = useState<Phase>('intro');
   const [rng, setRng] = useState<Rng>(() => mulberry32(1));
@@ -54,8 +58,8 @@ export function BetDrill({ embed }: { embed?: Embed } = {}) {
           </p>
         ) : (
           <p>
-            Enter the half-Kelly bet in dollars for a {money(bankroll)} bankroll, rounded to your {money(unit)} unit. Edge model: {(base * 100).toFixed(2)}% off the top
-            plus 0.5% per true count; variance 1.33. (The exact composition model arrives with the player-edge milestone.)
+            Enter the half-Kelly bet in dollars for a {money(bankroll)} bankroll, rounded to your {money(unit)} unit. Edge for your rules: {(base * 100).toFixed(2)}% off
+            the top {model ? `+ ${(model.beta * 100).toFixed(2)}% per true count (effect-of-removal model)` : '+ ~0.5% per true count'}; variance 1.33.
           </p>
         )}
       </DrillIntro>
@@ -69,7 +73,7 @@ export function BetDrill({ embed }: { embed?: Embed } = {}) {
       nextTc(rng);
     }
   };
-  const edge = approxEdge(base, tc);
+  const edge = edgeAt(tc);
   const kelly = Math.round(kellyBet(bankroll, edge, 0.5) / unit) * unit;
   return (
     <>

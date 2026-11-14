@@ -6,9 +6,12 @@ import type { Chart } from '../engine/strategy/chart';
 import type { ActionEVs } from '../engine/ev/engine';
 import { analyzeDecision, type DecisionEVs } from '../engine/ev/analyze';
 import type { Comp } from '../engine/shoe';
-import type { Avail } from '../engine/strategy/chart';
+import type { Avail, Action } from '../engine/strategy/chart';
 import { generateIndices, type GeneratedIndex } from '../engine/indexgen';
 import { dealerProbs } from '../engine/ev/dealer';
+import { computeEdgeModel, type EdgeModel } from '../engine/edge';
+import { GoalSolver, roundOutcomeDist, goalDP, goalUtility, mean, expect as expectU, type Dist } from '../engine/goal';
+import { engineFor } from '../engine/ev/analyze';
 
 export interface StrategyResult {
   chart: Chart;
@@ -18,7 +21,40 @@ export interface StrategyResult {
   baseEdge: number;
 }
 
+export interface GoalHandResult {
+  action: Action;
+  ev: number;
+  pGoal: number;
+  /** P(this hand nets > 0) under the goal-optimal continuation. */
+  pWin: number;
+}
+
 export const handlers = {
+  edgeModel(rules: Rules, chart: Chart): EdgeModel {
+    return computeEdgeModel(rules, chart);
+  },
+  /** Round outcome distribution + bankroll DP for a strike scenario. */
+  strikeSetup(comp: Comp, rules: Rules, chart: Chart, target: number, hands: number, minBet: number, maxBet: number, sitOut: boolean) {
+    const dist = roundOutcomeDist(comp, rules, chart);
+    const dp = goalDP(dist, target, hands, minBet, maxBet, sitOut);
+    return { dist: [...dist.entries()] as [number, number][], V: dp.V.map((v) => Array.from(v)), bestBet: dp.bestBet.map((v) => Array.from(v)), edge: mean(dist) };
+  },
+  /** Per action: EV and P(goal) for a dealt hand, continuation chosen to maximise P(goal). */
+  goalHand(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail, bankroll: number, bet: number, target: number, Vnext: number[]): GoalHandResult[] {
+    const base = unseen.slice();
+    for (const v of values) base[v]++;
+    const eng = engineFor(base, up, rules);
+    const dp = { V: [Float64Array.from(Vnext)], bestBet: [], target };
+    const u = goalUtility(dp, bankroll, bet, 0);
+    const goal = new GoalSolver(eng, u).actions(values, avail);
+    const evd = new GoalSolver(eng, (n) => n).actions(values, avail);
+    const out: GoalHandResult[] = [];
+    for (const a of Object.keys(goal) as Action[]) {
+      const d = goal[a] as Dist;
+      out.push({ action: a, ev: mean(evd[a] as Dist), pGoal: expectU(d, u), pWin: expectU(d, (n) => (n > 0 ? 1 : 0)) });
+    }
+    return out;
+  },
   generateIndices(chart: Chart, rules: Rules): GeneratedIndex[] {
     return generateIndices(chart, rules);
   },
