@@ -31,7 +31,7 @@ export interface RoundResult {
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
  * little longer, finished hands stay on the felt for a realistic beat, then the sweep.
  */
-export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void) {
+export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void, paused = false) {
   const layout = useMemo(() => occupiedSpots(s.players, s.seat, s.spots), [s.players, s.seat, s.spots]);
   const speed = SPEEDS.find((x) => x.id === s.speed)!;
   const tableRef = useRef<Table | null>(null);
@@ -127,6 +127,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       return;
     }
     if (ph === 'bet') return;
+    if (paused) return;
     if (t.waitingForHuman) {
       setPhase(ph === 'insurance' ? 'insurance' : 'yourTurn');
       return;
@@ -138,10 +139,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }, speed.card * botThinking);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, tick]);
+  }, [t, tick, paused]);
 
   // results linger on the felt, then the sweep, then betting
   useEffect(() => {
+    if (paused) return;
     if (phase === 'results') {
       const id = setTimeout(() => setPhase('sweeping'), speed.linger);
       return () => clearTimeout(id);
@@ -162,9 +164,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       }, 1600);
       return () => clearTimeout(id);
     }
-  }, [phase, speed.linger, bump]);
+  }, [phase, speed.linger, bump, paused]);
 
-  const deal = (bets: Record<number, number>) => {
+  const deal = (bets: Record<number, number>, practice?: { values: [number, number]; up: number } | null) => {
     if (!t) return;
     const bySeat: Record<number, number> = {};
     for (const [spot, amt] of Object.entries(bets)) {
@@ -173,6 +175,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
     placed.current = [];
     t.placeBet(bySeat);
+    if (practice) t.stackPractice(practice.values, practice.up);
     setResult(null);
     setPhase('dealing');
     bump();

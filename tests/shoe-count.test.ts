@@ -96,3 +96,16 @@ describe('count', () => {
     expect(c.tc(0)).toBeCloseTo(-1 / (99 / 52), 10);
   });
 });
+
+describe('stackAt', () => {
+  it('places cards at offsets without changing the composition', () => {
+    const s = new Shoe(2, 0.75, 1, 8);
+    const before = s.cards.slice().sort((a, b) => a - b);
+    const ok = s.stackAt([{ offset: 2, card: makeCard(0, 0) }, { offset: 4, card: makeCard(12, 1) }, { offset: 6, card: makeCard(0, 0) }]);
+    expect(ok).toBe(true);
+    expect(s.cards[s.pos + 2]).toBe(makeCard(0, 0));
+    expect(s.cards[s.pos + 4]).toBe(makeCard(12, 1));
+    expect(s.cards[s.pos + 6]).toBe(makeCard(0, 0));
+    expect(s.cards.slice().sort((a, b) => a - b)).toEqual(before);
+  });
+});

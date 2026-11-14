@@ -126,6 +126,30 @@ export class Shoe {
     for (const b of this.burned) c[b]++;
     return c;
   }
+  /**
+   * Put specific cards at given offsets from the current position (e.g. to deal a practice hand),
+   * by swapping them with cards further back in the shoe. Composition is unchanged; only the order
+   * of the undealt cards. Returns false if a card isn't available.
+   */
+  stackAt(placements: { offset: number; card: CardId }[]): boolean {
+    const fixed = new Set<number>();
+    for (const { offset, card } of placements) {
+      const target = this.pos + offset;
+      if (target >= this.cards.length) return false;
+      let idx = -1;
+      for (let i = this.pos; i < this.cards.length; i++) {
+        if (this.cards[i] === card && !fixed.has(i)) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx < 0) return false;
+      [this.cards[target], this.cards[idx]] = [this.cards[idx], this.cards[target]];
+      fixed.add(target);
+    }
+    return true;
+  }
+
   /** Stack the next cards (for scenarios/tests): moves the given cards to the current position. */
   stack(next: CardId[]): void {
     let p = this.pos;

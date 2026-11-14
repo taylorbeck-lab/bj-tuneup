@@ -231,3 +231,17 @@ describe('V2 table: two spots, dollar bets, bots', () => {
     expect(t.current!.dealt.filter((d) => d.who === 1).length).toBe(0);
   });
 });
+
+describe('practice stacking', () => {
+  it('deals the requested hand and upcard to the first human spot', () => {
+    for (let k = 0; k < 20; k++) {
+      const t = new Table({ rules: { ...DEFAULT_RULES, burn: 1 }, seats: 4, humanSeat: 2, humanSeats: [2], chart: chart2, seed: 100 + k, granularity: 0, rounding: 'floor' });
+      t.placeBet({ 2: 25 });
+      expect(t.stackPractice([10, 6], 10)).toBe(true);
+      t.runToHuman();
+      if (t.phase !== 'play') continue; // dealer blackjack etc.
+      expect(t.seats[2].hands[0].cards.map(valueOf)).toEqual([10, 6]);
+      expect(valueOf(t.dealer[0])).toBe(10);
+    }
+  });
+});

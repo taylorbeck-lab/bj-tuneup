@@ -15,10 +15,19 @@ export interface TableHooks {
   onDecision?: (snap: DecisionSnapshot, spot: number, t: Table) => void;
   onRoundEnd?: (r: RoundResult, t: Table) => void;
   onBet?: (bets: Record<number, number>, t: Table) => void;
+  onInsurance?: (take: boolean, t: Table) => void;
+  /** Overlays drawn on the felt (count badge, etc). */
+  feltExtra?: (t: Table | null) => React.ReactNode;
   /** Coach strip under the felt. */
   coach?: React.ReactNode;
   /** Extra HUD buttons. */
   hudExtra?: React.ReactNode;
+  /** Called when the table opens for bets. */
+  onBetting?: (t: Table) => void;
+  /** Pause the dealer (e.g. while a count check is open). */
+  paused?: boolean;
+  /** Optional practice hand for the next deal (practice my misses). */
+  practiceHand?: () => { values: [number, number]; up: number } | null;
 }
 
 function totalText(values: number[]): string {
@@ -41,6 +50,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       settle(r.net);
       hooks.onRoundEnd?.(r, t);
     },
+    hooks.paused,
   );
   tRef.current = g.table;
   const t = g.table;
@@ -48,6 +58,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const [lastBets, setLastBets] = useState<Record<number, number>>({});
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
+  useEffect(() => {
+    if (g.phase === 'betting' && g.table) hooks.onBetting?.(g.table);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.phase]);
 
   const betting = g.phase === 'betting';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
@@ -63,7 +77,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (!t) return;
     setLastBets(b);
     hooks.onBet?.(b, t);
-    g.deal(b);
+    g.deal(b, hooks.practiceHand?.());
     setBets({});
   };
   const rebetAmount = Object.values(lastBets).reduce((a, b) => a + b, 0);
@@ -98,14 +112,17 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     <div className="frame">
       <header className="hud">
         <a className="brand" href="#/" aria-label={BRAND.long}>
-          <Mark size={22} color="var(--gold)" />
-          {BRAND.name}
+          <Mark size={26} color="var(--ink)" />
+          <span className="brand-text">{BRAND.name}</span>
         </a>
         <span className="spacer" />
         {hooks.hudExtra}
-        <span className="pill mono" aria-label="Bankroll" title="Bankroll">
+        <span className="pill mono mustard" aria-label="Bankroll" title="Bankroll">
           {money(br.balance)}
         </span>
+        <a className="pill icon" href="#/stats" aria-label="Your stats">
+          ★
+        </a>
         <a className="pill icon" href="#/chart" aria-label="Strategy chart">
           ▦
         </a>
@@ -139,7 +156,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                 />
                 {occupied && <BetStack amount={amount} x={c.x} y={c.y} />}
                 {mine && (
-                  <span className="seat-label" style={{ left: `${c.x}cqw`, top: `${c.y + 6.5}cqw`, color: 'var(--gold)' }}>
+                  <span className="seat-label" style={{ left: `${c.x}cqw`, top: `${c.y + 6.5}cqw` }}>
                     you
                   </span>
                 )}
@@ -172,13 +189,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                   <span
                     key={`${si}-${hi}`}
                     className={'total-tag' + (res ? (res.net > 0 ? ' win' : res.net < 0 ? ' lose' : '') : '')}
-                    style={{ left: `${pos.x + pos.w / 2}cqw`, top: `${pos.y + pos.w * CARD_RATIO + 0.6}cqw`, outline: active ? '0.4cqw solid var(--gold)' : undefined, zIndex: 4 }}
+                    style={{ left: `${pos.x + pos.w / 2}cqw`, top: `${pos.y + pos.w * CARD_RATIO + 0.6}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
                   >
                     {label}
                   </span>
                 );
               });
             })}
+          {hooks.feltExtra?.(t)}
           {g.phase === 'shuffling' && (
             <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
               Shuffling…
@@ -223,10 +241,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         )}
         {g.phase === 'insurance' && (
           <div className="actions" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <button className="act" onClick={() => g.insure(false)}>
+            <button className="act" onClick={() => (t && hooks.onInsurance?.(false, t), g.insure(false))}>
               No insurance
             </button>
-            <button className="act" onClick={() => g.insure(true)}>
+            <button className="act" onClick={() => (t && hooks.onInsurance?.(true, t), g.insure(true))}>
               Insurance {t ? money(t.seats[g.seatOfSpot.get(g.insuranceSpot ?? 0) ?? 0]?.baseBet / 2) : ''}
             </button>
           </div>
@@ -236,7 +254,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             {(['hit', 'stand', 'double', 'split', 'surrender'] as Action[])
               .filter((a) => legal.includes(a))
               .map((a) => (
-                <button key={a} className={'act' + (a === 'hit' || a === 'stand' ? ' primary' : '')} onClick={() => g.act(a)}>
+                <button key={a} className={'act ' + a} onClick={() => g.act(a)}>
                   {ACTION_LABEL[a]}
                 </button>
               ))}
@@ -244,7 +262,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         )}
         {(g.phase === 'dealing' || g.phase === 'playing') && <p className="muted" style={{ margin: 0, textAlign: 'center', minHeight: 56, lineHeight: '56px' }}>…</p>}
         {(g.phase === 'results' || g.phase === 'sweeping') && g.result && (
-          <button className="act" onClick={g.hurry} style={{ background: 'none' }}>
+          <button className="act quiet" onClick={g.hurry}>
             {g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push'} · tap to continue
           </button>
         )}

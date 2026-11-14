@@ -218,6 +218,36 @@ export class Table {
     this.phase = 'deal';
   }
 
+  /**
+   * After placeBet (before the first card), arrange the shoe so the first human spot receives
+   * `values` and the dealer shows `up` (practice mode). Only the order of undealt cards changes.
+   */
+  stackPractice(values: [number, number], up: number): boolean {
+    if (this.phase !== 'deal' || this.current?.dealt.length) return false;
+    const active = this.seats.map((s, i) => (s.hands.length ? i : -1)).filter((i) => i >= 0);
+    const h = active.indexOf(this.humanSeats.find((i) => this.seats[i].hands.length) ?? -1);
+    if (h < 0) return false;
+    const n = active.length;
+    const pick = (v: number, avoid: Set<number>) => {
+      for (let i = this.shoe.pos; i < this.shoe.cards.length; i++) if (!avoid.has(i) && valueOf(this.shoe.cards[i]) === v) return i;
+      return -1;
+    };
+    const used = new Set<number>();
+    const want: { offset: number; value: number }[] = [
+      { offset: h, value: values[0] },
+      { offset: n, value: up },
+      { offset: n + 1 + h, value: values[1] },
+    ];
+    const placements: { offset: number; card: CardId }[] = [];
+    for (const w of want) {
+      const i = pick(w.value, used);
+      if (i < 0) return false;
+      used.add(i);
+      placements.push({ offset: w.offset, card: this.shoe.cards[i] });
+    }
+    return this.shoe.stackAt(placements);
+  }
+
   reshuffle(): void {
     this.shoe.shuffle();
     this.rc = 0;

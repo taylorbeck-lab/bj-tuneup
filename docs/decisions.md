@@ -110,3 +110,23 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Engine additions:** several human spots (`humanSeats`), per-spot bets (0 = empty spot, not dealt), per-spot insurance, bot bets (`botBet`) and occasional bot misplays on stiff hands (`botMistakeRate`, 6% in the app).
 - **Default table:** 6 decks, H17, DAS, 3:2, 75% penetration, 5 players, you in seat 4, $25 minimum ($2,500 max), $1,000 bankroll. These are the most common conditions friends will meet; everything can be changed.
 - **The felt is sized to the screen height** (the controls dock has a fixed area), so nothing moves when the controls change.
+
+## V2-2 / V2-3
+- **The right play** is the chart for the rules. With *Deviations* on, it's the chart plus the index chart at the player's true count (half-deck estimate, rounded down). The coach names the count play and explains it.
+- **Odds in plain words.** Win / push / lose chances come from the exact engine (outcome distributions, rest of the hand played to maximise EV). They're shown as "Hit wins 41%", sorted best play first. The money difference is shown only for mistakes, as dollars per $100 bet. EV is never shown as such.
+- **Why-library** (`src/v2/coach/why.ts`): short rule-based reasons per hand class (stiffs vs bust cards, soft doubles, pairs, surrender, count plays, insurance). It quotes rounded rules of thumb; the live percentages in the card are exact.
+- **Insurance:** never by the chart. With count plays, take it at the index (+3 for the reference set). The explanation uses the actual share of 10s left (pays above 1/3).
+- **Count check grading:** the running count must be exact. The true count is accepted within ±1 of running count ÷ exact decks left. The answer shown uses the half-deck estimate rounded down (same convention as the on-felt helper and the count plays).
+- **Quizzes:** offered when the table opens for bets, at least 10 cards into the shoe. "Sometimes" is 18% of rounds, "Often" 45%. The table pauses while the sheet is open.
+- **Bet coach spread:** 1 unit at TC ≤ 1, then 2/4/6/8 units at TC 2/3/4/5+ (unit = table minimum). This is a standard, survivable spread for teaching. A bet within ×0.5–×2 of the recommendation is "good".
+- **Look:** following the owner's references (editorial neo-brutalist chrome, colour-block cards, desert icons) with a Palm Springs palette:
+  - sand page, dark forest felt slab with an ink outline and a hard shadow;
+  - coral / mustard / pool / lilac actions, the same colours in the chart;
+  - Anton display, Instrument Serif italic accents, Bricolage Grotesque body, JetBrains Mono labels.
+
+  The icons are drawn in-house (no licensed assets). Aesthetics will be refined once the teaching loop is complete.
+
+## V2-4
+- **Practice my misses:** when the table opens a round, with probability 35% one of your "leaks" (a situation with a miss in its last three tries, weighted by those misses) is dealt to your first spot. `Table.stackPractice` swaps the needed cards forward in the undealt shoe, so the composition and the count stay real. Only the order changes, and only when the right cards are still in the shoe. The coach marks these hands with ↻ and says "you fixed a leak" when you get one right.
+- **Mastered** = right on the last three tries.
+- **Stats live on the device** (`v2stats` in IndexedDB): per situation, the totals plus the last 10 results; count checks (running exact, true within ±1); insurance; bets; daily totals.

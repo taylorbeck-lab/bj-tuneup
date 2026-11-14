@@ -32,6 +32,8 @@ export interface V2Settings {
     countQuiz: 'off' | 'sometimes' | 'often';
     /** Tell me when the count says to raise or lower my bet. */
     betCoach: boolean;
+    /** Hands you miss come back more often. */
+    practiceMisses: boolean;
   };
   /** Claude API key for "Ask the coach" (stored only on this device). */
   apiKey?: string;
@@ -46,7 +48,7 @@ export const DEFAULT_V2: V2Settings = {
   speed: 'average',
   tableMin: 25,
   startBankroll: 1000,
-  coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'sometimes', betCoach: false },
+  coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'sometimes', betCoach: false, practiceMisses: true },
   onboarded: false,
 };
 
