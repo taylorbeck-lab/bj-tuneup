@@ -23,6 +23,8 @@ export interface SessionRecord {
   mistakes: Mistake[];
   /** Optional reference to a stored shoe for hand review. */
   shoeId?: string;
+  /** Feel Lab: graded decisions that departed from the chart or where the exact play differed. */
+  feel?: import('../engine/feel').FeelRecord[];
 }
 
 export async function saveSession(s: Omit<SessionRecord, 'id' | 'at'> & { id?: string; at?: number }): Promise<SessionRecord> {

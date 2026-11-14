@@ -35,7 +35,11 @@ export class Shoe {
   remainingByCard: number[] = new Array(52).fill(0);
   private rng: Rng;
 
-  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed()) {
+  /** 0..1: front-load small cards so the count runs high later in the shoe (training extreme counts). */
+  readonly skew: number;
+
+  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed(), skew = 0) {
+    this.skew = skew;
     this.decks = decks;
     this.seed = seed;
     this.penetration = penetration;
@@ -49,12 +53,31 @@ export class Shoe {
     const cards: CardId[] = [];
     for (let d = 0; d < this.decks; d++) for (let id = 0; id < 52; id++) cards.push(id);
     this.cards = shuffle(cards, this.rng);
+    if (this.skew > 0) this.applySkew();
     this.pos = 0;
     this.burned = [];
     this.remainingByValue = fullComp(this.decks);
     this.remainingByCard = new Array(52).fill(this.decks);
     this.cutIndex = Math.round(this.cards.length * this.penetration);
     for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
+  }
+
+  /** Swap small cards (2-6) from the back of the dealt region into the front half. */
+  private applySkew(): void {
+    const cut = Math.round(this.cards.length * this.penetration);
+    const front = Math.floor(cut * 0.5);
+    const isLow = (c: CardId) => {
+      const v = valueOf(c);
+      return v >= 2 && v <= 6;
+    };
+    let j = this.cards.length - 1;
+    for (let i = 0; i < front; i++) {
+      if (isLow(this.cards[i]) || this.rng() >= this.skew) continue;
+      while (j > front && !isLow(this.cards[j])) j--;
+      if (j <= front) break;
+      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+      j--;
+    }
   }
 
   private take(): CardId {

@@ -100,6 +100,8 @@ export interface TableOptions {
   seed?: number;
   granularity: number;
   rounding: Rounding;
+  /** Hot shoes for Feel Lab (see Shoe.skew). */
+  skew?: number;
 }
 
 export class Table {
@@ -127,7 +129,7 @@ export class Table {
     this.opts = opts;
     this.rules = opts.rules;
     this.chart = opts.chart;
-    this.shoe = new Shoe(opts.rules.decks, opts.rules.penetration, opts.rules.burn, opts.seed);
+    this.shoe = new Shoe(opts.rules.decks, opts.rules.penetration, opts.rules.burn, opts.seed, opts.skew ?? 0);
     this.seats = Array.from({ length: opts.seats }, (_, i) => ({ human: i === opts.humanSeat, hands: [], insurance: 0, baseBet: 1 }));
   }
 

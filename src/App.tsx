@@ -19,6 +19,8 @@ import { TuneUpScreen } from './screens/TuneUpScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { AnalyzerScreen } from './screens/AnalyzerScreen';
 import { IndicesScreen } from './screens/IndicesScreen';
+import { FeelLabScreen } from './screens/FeelLabScreen';
+import { ReviewList, ReviewDetail } from './screens/ReviewScreen';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement | null;
@@ -43,6 +45,8 @@ const ROUTES: Record<string, Screen> = {
   '/stats': StatsScreen,
   '/analyzer': AnalyzerScreen,
   '/indices': IndicesScreen,
+  '/feel': FeelLabScreen,
+  '/review': ReviewList,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */
@@ -66,6 +70,7 @@ export function App() {
   const { settings } = useSettings();
   useEffect(() => setHaptics(settings.haptics), [settings.haptics]);
   const base = '/' + (path.split('/')[1] ?? '');
+  if (path.startsWith('/review/')) return <div className="app"><ReviewDetail key={path} id={path.slice(8)} /></div>;
   const S = ROUTES[path] ?? ROUTES[base];
   // key by path so navigating between drills remounts state
   return <div className="app">{path === '/' ? <Home ready={READY} /> : S ? <S key={path} /> : <NotYet path={path} />}</div>;

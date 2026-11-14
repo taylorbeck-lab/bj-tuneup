@@ -15,10 +15,12 @@
 
 > **FIRST USABLE RELEASE.** Open https://taylorbeck-lab.github.io/bj-tuneup/ on your phone and use *Add to Home Screen* (it then works offline). Start with **Start 15-minute Tune-Up** on the home screen. Set your targets, bankroll and ramp in **Settings** and your game in **Table rules** first. Everything is stored only on that device.
 
-- **M6 — exact EV analyzer + index generation:** done (PR open). `#/analyzer`: any composition / hand / upcard → exact EV of hit, stand, double, split, surrender, insurance, dealer outcome table, chart vs index vs exact play. `#/indices`: risk-neutral Hi-Lo indices generated for your rules (≈15 s in the worker, cached), I18 + Fab 4 reference, custom edits; EV-gain curve per play. Drills/sim use the selected source.
+- **M6 — exact EV analyzer + index generation:** done, merged (PR #6). `#/analyzer`: any composition / hand / upcard → exact EV of hit, stand, double, split, surrender, insurance, dealer outcome table, chart vs index vs exact play. `#/indices`: risk-neutral Hi-Lo indices generated for your rules (≈15 s in the worker, cached), I18 + Fab 4 reference, custom edits; EV-gain curve per play. Drills/sim use the selected source.
+
+- **M7 — Feel Lab + Hand Review + Feel rating:** done (PR open). `#/feel`: play on feel (natural or hot shoes), every decision scored vs chart / index / exact; fringe plays, hit rate, EV gained/lost, missed EV, Feel rating (documented formula) with trend, sharp/leaky situations and plain-language takeaways. `#/review`: replay any session hand by hand with exact EVs; export JSON.
 
 ## Next
-- M7: Feel Lab + Hand Review + Feel rating.
+- M8: player edge (EOR), ace adjustment, Kelly sizing, goal-mode math, Strike Mode.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
