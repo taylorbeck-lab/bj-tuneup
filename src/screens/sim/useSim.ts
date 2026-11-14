@@ -16,6 +16,7 @@ export interface SimConfig {
   granularity: number;
   rounding: Rounding;
   seed?: number;
+  skew?: number;
 }
 
 export interface Analysed {
@@ -40,6 +41,7 @@ export function useSim(cfg: SimConfig | null) {
       seed: cfg.seed ?? randomSeed(),
       granularity: cfg.granularity,
       rounding: cfg.rounding,
+      skew: cfg.skew,
     });
     analyses.current = [];
     bump();

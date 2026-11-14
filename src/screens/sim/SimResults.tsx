@@ -16,7 +16,7 @@ export interface StoredShoe {
 }
 
 /** Persist a session + its rounds (for Hand Review). Returns the shoe id. */
-export function persistSession(kind: string, summary: SimSummary, logs: RoundLog[], rules: Rules, durationMs: number, extraMetrics?: Record<string, number>): string {
+export function persistSession(kind: string, summary: SimSummary, logs: RoundLog[], rules: Rules, durationMs: number, extraMetrics?: Record<string, number>, extra?: Record<string, unknown>): string {
   const shoeId = uid();
   const shoe: StoredShoe = { id: shoeId, at: Date.now(), kind, rules, logs, evs: summary.decisions.map((d) => d.evs) };
   put('shoes', shoe);
@@ -39,6 +39,7 @@ export function persistSession(kind: string, summary: SimSummary, logs: RoundLog
       ...extraMetrics,
     },
     mistakes: summary.mistakes.slice(0, 60),
+    ...extra,
   });
   return shoeId;
 }

@@ -38,6 +38,19 @@ describe('shoe', () => {
     expect(s.draw()).toBe(makeCard(0, 0));
     expect(s.draw()).toBe(makeCard(12, 1));
   });
+  it('hot shoes (skew) push the count up late in the shoe without changing the cards', () => {
+    let plain = 0;
+    let hot = 0;
+    for (let k = 0; k < 200; k++) {
+      for (const [sk, add] of [[0, (x: number) => (plain += x)], [0.15, (x: number) => (hot += x)]] as const) {
+        const s = new Shoe(2, 0.65, 1, k + 1, sk);
+        const at = Math.floor(s.cutIndex * 0.75);
+        add(runningCount(s.cards.slice(1, at)));
+        expect(runningCount(s.cards)).toBe(0);
+      }
+    }
+    expect(hot / 200).toBeGreaterThan(plain / 200 + 3);
+  });
   it('a full shoe counts to zero (balanced Hi-Lo)', () => {
     const s = new Shoe(8, 0.9, 0, 9);
     expect(runningCount(s.cards)).toBe(0);

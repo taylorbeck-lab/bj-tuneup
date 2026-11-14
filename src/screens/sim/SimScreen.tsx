@@ -46,10 +46,12 @@ export interface SimRunProps {
   onFinish?: (s: SimSummary) => void;
   /** Hide the final results (caller shows its own). */
   embedded?: boolean;
+  /** Extra metrics / fields to store with the session. */
+  enrich?: (s: SimSummary) => { metrics?: Record<string, number>; extra?: Record<string, unknown> };
 }
 
 /** Runs a sim session to completion; reusable by Tune-Up / Feel Lab. */
-export function SimRun({ cfg, coach, hands, countCheck, title, kind, onFinish, embedded }: SimRunProps) {
+export function SimRun({ cfg, coach, hands, countCheck, title, kind, onFinish, embedded, enrich }: SimRunProps) {
   const { settings } = useSettings();
   const { plays } = useIndexPlays(cfg.rules);
   const sim = useSim(cfg);
@@ -72,7 +74,8 @@ export function SimRun({ cfg, coach, hands, countCheck, title, kind, onFinish, e
       const key = d.g.indexPlayId ? 'dev:' + d.g.indexPlayId : bsItemKey(d.snap.values, d.snap.up);
       recordSrs(key, !d.g.error);
     }
-    persistSession(kind, s, sim.logs, cfg.rules, performance.now() - t0.current);
+    const en = enrich?.(s);
+    persistSession(kind, s, sim.logs, cfg.rules, performance.now() - t0.current, en?.metrics, en?.extra);
     setSummary(s);
     onFinish?.(s);
   };
