@@ -1,0 +1,66 @@
+/*
+ * Design tokens. Monochrome base + ONE sharp accent (errors / key feedback only)
+ * + one muted tone used only for positive EV.
+ */
+:root {
+  --ink: #0d0d0d;
+  --paper: #f2f0eb;
+  --mid: #8a8984;
+  --accent: #ff3b1f;
+  --pos: #7d9c86;
+
+  --bg: var(--ink);
+  --fg: var(--paper);
+  --line: color-mix(in srgb, var(--fg) 28%, transparent);
+  --line-strong: var(--fg);
+  --muted: var(--mid);
+  --surface: color-mix(in srgb, var(--fg) 5%, var(--bg));
+
+  /* 4-colour deck (opt-in). Muted, distinct hues; not the accent. */
+  --suit-s: var(--fg);
+  --suit-h: #c96b6b;
+  --suit-d: #5f8fc9;
+  --suit-c: #6f9a66;
+  /* 2-colour deck: red suits in mid grey, black suits in fg (shape + tone) */
+  --suit-red-2: var(--mid);
+
+  --font-sans: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  --radius: 2px;
+  --hair: 1px;
+  --tap: 52px;
+  --maxw: 720px;
+
+  --t-xs: 11px;
+  --t-sm: 13px;
+  --t-md: 16px;
+  --t-lg: 20px;
+  --t-xl: 28px;
+  --t-2xl: 40px;
+  --t-3xl: 64px;
+  --t-4xl: 96px;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: var(--paper);
+  --fg: var(--ink);
+  --mid: #6f6e69;
+  --pos: #4f7a5c;
+  --suit-s: var(--fg);
+  --suit-h: #b04a4a;
+  --suit-d: #2f68b0;
+  --suit-c: #3f7a37;
+  color-scheme: light;
+}
