@@ -130,3 +130,9 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Practice my misses:** when the table opens a round, with probability 35% one of your "leaks" (a situation with a miss in its last three tries, weighted by those misses) is dealt to your first spot. `Table.stackPractice` swaps the needed cards forward in the undealt shoe, so the composition and the count stay real. Only the order changes, and only when the right cards are still in the shoe. The coach marks these hands with ↻ and says "you fixed a leak" when you get one right.
 - **Mastered** = right on the last three tries.
 - **Stats live on the device** (`v2stats` in IndexedDB): per situation, the totals plus the last 10 results; count checks (running exact, true within ±1); insurance; bets; daily totals.
+
+## V2-5
+- **Ask the coach** calls the Anthropic Messages API from the browser with the official SDK (`dangerouslyAllowBrowser: true`). That is acceptable only because the key is the user's own, entered by them and stored on their device. A hosted relay would be needed to give friends the coach without a key (listed under Next).
+- **Model:** `claude-opus-5-5` (the default model), adaptive thinking (its default), effort `medium`, streaming. The server-side refusal fallback is on (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). A refusal or API error shows a plain message.
+- **Prompt layout for caching:** a stable system prompt (cached), the chat history, then the live context (rules, learning settings, record, leaks, recent coach events) as a mid-conversation system message after the newest user turn.
+- **Lazy loading:** the coach page and the SDK are a separate chunk (375 kB), so the table loads without them.

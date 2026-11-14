@@ -172,6 +172,20 @@ export function SettingsPage() {
           </Row>
         </Group>
 
+        <Group title="Ask the coach (AI)">
+          <Row label="Claude API key" hint={s.apiKey ? 'Saved on this device only' : 'Unlocks the coach chat'}>
+            {s.apiKey ? (
+              <button className="pill" onClick={() => set({ apiKey: undefined })}>
+                Remove key
+              </button>
+            ) : (
+              <a className="pill" href="#/coach">
+                Add key
+              </a>
+            )}
+          </Row>
+        </Group>
+
         <p className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
           {BRAND.long} · practice only, play money. {LEGAL_LINE}
         </p>

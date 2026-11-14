@@ -48,7 +48,7 @@
   - Bots bet chips and occasionally misplay.
   - Shoe and discard tray; settings page; chart page with count plays.
 
-- **V2-2 Coach + V2-3 Count:** done (PR open).
+- **V2-2 Coach + V2-3 Count:** done, merged (PR #12).
   - Coach card after every decision:
     - right or not, with a short why;
     - each play's chance to win (exact, for the cards left);
@@ -62,13 +62,23 @@
   - Look refresh from the owner's references: Palm Springs palette, ink outlines and hard shadows, Anton plus Instrument Serif italic, desert icons drawn in-house, action colours shared with the chart.
   - The table pauses while the count sheet is open.
 
-- **V2-4 Progress:** done.
+- **V2-4 Progress:** done, merged (PR #12).
   - Stats page (★): right calls overall and today, count checks, count plays, insurance, bets, a bankroll chart, and the hands to work on with the right play for each.
   - "Practice my misses" (on by default): on about a third of rounds, a hand you've recently missed is dealt again. Only the order of the undealt cards changes. A hand stays in the list until you get it right three times in a row.
 
-## Next
-- V2-5 Ask the coach (key-gated AI chat), PWA polish, README.
-- Aesthetics: refine fonts and look once the teaching loop is complete (owner is open to more serif/fancy type).
+- **V2-5 Ask the coach:** done (PR open).
+  - Chat with Claude, gated by the user's own API key (stored on the device only).
+  - The coach knows the record, the leaks and the last few hands.
+  - "Ask the coach →" on every coach card.
+  - Streaming replies; refusal fallback; the chat code (and the SDK) loads only when opened.
+  - README rewritten for V2.
+
+**V2 first pass complete.** Open the app, install it, play.
+
+## Next (owner's call)
+- Aesthetics pass: fonts (the owner is open to more serif/fancy type), felt art, card faces, the name.
+- Feedback from the wife/friend test: what confused them, where the coach is too wordy or too quiet.
+- Ideas: a sound and haptics pack (chip clicks, shuffle); "conversation mode" (the dealer chats and asks questions while you keep the count); a hand-history replay for V2; a hosted relay so friends get the AI coach without their own key.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
