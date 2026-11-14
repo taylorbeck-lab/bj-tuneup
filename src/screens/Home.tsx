@@ -19,6 +19,7 @@ export const MODES: Entry[] = [
   { path: '/review', title: 'Hand review', sub: 'Replay shoes with EV of every option', ready: false },
   { path: '/stats', title: 'Stats', sub: 'History, trends, spaced repetition', ready: false },
   { path: '/analyzer', title: 'EV analyzer', sub: 'Exact EV of every action for any shoe', ready: false },
+  { path: '/indices', title: 'Indices', sub: 'Hi-Lo indices generated for your rules, editable', ready: false },
 ];
 
 export function Home({ ready = {} }: { ready?: Record<string, boolean> }) {

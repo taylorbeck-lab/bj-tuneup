@@ -7,6 +7,8 @@ import type { ActionEVs } from '../engine/ev/engine';
 import { analyzeDecision, type DecisionEVs } from '../engine/ev/analyze';
 import type { Comp } from '../engine/shoe';
 import type { Avail } from '../engine/strategy/chart';
+import { generateIndices, type GeneratedIndex } from '../engine/indexgen';
+import { dealerProbs } from '../engine/ev/dealer';
 
 export interface StrategyResult {
   chart: Chart;
@@ -17,6 +19,18 @@ export interface StrategyResult {
 }
 
 export const handlers = {
+  generateIndices(chart: Chart, rules: Rules): GeneratedIndex[] {
+    return generateIndices(chart, rules);
+  },
+  /** Full analysis for the analyzer screen: EVs of every action + dealer outcome distribution. */
+  analyzeFull(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail) {
+    const evs = values.length ? analyzeDecision(unseen, values, up, rules, avail, 1) : null;
+    const shoe = unseen.slice();
+    const dealer = Array.from(dealerProbs(shoe, up, rules.h17, true));
+    const n = unseen.reduce((a, b) => a + b, 0);
+    const pBJ = up === 1 ? unseen[10] / n : up === 10 ? unseen[1] / n : 0;
+    return { evs, dealer, pBJ };
+  },
   analyzeDecision(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail, splitHands: number): DecisionEVs {
     return analyzeDecision(unseen, values, up, rules, avail, splitHands);
   },
