@@ -10,7 +10,6 @@ interface Entry {
 }
 
 export const MODES: Entry[] = [
-  { path: '/strategy', title: 'Strategy chart', sub: 'Exact basic strategy for your rules, editable', ready: false },
   { path: '/drills', title: 'Drills', sub: 'Countdown, running count, discards, true count, flash cards, bets', ready: false },
   { path: '/sim', title: 'Table sim', sub: 'Full game, 1–6 seats, coach off or whisper', ready: false },
   { path: '/feel', title: 'Feel Lab', sub: 'Play on feel, scored against exact math', ready: false },
@@ -19,6 +18,7 @@ export const MODES: Entry[] = [
   { path: '/review', title: 'Hand review', sub: 'Replay shoes with EV of every option', ready: false },
   { path: '/stats', title: 'Stats', sub: 'History, trends, spaced repetition', ready: false },
   { path: '/analyzer', title: 'EV analyzer', sub: 'Exact EV of every action for any shoe', ready: false },
+  { path: '/strategy', title: 'Strategy chart', sub: 'Exact basic strategy for your rules, editable', ready: false },
   { path: '/indices', title: 'Indices', sub: 'Hi-Lo indices generated for your rules, editable', ready: false },
 ];
 
@@ -53,7 +53,7 @@ export function Home({ ready = {} }: { ready?: Record<string, boolean> }) {
               <div className="title">{m.title}</div>
               <div className="sub">{m.sub}</div>
             </div>
-            <span className="num">{ready[m.path] ? String(i + 1).padStart(2, '0') : 'soon'}</span>
+            <span className="num">{ready[m.path] ? String(i + 1).padStart(2, '0') : '—'}</span>
           </a>
         ))}
         <a href="#/settings">

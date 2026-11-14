@@ -21,10 +21,20 @@
 
 - **M8 — player edge, ace adjustment, Kelly, goal mode, Strike Mode:** done, merged (PR #8). EOR edge model (depth-corrected, calibrated, verified by simulation) with Hi-Lo and ace-adjusted estimates; Kelly / half Kelly vs your ramp in the analyzer; Kelly drill uses the model; Feel Lab scores bets; `#/strike`: five scenarios graded on P(goal) vs EV for bet and play.
 
-- **M9 — side bets:** done (PR open). Exact EV by card for Perfect Pairs, Lucky Ladies, 21+3, Match the Dealer, Buster and a custom pair template (K♠/Q♥ jackpots), editable paytables, off-the-top EV with a positive-EV warning; `#/sidebets`: Side Bet Hunter with the exact EV curve and timing score.
+- **M9 — side bets:** done, merged (PR #9). Exact EV by card for Perfect Pairs, Lucky Ladies, 21+3, Match the Dealer, Buster and a custom pair template (K♠/Q♥ jackpots), editable paytables, off-the-top EV with a positive-EV warning; `#/sidebets`: Side Bet Hunter with the exact EV curve and timing score.
+
+- **M10 — polish:** done (PR open):
+  - route code-splitting
+  - accessibility pass (axe clean, light-theme contrast fixes)
+  - one-screen onboarding
+  - About with "how scores are computed" and the legal line
+  - data export
+  - full README
+  - docs/next.md
+  - offline verified
 
 ## Next
-- M10: polish (performance, accessibility, onboarding, About/legal, README, docs/next.md).
+- All milestones are complete once the M10 PR is merged. Further ideas are in docs/next.md.
 
 ## Open questions
 - Network allowlist blocks Blackjack Apprenticeship, reddit and Jacobson's blog; research used Wizard of Odds + general knowledge (see docs/research.md).
