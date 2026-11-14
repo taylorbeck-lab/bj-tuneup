@@ -17,6 +17,8 @@ import { BetDrill } from './screens/drills/BetDrill';
 import { SimScreen } from './screens/sim/SimScreen';
 import { TuneUpScreen } from './screens/TuneUpScreen';
 import { StatsScreen } from './screens/StatsScreen';
+import { AnalyzerScreen } from './screens/AnalyzerScreen';
+import { IndicesScreen } from './screens/IndicesScreen';
 import { TopBar } from './ui/components';
 
 type Screen = () => ReactElement | null;
@@ -39,6 +41,8 @@ const ROUTES: Record<string, Screen> = {
   '/sim': SimScreen,
   '/tuneup': TuneUpScreen,
   '/stats': StatsScreen,
+  '/analyzer': AnalyzerScreen,
+  '/indices': IndicesScreen,
 };
 
 /** Paths that have a real screen (used by Home to label modes). */

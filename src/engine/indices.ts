@@ -105,8 +105,8 @@ export function indexAction(plays: IndexPlay[], chart: Chart, hand: readonly num
     if (p.hand.kind !== 'pair' && (p.atOrAbove === 'double' || p.below === 'double') && hand.length !== 2) continue;
     const want = tc >= p.index ? p.atOrAbove : p.below;
     if (want === 'insure' || want === 'noinsure') continue;
-    // A surrender play's "below" branch defers to the other plays/chart.
-    if (p.surrender && tc < p.index) continue;
+    // A surrender play only ever decides "surrender"; its other branch defers to the other plays/chart.
+    if (p.surrender && want !== 'surrender') continue;
     const r = resolve(want, av);
     if (r) return { action: r, play: p };
   }
