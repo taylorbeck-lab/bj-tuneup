@@ -13,7 +13,7 @@ export type Section = 'hard' | 'soft' | 'pairs';
 /** Overrides: key `${section}:${row}:${col}` -> code */
 export type Overrides = Record<string, Code>;
 
-const GEN_VERSION = 3; // bump when the generator changes
+const GEN_VERSION = 4; // bump when the generator changes
 
 const memCache = new Map<string, Promise<StrategyResult>>();
 
