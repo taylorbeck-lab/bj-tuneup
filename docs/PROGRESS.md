@@ -83,6 +83,7 @@
   - Discard tray: smoked acrylic, the stack is exact (a full shoe fills it), one tick per deck. The burn card goes in the tray. The shoe no longer shows cards left.
   - Table limits are a posted sign at the dealer's edge, not a line under the buttons.
   - **Shuffle up:** a fresh shoe on request between hands; the count goes back to 0.
+- **V2-7 Fits the phone:** the table screen never scrolls. The felt scales to the room left, and the coach is a two-line strip you tap to open.
 
 ## Next (owner's call)
 - Aesthetics pass: fonts (the owner is open to more serif/fancy type), felt art, card faces, the name.

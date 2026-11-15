@@ -113,7 +113,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
   return (
-    <div className="frame">
+    <div className="frame table-frame">
       <header className="hud">
         <a className="brand" href="#/" aria-label={BRAND.long}>
           <Emblem height={24} />
@@ -135,83 +135,86 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         </a>
       </header>
 
-      <div className="felt-wrap" onClick={g.hurry}>
-        <div className="felt">
-          <FeltPrint rules={s.rules} />
-          <ShoeAndTray discards={discards} decks={s.rules.decks} />
-          <LimitPlacard min={s.tableMin} max={max} />
-          {/* betting circles */}
-          {[1, 2, 3, 4, 5, 6].map((sp) => {
-            const c = spotCenter(sp);
-            const occupied = g.layout.spots.includes(sp);
-            const mine = g.layout.mine.includes(sp);
-            const seat = t && !idle ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
-            const amount = idle ? (mine ? bets[sp] ?? 0 : 0) : seat ? seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet : 0;
-            return (
-              <div key={sp}>
-                <button
-                  type="button"
-                  className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '')}
-                  style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied ? 1 : 0.35 }}
-                  aria-label={mine ? `Your spot ${sp}` : `Spot ${sp}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (mine && betting) setActiveBetSpot(sp);
-                  }}
-                />
-                {occupied && <BetStack amount={amount} x={c.x} y={c.y} />}
-                {mine && (
-                  <span className="seat-label" style={{ left: `${c.x}cqw`, top: `${c.y + 6.5}cqw` }}>
-                    you
-                  </span>
-                )}
-              </div>
-            );
-          })}
-          {/* cards */}
-          {g.cards.map((p) => (
-            <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
-          ))}
-          {/* dealer total */}
-          {t && t.holeRevealed && !idle && t.dealer.length > 0 && (
-            <span className="total-tag" style={{ left: `${dealerCardPos(0).x + dealerCardPos(0).w / 2}cqw`, top: `${dealerCardPos(0).y + dealerCardPos(0).w * CARD_RATIO + 1}cqw` }}>
-              {totalText(t.dealer.map(valueOf))}
-            </span>
-          )}
-          {/* your hand totals and results */}
-          {t &&
-            !idle &&
-            t.seats.map((seat, si) => {
-              if (!seat.human) return null;
-              const sp = g.spotOfSeat(si);
-              return seat.hands.map((h, hi) => {
-                if (!h.cards.length) return null;
-                const pos = cardPos(sp, hi, 0, true);
-                const res = g.result?.hands.find((x) => x.spot === sp && x.hand === hi);
-                const active = g.activeSpot === sp && g.activeHand === hi && g.phase === 'yourTurn';
-                const label = res ? (res.net > 0 ? '+' + money(res.net) : res.net < 0 ? money(res.net) : 'Push') : totalText(h.cards.map(valueOf));
-                return (
-                  <span
-                    key={`${si}-${hi}`}
-                    className={'total-tag' + (res ? (res.net > 0 ? ' win' : res.net < 0 ? ' lose' : '') : '')}
-                    style={{ left: `${pos.x + (pos.w * (1 + 0.5 * (Math.min(4, h.cards.length) - 1))) / 2}cqw`, top: `${pos.y - 5}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
-                  >
-                    {label}
-                  </span>
-                );
-              });
+      <div className="felt-stage">
+        <div className="felt-wrap" onClick={g.hurry}>
+          <div className="felt">
+            <FeltPrint rules={s.rules} />
+            <ShoeAndTray discards={discards} decks={s.rules.decks} />
+            <LimitPlacard min={s.tableMin} max={max} />
+            {/* betting circles */}
+            {[1, 2, 3, 4, 5, 6].map((sp) => {
+              const c = spotCenter(sp);
+              const occupied = g.layout.spots.includes(sp);
+              const mine = g.layout.mine.includes(sp);
+              const seat = t && !idle ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
+              const amount = idle ? (mine ? bets[sp] ?? 0 : 0) : seat ? seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet : 0;
+              return (
+                <div key={sp}>
+                  <button
+                    type="button"
+                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '')}
+                    style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied ? 1 : 0.35 }}
+                    aria-label={mine ? `Your spot ${sp}` : `Spot ${sp}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (mine && betting) setActiveBetSpot(sp);
+                    }}
+                  />
+                  {occupied && <BetStack amount={amount} x={c.x} y={c.y} />}
+                  {mine && (
+                    <span className="seat-label" style={{ left: `${c.x}cqw`, top: `${c.y + 6.5}cqw` }}>
+                      you
+                    </span>
+                  )}
+                </div>
+              );
             })}
-          {hooks.feltExtra?.(t)}
-          {g.phase === 'shuffling' && (
-            <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
-              Shuffling up · count starts at 0
-            </div>
-          )}
+            {/* cards */}
+            {g.cards.map((p) => (
+              <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
+            ))}
+            {/* dealer total */}
+            {t && t.holeRevealed && !idle && t.dealer.length > 0 && (
+              <span className="total-tag" style={{ left: `${dealerCardPos(0).x + dealerCardPos(0).w / 2}cqw`, top: `${dealerCardPos(0).y + dealerCardPos(0).w * CARD_RATIO + 1}cqw` }}>
+                {totalText(t.dealer.map(valueOf))}
+              </span>
+            )}
+            {/* your hand totals and results */}
+            {t &&
+              !idle &&
+              t.seats.map((seat, si) => {
+                if (!seat.human) return null;
+                const sp = g.spotOfSeat(si);
+                return seat.hands.map((h, hi) => {
+                  if (!h.cards.length) return null;
+                  const pos = cardPos(sp, hi, 0, true);
+                  const res = g.result?.hands.find((x) => x.spot === sp && x.hand === hi);
+                  const active = g.activeSpot === sp && g.activeHand === hi && g.phase === 'yourTurn';
+                  const label = res ? (res.net > 0 ? '+' + money(res.net) : res.net < 0 ? money(res.net) : 'Push') : totalText(h.cards.map(valueOf));
+                  return (
+                    <span
+                      key={`${si}-${hi}`}
+                      className={'total-tag' + (res ? (res.net > 0 ? ' win' : res.net < 0 ? ' lose' : '') : '')}
+                      style={{ left: `${pos.x + (pos.w * (1 + 0.5 * (Math.min(4, h.cards.length) - 1))) / 2}cqw`, top: `${pos.y - 5}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
+                    >
+                      {label}
+                    </span>
+                  );
+                });
+              })}
+            {hooks.feltExtra?.(t)}
+            {g.phase === 'shuffling' && (
+              <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
+                Shuffling up · count starts at 0
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="dock">
-        {hooks.coach}
+        {/* the coach strip shares the dock with the play buttons (betting needs the room for chips) */}
+        {!idle && hooks.coach && <div className="coach-slot">{hooks.coach}</div>}
         {betting && (
           <>
             {br.balance < s.tableMin ? (
@@ -257,7 +260,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           </div>
         )}
         {g.phase === 'yourTurn' && (
-          <div className="actions" style={{ gridTemplateColumns: `repeat(${Math.min(3, legal.length)}, 1fr)` }}>
+          <div className={'actions' + (legal.length > 4 ? ' many' : '')} style={{ gridTemplateColumns: `repeat(${legal.length > 4 ? 3 : legal.length}, 1fr)` }}>
             {(['hit', 'stand', 'double', 'split', 'surrender'] as Action[])
               .filter((a) => legal.includes(a))
               .map((a) => (
