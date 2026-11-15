@@ -16,7 +16,7 @@ export const CARD_W = W_MINE;
 export const CARD_H = W_MINE * CARD_RATIO;
 
 export const SHOE = { x: 84, y: 2.5 };
-export const TRAY = { x: 3.5, y: 2.5 };
+export const TRAY = { x: 5, y: 2.5 };
 
 /** Spots sit on an arc parallel to the rail. */
 const ARC = { x: 50, y: 70, a: 37.5, b: 40 };
@@ -50,8 +50,10 @@ export function cardPos(spot: number, hand: number, i: number, mine: boolean) {
   return { x: b.x - w * 0.75 + dir * split + col * step.x + row * w * 0.25, y: b.y - h + col * step.y + hand * 1.5 + row * h * 0.42, w };
 }
 
+/** Dealer cards: the first two sit centred on the table's centre line; hits fan to the right. */
 export function dealerCardPos(i: number) {
-  return { x: 35 + i * 8.2, y: 5, w: W_DEALER };
+  const step = 8.2;
+  return { x: 50 - (W_DEALER + step) / 2 + i * step, y: 5, w: W_DEALER };
 }
 
 /** Order bots take seats in (so a short table looks natural). */

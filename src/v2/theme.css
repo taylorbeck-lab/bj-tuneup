@@ -240,14 +240,25 @@ a {
   aspect-ratio: 100 / 122;
   border-radius: 0 0 50% 50% / 0 0 40% 40%;
   background: radial-gradient(120% 85% at 50% 22%, var(--felt-hi), var(--felt) 70%);
-  /* the padded rail: deep black, a little sheen on the inside edge */
-  border: 3.4cqw solid var(--rail);
-  border-top: 0;
   box-shadow:
-    inset 0 0 0 0.5cqw rgba(255, 255, 255, 0.06),
     inset 0 1.5cqw 3cqw rgba(60, 40, 15, 0.12),
     0 2cqw 6cqw rgba(0, 0, 0, 0.55);
   overflow: hidden;
+}
+/*
+ * The padded rail is drawn over the felt (not as a border), so the table's coordinates run edge to
+ * edge and everything placed on it is symmetric about the centre line.
+ */
+.felt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3.4cqw solid var(--rail);
+  border-top: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0.5cqw rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  z-index: 6;
 }
 .felt-print {
   position: absolute;
@@ -391,7 +402,7 @@ a {
 /* the posted table-limits sign at the dealer's edge */
 .placard {
   position: absolute;
-  left: 15cqw;
+  left: 17cqw;
   top: 2.2cqw;
   width: 17cqw;
   padding: 0.9cqw 0.4cqw 1cqw;
@@ -477,7 +488,7 @@ a {
 }
 .count-badge {
   position: absolute;
-  left: 2cqw;
+  left: 5cqw;
   top: 27cqw;
   font-family: var(--mono);
   font-size: 2.6cqw;
