@@ -15,8 +15,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Casino Tornillo',
-        short_name: 'Tornillo',
+        name: 'Casino El Primo',
+        short_name: 'El Primo',
         description: 'Learn to play blackjack right, count cards and bet like a pro. Practice table, play money.',
         theme_color: '#0b1712',
         background_color: '#0b1712',

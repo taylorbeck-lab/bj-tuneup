@@ -1,4 +1,4 @@
-# Casino Tornillo
+# Casino El Primo
 
 A blackjack table in your pocket that teaches you to play like an advantage player, one layer at a time:
 
@@ -18,7 +18,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
 
 ## How it plays
 - **A real table:**
-  - A cream felt with the Casino Tornillo logo, a black padded rail, and up to 6 players in an arc that runs edge to edge.
+  - A cream felt with the Casino El Primo logo, a black padded rail, and up to 6 players in an arc that runs edge to edge.
   - Dealer, shoe, the posted table-limits sign and a smoked acrylic discard tray along the top. The tray stack grows exactly with the cards played, with a tick per deck, so you read decks played the way counters do. You can't see how many cards are left in the shoe, just like a real table.
   - You choose your seat, and play one or two spots.
   - Cards slide out of the shoe to a fixed spot and stay there. Every card stays readable, and nothing jiggles.
