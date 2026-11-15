@@ -220,7 +220,7 @@ export function ShoeAndTray({ discards, decks }: { discards: number; decks: numb
       <svg
         className="tray"
         viewBox={`0 0 ${vb.w} ${vb.h}`}
-        style={{ left: '3cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw` }}
+        style={{ left: '5cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw` }}
         role="img"
         aria-label={`Discard tray: ${discards} cards, about ${(Math.round(decksIn * 2) / 2).toFixed(1)} decks played`}
       >
@@ -254,7 +254,7 @@ export function ShoeAndTray({ discards, decks }: { discards: number; decks: numb
         <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="url(#acrylic)" />
         <rect x="2" y={floor} width="96" height="8" rx="2.5" fill="#121211" />
       </svg>
-      <svg className="shoe" viewBox="0 0 100 150" style={{ right: '3cqw', top: '2cqw', width: '11cqw', height: '16.5cqw' }} role="img" aria-label="Shoe">
+      <svg className="shoe" viewBox="0 0 100 150" style={{ right: '5cqw', top: '2cqw', width: '11cqw', height: '16.5cqw' }} role="img" aria-label="Shoe">
         <path d="M18 8 H92 a6 6 0 0 1 6 6 V140 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 V60 Z" fill="#1b1a18" stroke="#000" strokeWidth="2" />
         <path d="M22 16 H88 V96 H12 V60 Z" fill="#0e0e0d" />
         <rect x="14" y="62" width="70" height="30" rx="2" fill="var(--orange)" stroke="#000" strokeWidth="1.2" />
