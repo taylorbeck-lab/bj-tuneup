@@ -12,13 +12,27 @@ import './v2/theme.css';
 import { App } from './v2/App';
 import { V2SettingsProvider } from './v2/settings';
 import { registerSW } from 'virtual:pwa-register';
+import { ErrorBoundary } from './v2/ErrorBoundary';
 
 registerSW({ immediate: true });
 
+// After an update, an old page can ask for a file that no longer exists: reload once to pick up the new version.
+window.addEventListener('vite:preloadError', () => {
+  try {
+    if (sessionStorage.getItem('reloadedForUpdate')) return;
+    sessionStorage.setItem('reloadedForUpdate', '1');
+  } catch {
+    /* ignore */
+  }
+  location.reload();
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <V2SettingsProvider>
-      <App />
-    </V2SettingsProvider>
+    <ErrorBoundary>
+      <V2SettingsProvider>
+        <App />
+      </V2SettingsProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

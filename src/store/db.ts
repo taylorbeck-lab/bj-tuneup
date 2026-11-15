@@ -9,6 +9,28 @@ const DB_NAME = 'tuneup';
 const DB_VERSION = 1;
 
 let dbp: Promise<IDBPDatabase> | null = null;
+
+/**
+ * Safari can leave an IndexedDB open or request hanging (or lose the connection after the app has
+ * been in the background). Nothing here may wait forever: every call gives up after a few seconds
+ * and falls back to memory, and a lost connection is reopened on the next call.
+ */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((res, rej) => {
+    const id = setTimeout(() => rej(new Error('IndexedDB timed out')), ms);
+    p.then(
+      (v) => {
+        clearTimeout(id);
+        res(v);
+      },
+      (e) => {
+        clearTimeout(id);
+        rej(e);
+      },
+    );
+  });
+}
+const OP_MS = 3000;
 const mem: Record<StoreName, Map<IDBValidKey, unknown>> = {
   kv: new Map(),
   sessions: new Map(),
@@ -22,7 +44,14 @@ function hasIdb(): boolean {
 
 function db(): Promise<IDBPDatabase> {
   if (!dbp) {
-    dbp = openDB(DB_NAME, DB_VERSION, {
+    const opening = openDB(DB_NAME, DB_VERSION, {
+      terminated() {
+        dbp = null;
+      },
+      blocking() {
+        void opening.then((d) => d.close());
+        dbp = null;
+      },
       upgrade(d) {
         if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
         if (!d.objectStoreNames.contains('sessions')) {
@@ -37,6 +66,10 @@ function db(): Promise<IDBPDatabase> {
         }
       },
     });
+    dbp = withTimeout(opening, 4000).catch((e) => {
+      dbp = null;
+      throw e;
+    });
   }
   return dbp;
 }
@@ -44,7 +77,7 @@ function db(): Promise<IDBPDatabase> {
 export async function kvGet<T>(key: string): Promise<T | undefined> {
   if (!hasIdb()) return mem.kv.get(key) as T | undefined;
   try {
-    return (await (await db()).get('kv', key)) as T | undefined;
+    return (await withTimeout((await db()).get('kv', key), OP_MS)) as T | undefined;
   } catch {
     return mem.kv.get(key) as T | undefined;
   }
@@ -54,7 +87,7 @@ export async function kvSet<T>(key: string, value: T): Promise<void> {
   mem.kv.set(key, value);
   if (!hasIdb()) return;
   try {
-    await (await db()).put('kv', value, key);
+    await withTimeout((await db()).put('kv', value, key), OP_MS);
   } catch {
     /* memory fallback already updated */
   }
@@ -66,7 +99,7 @@ export async function put<T extends object>(store: Exclude<StoreName, 'kv'>, val
   mem[store].set(k, value);
   if (!hasIdb()) return;
   try {
-    await (await db()).put(store, value);
+    await withTimeout((await db()).put(store, value), OP_MS);
   } catch {
     /* ignore */
   }
@@ -75,7 +108,7 @@ export async function put<T extends object>(store: Exclude<StoreName, 'kv'>, val
 export async function getAll<T>(store: Exclude<StoreName, 'kv'>): Promise<T[]> {
   if (!hasIdb()) return [...mem[store].values()] as T[];
   try {
-    return (await (await db()).getAll(store)) as T[];
+    return (await withTimeout((await db()).getAll(store), OP_MS)) as T[];
   } catch {
     return [...mem[store].values()] as T[];
   }
@@ -84,7 +117,7 @@ export async function getAll<T>(store: Exclude<StoreName, 'kv'>): Promise<T[]> {
 export async function getOne<T>(store: Exclude<StoreName, 'kv'>, key: IDBValidKey): Promise<T | undefined> {
   if (!hasIdb()) return mem[store].get(key) as T | undefined;
   try {
-    return (await (await db()).get(store, key)) as T | undefined;
+    return (await withTimeout((await db()).get(store, key), OP_MS)) as T | undefined;
   } catch {
     return mem[store].get(key) as T | undefined;
   }
@@ -94,7 +127,7 @@ export async function del(store: StoreName, key: IDBValidKey): Promise<void> {
   mem[store].delete(key);
   if (!hasIdb()) return;
   try {
-    await (await db()).delete(store, key);
+    await withTimeout((await db()).delete(store, key), OP_MS);
   } catch {
     /* ignore */
   }

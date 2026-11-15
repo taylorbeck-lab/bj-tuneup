@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { kvGet, kvSet } from './db';
 import { rulesKey, type Rules } from '../engine/rules';
 import { REFERENCE_INDICES, type IndexPlay } from '../engine/indices';
@@ -75,16 +75,19 @@ export function useIndexPlays(rules: Rules, chart?: Chart) {
   const refresh = useCallback(() => setVer((v) => v + 1), []);
   // With a chart, build the count plays for these exact rules in the background (cached after the
   // first time); until then the published reference set is used.
+  const chartRef = useRef(chart);
+  chartRef.current = chart;
+  const hasChart = !!chart;
   useEffect(() => {
-    if (!chart || generated) return;
+    if (!hasChart || generated || !chartRef.current) return;
     let live = true;
-    loadGeneratedIndices(chart, rules)
+    loadGeneratedIndices(chartRef.current, rules)
       .then(() => live && refresh())
       .catch(() => {});
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chart, rk, !!generated]);
+  }, [hasChart, rk, !!generated]);
   return { plays, source, setSource, generated, custom, saveCustom, refresh };
 }
