@@ -128,7 +128,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   return (
     <div className="frame table-frame">
       <header className="hud">
-        <a className="brand" href="#/" aria-label={BRAND.long}>
+        <a className="brand" href="#/home" aria-label={`${BRAND.long}: how it works`}>
           <Emblem height={24} />
           <span className="brand-text">{BRAND.name}</span>
         </a>
