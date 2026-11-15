@@ -454,6 +454,32 @@ a {
   text-underline-offset: 3px;
   cursor: pointer;
 }
+.hand-pointer {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 1.6cqw solid transparent;
+  border-right: 1.6cqw solid transparent;
+  border-top: 2.2cqw solid var(--orange);
+  filter: drop-shadow(0 0.3cqw 0.3cqw rgba(0, 0, 0, 0.25));
+  z-index: 5;
+  animation: pointer-bob 1.2s ease-in-out infinite;
+}
+@keyframes pointer-bob {
+  50% {
+    transform: translate(-50%, 0.6cqw);
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .seat-label {
   position: absolute;
   transform: translate(-50%, 0);

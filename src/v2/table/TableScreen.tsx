@@ -5,8 +5,7 @@ import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { Emblem } from '../icons';
-import { spotCenter, cardPos, dealerCardPos, CARD_RATIO } from './layout';
-import { handTotal, valueOf, isBlackjack } from '../../engine/cards';
+import { spotCenter, cardPos } from './layout';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
 import type { DecisionSnapshot } from '../../engine/game';
@@ -31,12 +30,6 @@ export interface TableHooks {
   practiceHand?: () => { values: [number, number]; up: number } | null;
 }
 
-function totalText(values: number[]): string {
-  if (isBlackjack(values)) return 'BJ';
-  const t = handTotal(values);
-  if (t.total > 21) return 'Bust';
-  return t.soft && t.total < 21 ? `${t.total - 10}/${t.total}` : String(t.total);
-}
 
 export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const { s } = useV2();
@@ -151,7 +144,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       </header>
 
       <div className="felt-stage">
-        <div className="felt-wrap" onClick={g.hurry}>
+        <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
             <ShoeAndTray discards={discards} decks={s.rules.decks} />
@@ -162,7 +155,19 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               const occupied = g.layout.spots.includes(sp);
               const mine = g.layout.mine.includes(sp);
               const seat = t && !idle ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
-              const amount = idle ? (mine ? bets[sp] ?? 0 : 0) : seat ? seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet : 0;
+              // Once the round is settled the dealer pays or takes, like a real table: a winning bet
+              // stays with its payout stacked beside it, a losing bet is taken, a push just stays.
+              const settled = !!seat && t?.phase === 'settled';
+              const amount = idle
+                ? mine
+                  ? bets[sp] ?? 0
+                  : 0
+                : seat
+                  ? settled
+                    ? seat.hands.reduce((a, h) => a + ((h.net ?? 0) >= 0 ? h.bet : 0), 0)
+                    : seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet
+                  : 0;
+              const payout = settled && seat ? seat.hands.reduce((a, h) => a + Math.max(0, h.net ?? 0), 0) : 0;
               return (
                 <div key={sp}>
                   <button
@@ -176,6 +181,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     }}
                   />
                   {occupied && <BetStack amount={amount} x={c.x} y={c.y} />}
+                  {/* the payout goes just beside the bet, overlapping the circle's edge (left at the end seat, by the rail) */}
+                  {occupied && payout > 0 && <BetStack amount={payout} x={c.x + (sp === 1 ? -5.2 : 5.2)} y={c.y + 2.6} />}
                   {mine && (
                     <span className="seat-label" style={{ left: `${c.x}cqw`, top: `${c.y + 6.5}cqw` }}>
                       you
@@ -188,35 +195,18 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             {g.cards.map((p) => (
               <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
             ))}
-            {/* dealer total */}
-            {t && t.holeRevealed && !idle && t.dealer.length > 0 && (
-              <span className="total-tag" style={{ left: `${dealerCardPos(0).x + dealerCardPos(0).w / 2}cqw`, top: `${dealerCardPos(0).y + dealerCardPos(0).w * CARD_RATIO + 1}cqw` }}>
-                {totalText(t.dealer.map(valueOf))}
-              </span>
-            )}
-            {/* your hand totals and results */}
+            {/* which hand you're playing (splits, two spots): the dealer points at it */}
             {t &&
-              !idle &&
-              t.seats.map((seat, si) => {
-                if (!seat.human) return null;
-                const sp = g.spotOfSeat(si);
-                return seat.hands.map((h, hi) => {
-                  if (!h.cards.length) return null;
-                  const pos = cardPos(sp, hi, 0, true);
-                  const res = g.result?.hands.find((x) => x.spot === sp && x.hand === hi);
-                  const active = g.activeSpot === sp && g.activeHand === hi && g.phase === 'yourTurn';
-                  const label = res ? (res.net > 0 ? '+' + money(res.net) : res.net < 0 ? money(res.net) : 'Push') : totalText(h.cards.map(valueOf));
-                  return (
-                    <span
-                      key={`${si}-${hi}`}
-                      className={'total-tag' + (res ? (res.net > 0 ? ' win' : res.net < 0 ? ' lose' : '') : '')}
-                      style={{ left: `${pos.x + (pos.w * (1 + 0.5 * (Math.min(4, h.cards.length) - 1))) / 2}cqw`, top: `${pos.y - 5}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
-                    >
-                      {label}
-                    </span>
-                  );
-                });
-              })}
+              g.phase === 'yourTurn' &&
+              g.activeSpot !== null &&
+              (() => {
+                const seat = t.seats[g.seatOfSpot.get(g.activeSpot) ?? -1];
+                if (!seat || (seat.hands.length < 2 && g.layout.mine.length < 2)) return null;
+                const h = seat.hands[g.activeHand];
+                const first = cardPos(g.activeSpot, g.activeHand, 0, true);
+                const last = cardPos(g.activeSpot, g.activeHand, Math.max(0, Math.min(3, h.cards.length - 1)), true);
+                return <span className="hand-pointer" style={{ left: `${(first.x + last.x + last.w) / 2}cqw`, top: `${first.y - 3.6}cqw` }} aria-hidden="true" />;
+              })()}
             {hooks.feltExtra?.(t)}
             {g.phase === 'shuffling' && (
               <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
@@ -281,11 +271,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           </div>
         )}
         {(g.phase === 'dealing' || g.phase === 'playing') && <p className="muted" style={{ margin: 0, textAlign: 'center', minHeight: 56, lineHeight: '56px' }}>…</p>}
-        {(g.phase === 'results' || g.phase === 'sweeping') && g.result && (
-          <button className="act quiet" onClick={g.hurry}>
-            {g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push'} · tap to continue
-          </button>
-        )}
+        {/* the dealer pays or takes on the felt; screen readers still hear the result */}
+        <p className="sr-only" aria-live="polite">
+          {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}
+        </p>
       </div>
     </div>
   );

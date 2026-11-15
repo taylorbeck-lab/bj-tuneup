@@ -13,7 +13,7 @@ Biggest complaint about other apps: the cards don't feel like real blackjack, be
 ## Principles (owner, 2026-11-15)
 - **Feedback after the fact.** Never coach before or during a decision.
 - **Never show the count at the wrong time.** Nobody at a real table tells you the count when you lose it; the coach's short line never states it, and the full card (one tap) is where the number lives. The count badge is opt-in training wheels.
-- **No app-only conveniences that don't exist at a real table.** Every deal is a fresh chance to size the bet: Rebet is gone; after a win or push your chips simply stay in the circle, after a loss you bet again. Candidates to review next: "tap to continue" after a round, hand-total tags.
+- **No app-only conveniences that don't exist at a real table.** Every deal is a fresh chance to size the bet: Rebet is gone; after a win or push your chips simply stay in the circle, after a loss you bet again. "Tap to continue" and hand-total tags are gone too (the dealer pays or takes on the felt). Next candidate: busted hands could be taken right away, as dealers do.
 - **Minimal and pleasing:** a quiet feedback loop, not a wall of text.
 - **Settings live in the environment, through the dealer**, like a friend dealing to a friend to teach.
 
