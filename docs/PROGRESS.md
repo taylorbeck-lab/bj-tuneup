@@ -75,6 +75,15 @@
 
 **V2 first pass complete.** Open the app, install it, play.
 
+- **V2-6 Casino Tornillo:** done (PR open).
+  - The owner's brand: logo in the middle of a cream felt, a deep black rail, a dimly lit deep green room, desert orange accents and card backs. Icons and app name are now Casino Tornillo.
+  - The table runs edge to edge; it is capped at 6 players so the spots follow a natural arc.
+  - No clip art on the table (palms and cacti removed).
+  - Chips redrawn: real casino-chip faces (edge inserts, ring, inlay) in an earthy palette that keeps the common colours. Bets on the felt are 3D stacks, largest chip at the bottom.
+  - Discard tray: smoked acrylic, the stack is exact (a full shoe fills it), one tick per deck. The burn card goes in the tray. The shoe no longer shows cards left.
+  - Table limits are a posted sign at the dealer's edge, not a line under the buttons.
+  - **Shuffle up:** a fresh shoe on request between hands; the count goes back to 0.
+
 ## Next (owner's call)
 - Aesthetics pass: fonts (the owner is open to more serif/fancy type), felt art, card faces, the name.
 - Feedback from the wife/friend test: what confused them, where the coach is too wordy or too quiet.

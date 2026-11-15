@@ -3,7 +3,8 @@ import { useV2, tableMax } from '../settings';
 import { useStrategy } from '../../store/strategy';
 import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
-import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, Mark } from './Visuals';
+import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
+import { Emblem } from '../icons';
 import { spotCenter, cardPos, dealerCardPos, CARD_RATIO } from './layout';
 import { handTotal, valueOf, isBlackjack } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
@@ -64,6 +65,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   }, [g.phase]);
 
   const betting = g.phase === 'betting';
+  /** Between hands: nothing dealt on the felt (betting, or the dealer shuffling up). */
+  const idle = betting || g.phase === 'shuffling';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
   const canDeal = betting && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
@@ -106,13 +109,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
 
   const total = s.rules.decks * 52;
   const remaining = t ? t.shoe.remaining : total;
-  const discards = betting || g.phase === 'shuffling' ? total - remaining - (t?.shoe.burned.length ?? 0) : Math.max(0, total - remaining - g.cards.length - (t?.shoe.burned.length ?? 0));
+  // every card out of the shoe that isn't on the felt is in the tray (burn cards included)
+  const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
   return (
     <div className="frame">
       <header className="hud">
         <a className="brand" href="#/" aria-label={BRAND.long}>
-          <Mark size={26} color="var(--ink)" />
+          <Emblem height={24} />
           <span className="brand-text">{BRAND.name}</span>
         </a>
         <span className="spacer" />
@@ -134,14 +138,15 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       <div className="felt-wrap" onClick={g.hurry}>
         <div className="felt">
           <FeltPrint rules={s.rules} />
-          <ShoeAndTray remaining={remaining} discards={discards} total={total} />
+          <ShoeAndTray discards={discards} decks={s.rules.decks} />
+          <LimitPlacard min={s.tableMin} max={max} />
           {/* betting circles */}
-          {[1, 2, 3, 4, 5, 6, 7].map((sp) => {
+          {[1, 2, 3, 4, 5, 6].map((sp) => {
             const c = spotCenter(sp);
             const occupied = g.layout.spots.includes(sp);
             const mine = g.layout.mine.includes(sp);
-            const seat = t && !betting ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
-            const amount = betting ? (mine ? bets[sp] ?? 0 : 0) : seat ? seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet : 0;
+            const seat = t && !idle ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
+            const amount = idle ? (mine ? bets[sp] ?? 0 : 0) : seat ? seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet : 0;
             return (
               <div key={sp}>
                 <button
@@ -168,14 +173,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
           ))}
           {/* dealer total */}
-          {t && t.holeRevealed && !betting && t.dealer.length > 0 && (
+          {t && t.holeRevealed && !idle && t.dealer.length > 0 && (
             <span className="total-tag" style={{ left: `${dealerCardPos(0).x + dealerCardPos(0).w / 2}cqw`, top: `${dealerCardPos(0).y + dealerCardPos(0).w * CARD_RATIO + 1}cqw` }}>
               {totalText(t.dealer.map(valueOf))}
             </span>
           )}
           {/* your hand totals and results */}
           {t &&
-            !betting &&
+            !idle &&
             t.seats.map((seat, si) => {
               if (!seat.human) return null;
               const sp = g.spotOfSeat(si);
@@ -189,7 +194,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                   <span
                     key={`${si}-${hi}`}
                     className={'total-tag' + (res ? (res.net > 0 ? ' win' : res.net < 0 ? ' lose' : '') : '')}
-                    style={{ left: `${pos.x + pos.w / 2}cqw`, top: `${pos.y + pos.w * CARD_RATIO + 0.6}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
+                    style={{ left: `${pos.x + (pos.w * (1 + 0.5 * (Math.min(4, h.cards.length) - 1))) / 2}cqw`, top: `${pos.y - 5}cqw`, outline: active ? '0.6cqw solid var(--mustard)' : undefined, zIndex: 4 }}
                   >
                     {label}
                   </span>
@@ -199,7 +204,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           {hooks.feltExtra?.(t)}
           {g.phase === 'shuffling' && (
             <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
-              Shuffling…
+              Shuffling up · count starts at 0
             </div>
           )}
         </div>
@@ -217,7 +222,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               <>
                 <div className="chips-row">
                   {DENOMS.map((d) => (
-                    <Chip key={d} value={d} lg onClick={() => addChip(d)} disabled={pending + d > br.balance || (bets[activeBetSpot] ?? 0) + d > max} />
+                    <Chip key={d} value={d} onClick={() => addChip(d)} disabled={pending + d > br.balance || (bets[activeBetSpot] ?? 0) + d > max} />
                   ))}
                 </div>
                 <div className="actions" style={{ gridTemplateColumns: '1fr 1fr 1.4fr' }}>
@@ -231,10 +236,12 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     Deal {pending ? money(pending) : ''}
                   </button>
                 </div>
-                <p className="muted mono" style={{ margin: 0, fontSize: 12, textAlign: 'center' }}>
-                  Table {money(s.tableMin)}–{money(max)}
-                  {g.layout.mine.length > 1 ? ' · tap a gold circle to bet that spot' : ''}
-                </p>
+                <div className="dock-foot">
+                  <span className="muted">{g.layout.mine.length > 1 ? 'Tap one of your circles to bet that spot' : ''}</span>
+                  <button type="button" className="link-btn" onClick={g.shuffleUp} aria-label="Shuffle up: new shoe, count back to 0">
+                    ⟲ Shuffle up
+                  </button>
+                </div>
               </>
             )}
           </>

@@ -67,3 +67,8 @@ export function Mark({ size = 26, color = 'currentColor', sun = 'var(--coral)' }
     </svg>
   );
 }
+
+/** The Casino Tornillo emblem (sun rays over the mesa), from the brand artwork. */
+export function Emblem({ height = 22 }: { height?: number }) {
+  return <img src={`${import.meta.env.BASE_URL}brand/tornillo-emblem.png`} alt="" height={height} style={{ height, width: 'auto', display: 'block' }} />;
+}

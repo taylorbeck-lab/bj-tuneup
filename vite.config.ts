@@ -15,11 +15,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'MESA Blackjack',
-        short_name: 'MESA',
+        name: 'Casino Tornillo',
+        short_name: 'Tornillo',
         description: 'Learn to play blackjack right, count cards and bet like a pro. Practice table, play money.',
-        theme_color: '#101814',
-        background_color: '#101814',
+        theme_color: '#0b1712',
+        background_color: '#0b1712',
         display: 'standalone',
         orientation: 'portrait',
         start_url: base,
@@ -32,6 +32,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        maximumFileSizeToCacheInBytes: 3_000_000,
         navigateFallback: 'index.html',
       },
     }),

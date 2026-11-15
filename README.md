@@ -1,6 +1,6 @@
-# MESA
+# Casino Tornillo
 
-*(Placeholder code name.)* A blackjack table in your pocket that teaches you to play like an advantage player, one layer at a time:
+A blackjack table in your pocket that teaches you to play like an advantage player, one layer at a time:
 
 1. every hand right,
 2. then counting,
@@ -18,11 +18,13 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
 
 ## How it plays
 - **A real table:**
-  - Dealer, shoe and discard tray at the top, with 1–7 players in an arc.
+  - A cream felt with the Casino Tornillo logo, a black padded rail, and up to 6 players in an arc that runs edge to edge.
+  - Dealer, shoe, the posted table-limits sign and a smoked acrylic discard tray along the top. The tray stack grows exactly with the cards played, with a tick per deck, so you read decks played the way counters do. You can't see how many cards are left in the shoe, just like a real table.
   - You choose your seat, and play one or two spots.
   - Cards slide out of the shoe to a fixed spot and stay there. Every card stays readable, and nothing jiggles.
 - **Dealer pace:** slow, average, fast or extra fast. Finished hands stay on the felt for a realistic beat; tap the felt to move on.
-- **Money:** $5 / $25 / $100 / $500 chips, table limits and a bankroll that persists (play money). It reloads when you're out.
+- **Money:** $5 / $25 / $100 / $500 chips in the house colours (terracotta, juniper, black, plum), bets stacked on the felt, and a bankroll that persists (play money). It reloads when you're out.
+- **Shuffle up** (under the bet buttons): between hands, ask the dealer for a fresh shoe. The count starts again at 0, exactly like a new shoe at a casino.
 - **Other players** bet and play too, and once in a while they misplay, like real tables.
 
 ## The coach

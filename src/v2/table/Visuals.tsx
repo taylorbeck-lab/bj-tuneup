@@ -1,21 +1,21 @@
 import type { CSSProperties } from 'react';
 import { rankOf, suitOf, isRed, RANK_LABELS, SUIT_GLYPHS, cardName } from '../../engine/cards';
-import { BRAND } from '../brand';
 import type { Rules } from '../../engine/rules';
 import { SHOE, CARD_H, CARD_W, FELT_H } from './layout';
 import type { PlacedCard } from './useTableGame';
+import { money } from '../bankroll';
 
-export { Mark } from '../icons';
-
+/** Card back: the Tornillo sun and mesa, cream on desert orange. */
 function CardBack() {
+  const rays = Array.from({ length: 13 }, (_, i) => Math.PI + (i * Math.PI) / 12);
   return (
     <svg viewBox="0 0 50 70" preserveAspectRatio="none" aria-hidden="true">
-      <rect x="3" y="3" width="44" height="64" rx="3" fill="none" stroke="#fbf6ec" strokeWidth="1.2" />
-      {Array.from({ length: 7 }, (_, i) => (
-        <line key={i} x1="25" y1="40" x2={25 + Math.cos(Math.PI + (i * Math.PI) / 6) * 30} y2={40 + Math.sin(Math.PI + (i * Math.PI) / 6) * 30} stroke="#f2bf47" strokeWidth="1.4" strokeOpacity="0.7" />
+      <rect x="3" y="3" width="44" height="64" rx="3" fill="none" stroke="#f6ead3" strokeWidth="1.1" />
+      <rect x="5.5" y="5.5" width="39" height="59" rx="2" fill="none" stroke="#f6ead3" strokeOpacity="0.45" strokeWidth="0.6" />
+      {rays.map((a, i) => (
+        <line key={i} x1={25 + Math.cos(a) * 6} y1={41 + Math.sin(a) * 6} x2={25 + Math.cos(a) * (i % 2 ? 15 : 20)} y2={41 + Math.sin(a) * (i % 2 ? 15 : 20)} stroke="#f6ead3" strokeWidth="1.5" />
       ))}
-      <circle cx="25" cy="40" r="7" fill="#f2bf47" stroke="#1b1a17" strokeWidth="1.2" />
-      <path d="M8 52h34M13 52l4-6h16l4 6" fill="none" stroke="#1b1a17" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M12 47h26M15.5 47v-6.5h6l2 6.5M34.5 47v-6.5h-6l-2 6.5" fill="#f6ead3" stroke="#f6ead3" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -46,26 +46,53 @@ export function PlayingCard({ p, sweep, dur, dim }: { p: PlacedCard; sweep?: boo
   );
 }
 
-const CHIP_COLORS: Record<number, string> = { 1: 'var(--chip-5)', 5: 'var(--chip-5)', 25: 'var(--chip-25)', 100: 'var(--chip-100)', 500: 'var(--chip-500)', 1000: 'var(--chip-1000)' };
+/** Chip colours: the classic casino denominations (red, green, black, purple) in earthy desert tones. */
+export const CHIP_STYLE: Record<number, { base: string; insert: string; ring: string; ink: string }> = {
+  1: { base: '#e7dcc6', insert: '#7d6a52', ring: '#7d6a52', ink: '#3a3128' },
+  5: { base: '#b3432b', insert: '#f2e6cc', ring: '#f2e6cc', ink: '#8e3220' },
+  25: { base: '#3c6a4b', insert: '#e8c77c', ring: '#f2e6cc', ink: '#2c513a' },
+  100: { base: '#1d1c1a', insert: '#f2e6cc', ring: '#c4561f', ink: '#1d1c1a' },
+  500: { base: '#5e3b5b', insert: '#e8c77c', ring: '#f2e6cc', ink: '#4a2c48' },
+  1000: { base: '#c58f2e', insert: '#1d1c1a', ring: '#1d1c1a', ink: '#6e4b10' },
+};
 export const DENOMS = [5, 25, 100, 500];
+const chipStyle = (v: number) => CHIP_STYLE[v] ?? CHIP_STYLE[100];
+const short = (v: number) => (v >= 1000 ? v / 1000 + 'K' : String(v));
 
-export function Chip({ value, lg, onClick, disabled, label }: { value: number; lg?: boolean; onClick?: () => void; disabled?: boolean; label?: string }) {
-  const style = { '--c': CHIP_COLORS[value] ?? 'var(--chip-100)' } as CSSProperties;
-  const text = label ?? (value >= 1000 ? value / 1000 + 'K' : String(value));
-  if (onClick)
-    return (
-      <button type="button" className={'chip' + (lg ? ' lg' : '')} style={style} onClick={onClick} disabled={disabled} aria-label={`$${value} chip`}>
-        {text}
-      </button>
-    );
+/** Top-down chip face (viewBox 0 0 100 100): edge inserts, a dashed inner ring and a cream inlay. */
+function ChipFace({ value, label }: { value: number; label?: string }) {
+  const c = chipStyle(value);
+  const circ = 2 * Math.PI * 41;
   return (
-    <span className={'chip' + (lg ? ' lg' : '')} style={style}>
-      {text}
-    </span>
+    <>
+      <circle cx="50" cy="50" r="48" fill={c.base} />
+      <circle cx="50" cy="50" r="41" fill="none" stroke={c.insert} strokeWidth="13" strokeDasharray={`${circ / 16} ${circ / 16}`} transform="rotate(-11 50 50)" />
+      <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.4" />
+      <circle cx="50" cy="50" r="32" fill="none" stroke={c.ring} strokeWidth="1.6" strokeDasharray="3 2.2" />
+      <circle cx="50" cy="50" r="27" fill="#f4ead6" stroke="rgba(0,0,0,0.18)" strokeWidth="1" />
+      <text x="50" y="51" textAnchor="middle" dominantBaseline="central" fontFamily="var(--display)" fontSize={label && label.length > 3 ? 21 : 27} fill={c.ink} letterSpacing="0.5">
+        {label ?? short(value)}
+      </text>
+    </>
   );
 }
 
-/** Break an amount into chips for display (largest first, max 4 shown). */
+export function Chip({ value, onClick, disabled }: { value: number; onClick?: () => void; disabled?: boolean }) {
+  const face = (
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <ChipFace value={value} />
+    </svg>
+  );
+  if (onClick)
+    return (
+      <button type="button" className="chip lg" onClick={onClick} disabled={disabled} aria-label={`$${value} chip`}>
+        {face}
+      </button>
+    );
+  return <span className="chip">{face}</span>;
+}
+
+/** Break an amount into chips for display (largest first). */
 export function chipStack(amount: number): number[] {
   const out: number[] = [];
   let a = amount;
@@ -78,69 +105,163 @@ export function chipStack(amount: number): number[] {
   return out;
 }
 
+const compact = (n: number) => (n >= 10000 ? '$' + Math.round(n / 1000) + 'K' : n >= 1000 && n % 100 ? '$' + (n / 1000).toFixed(1) + 'K' : '$' + n.toLocaleString('en-US'));
+
+/**
+ * A bet on the felt, seen from the player's chair: chips stacked largest at the bottom, the edge
+ * inserts showing on each chip's side, and the total on the top chip.
+ */
 export function BetStack({ amount, x, y }: { amount: number; x: number; y: number }) {
   if (amount <= 0) return null;
-  const stack = chipStack(amount).slice(0, 5);
+  const stack = chipStack(amount).slice(0, 8);
+  const RX = 46, RY = 25, T = 9.5, W = 8.8;
+  const H = RY * 2 + T * stack.length + 6;
+  const ex = (phi: number) => 50 + RX * Math.cos(phi);
+  const ey = (phi: number) => RY * Math.sin(phi);
+  const stripes = [22.5, 67.5, 112.5, 157.5].map((d) => [((d - 8) * Math.PI) / 180, ((d + 8) * Math.PI) / 180]);
+  const top = stack[stack.length - 1];
+  const yTop = H - RY - 3 - T * stack.length;
+  const u = W / 100;
   return (
-    <div style={{ position: 'absolute', left: `${x}cqw`, top: `${y}cqw`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-      {stack.map((d, i) => (
-        <div key={i} style={{ position: 'absolute', left: 0, top: `${-i * 0.9}cqw`, transform: 'translate(-50%, -50%)' }}>
-          <Chip value={d} label={i === stack.length - 1 ? '$' + amount : ''} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Printed felt: arc text with the rules, the logo, the insurance line. */
-export function FeltPrint({ rules }: { rules: Rules }) {
-  const bj = rules.bjPayout === 1.5 ? 'BLACKJACK PAYS 3 TO 2' : 'BLACKJACK PAYS 6 TO 5';
-  const s17 = rules.h17 ? 'DEALER HITS SOFT 17' : 'DEALER STANDS ON ALL 17s';
-  return (
-    <svg className="felt-print" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
+    <svg
+      className="bet-stack"
+      viewBox={`0 0 100 ${H}`}
+      style={{ left: `${x - W / 2}cqw`, top: `${y - (H - RY - 3) * u}cqw`, width: `${W}cqw`, height: `${H * u}cqw` }}
+      aria-label={`Bet ${money(amount)}`}
+      role="img"
+    >
       <defs>
-        <path id="arc1" d="M 8 30 Q 50 58 92 30" />
-        <path id="arc2" d="M 12 35.5 Q 50 62 88 35.5" />
+        <linearGradient id="chipSide" x1="0" x2="1">
+          <stop offset="0" stopColor="#000" stopOpacity="0.38" />
+          <stop offset="0.35" stopColor="#000" stopOpacity="0.05" />
+          <stop offset="0.7" stopColor="#000" stopOpacity="0.12" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.42" />
+        </linearGradient>
       </defs>
-      <text fontSize="3.6" fill="var(--felt-ink)" letterSpacing="0.5" fontFamily="var(--display)">
-        <textPath href="#arc1" startOffset="50%" textAnchor="middle">
-          {bj}
-        </textPath>
-      </text>
-      <text fontSize="2.6" fill="var(--felt-ink)" letterSpacing="0.2" fontFamily="var(--serif)" fontStyle="italic">
-        <textPath href="#arc2" startOffset="50%" textAnchor="middle">
-          {s17.toLowerCase().replace('dealer', 'Dealer')} · insurance pays 2 to 1
-        </textPath>
-      </text>
-      <g transform="translate(50 64) scale(0.8)" opacity="0.22">
-        <circle cx="0" cy="-5" r="4.4" fill="none" stroke="var(--cream)" strokeWidth="0.8" />
-        <path d="M-10 3h20M-7 3l3-4.6h8l3 4.6" fill="none" stroke="var(--cream)" strokeWidth="0.8" strokeLinejoin="round" />
-        <text y="11" fontSize="5" textAnchor="middle" fill="var(--cream)" letterSpacing="1.2" fontFamily="var(--display)">
-          {BRAND.name}
-        </text>
+      <ellipse cx="51.5" cy={H - RY - 1} rx={RX + 1.5} ry={RY + 1} fill="rgba(40,25,10,0.22)" />
+      {stack.map((d, i) => {
+        const c = chipStyle(d);
+        const yb = H - RY - 3 - i * T;
+        const yt = yb - T;
+        return (
+          <g key={i}>
+            <path d={`M4 ${yt} L4 ${yb} A${RX} ${RY} 0 0 0 96 ${yb} L96 ${yt} A${RX} ${RY} 0 0 1 4 ${yt} Z`} fill={c.base} />
+            {stripes.map(([a, b], k) => (
+              <path key={k} d={`M${ex(a)} ${yb + ey(a)} L${ex(b)} ${yb + ey(b)} L${ex(b)} ${yt + ey(b)} L${ex(a)} ${yt + ey(a)} Z`} fill={c.insert} />
+            ))}
+            <path d={`M4 ${yt} L4 ${yb} A${RX} ${RY} 0 0 0 96 ${yb} L96 ${yt} A${RX} ${RY} 0 0 1 4 ${yt} Z`} fill="url(#chipSide)" stroke="rgba(0,0,0,0.45)" strokeWidth="0.8" />
+          </g>
+        );
+      })}
+      <g transform={`translate(0 ${yTop - RY}) translate(50 ${RY}) scale(${RX / 48} ${RY / 48}) translate(-50 -50)`}>
+        <ChipFace value={top} label="" />
       </g>
-      {/* palms in the corners of the felt */}
-      <g opacity="0.12" fill="var(--cream)">
-        <path transform="translate(4 96) scale(0.32)" d="M31 62c1-10 2-22 1-33l3 .4c1 11 0 23-1 32.6zM33 28c-4-6-12-9-20-7 6-1 12 1 16 5-6-2-13-1-18 4 6-3 13-3 18-1-4 1-8 4-10 9 4-4 9-7 14-8zM33 28c3-7 11-11 19-10-6 0-12 3-15 7 6-3 13-3 18 1-6-2-12-1-17 2 5 0 9 3 11 8-4-3-9-6-14-6z" />
-        <path transform="translate(76 96) scale(0.32)" d="M28 62V12a4 4 0 0 1 8 0v50zM28 40h-8a6 6 0 0 1-6-6V22a3 3 0 0 1 6 0v12h8zM36 32h7V18a3 3 0 0 1 6 0v14a6 6 0 0 1-6 6h-7z" />
-      </g>
+      <text x="50" y={yTop + 1} textAnchor="middle" dominantBaseline="central" fontFamily="var(--display)" fontSize={compact(amount).length > 5 ? 17 : 21} fill={chipStyle(top).ink}>
+        {compact(amount)}
+      </text>
     </svg>
   );
 }
 
-/** Shoe (cards left) and discard tray (cards played) with realistic fill heights. */
-export function ShoeAndTray({ remaining, discards, total }: { remaining: number; discards: number; total: number }) {
-  const h = 16;
-  const trayFill = (discards / total) * h;
-  const shoeFill = (remaining / total) * h;
+/** Printed felt: the Casino Tornillo logo in the middle and the rules arc below the dealer. */
+export function FeltPrint({ rules }: { rules: Rules }) {
+  const bj = rules.bjPayout === 1.5 ? 'BLACKJACK PAYS 3 TO 2' : 'BLACKJACK PAYS 6 TO 5';
+  const s17 = rules.h17 ? 'Dealer hits soft 17' : 'Dealer stands on all 17s';
+  const base = import.meta.env.BASE_URL;
+  return (
+    <svg className="felt-print" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
+      <defs>
+        <path id="arc1" d="M 16 28 Q 50 40.5 84 28" />
+        <path id="arc2" d="M 19.5 31.9 Q 50 44.1 80.5 31.9" />
+      </defs>
+      <text fontSize="3.1" fill="var(--felt-ink)" letterSpacing="0.55" fontFamily="var(--font)" fontWeight="700">
+        <textPath href="#arc1" startOffset="50%" textAnchor="middle">
+          {bj}
+        </textPath>
+      </text>
+      <text fontSize="2.5" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
+        <textPath href="#arc2" startOffset="50%" textAnchor="middle">
+          {s17} · insurance pays 2 to 1
+        </textPath>
+      </text>
+      <image href={`${base}brand/tornillo-logo.png`} x="30" y="44" width="40" height="30.3" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+    </svg>
+  );
+}
+
+/** The posted limits sign at the dealer's edge of the table, where you look for the minimum. */
+export function LimitPlacard({ min, max }: { min: number; max: number }) {
+  return (
+    <div className="placard" role="note" aria-label={`Table minimum ${money(min)}, maximum ${money(max)}`}>
+      <span className="pl-k">Table minimum</span>
+      <span className="pl-v">{money(min)}</span>
+      <span className="pl-k">Max {money(max)}</span>
+    </div>
+  );
+}
+
+/**
+ * The shoe (closed: you can't see how many cards are left, just like at a real table) and the
+ * discard tray, a clear acrylic box where played cards stack on their side. The stack height is
+ * exact: a full shoe of discards fills the tray, so you can read decks played off the tray the way
+ * counters do.
+ */
+export function ShoeAndTray({ discards, decks }: { discards: number; decks: number }) {
+  const TH = 23; // tray height (cqw)
+  const TW = 10; // tray width (cqw)
+  const vb = { w: 100, h: (TH / TW) * 100 };
+  const floor = vb.h - 9;
+  const inner = floor - 12; // room for a full shoe
+  const stack = Math.min(inner, (discards / (decks * 52)) * inner);
+  const deckH = inner / decks;
+  const decksIn = discards / 52;
   return (
     <>
-      <div style={{ position: 'absolute', left: '3cqw', top: '2.5cqw', width: '7cqw', height: `${h + 1}cqw`, border: '0.35cqw solid rgba(244,232,210,0.4)', borderTop: 0, borderRadius: '0 0 1cqw 1cqw' }} aria-label={`Discard tray: about ${(discards / 52).toFixed(1)} decks played`} role="img">
-        <div style={{ position: 'absolute', left: '0.6cqw', right: '0.6cqw', bottom: '0.5cqw', height: `${trayFill}cqw`, background: 'repeating-linear-gradient(0deg, #e7dcc8 0 0.35cqw, #cfc3ad 0.35cqw 0.5cqw)', borderRadius: '0.3cqw' }} />
-      </div>
-      <div style={{ position: 'absolute', right: '3cqw', top: '2.5cqw', width: '11cqw', height: `${h + 1}cqw`, borderRadius: '1.2cqw', background: 'rgba(10,20,15,0.5)', border: '0.35cqw solid rgba(244,232,210,0.4)' }} aria-label="Shoe" role="img">
-        <div style={{ position: 'absolute', left: '1.2cqw', right: '1.2cqw', bottom: '0.8cqw', height: `${shoeFill}cqw`, background: 'var(--coral)', borderRadius: '0.4cqw' }} />
-      </div>
+      <svg
+        className="tray"
+        viewBox={`0 0 ${vb.w} ${vb.h}`}
+        style={{ left: '3cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw` }}
+        role="img"
+        aria-label={`Discard tray: ${discards} cards, about ${(Math.round(decksIn * 2) / 2).toFixed(1)} decks played`}
+      >
+        <defs>
+          <pattern id="cardEdges" width="100" height="2.6" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.6" fill="#fbf7ee" />
+            <rect y="1.9" width="100" height="0.7" fill="#a99a7f" />
+          </pattern>
+          <linearGradient id="acrylic" x1="0" x2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.32" />
+            <stop offset="0.18" stopColor="#fff" stopOpacity="0.08" />
+            <stop offset="0.8" stopColor="#fff" stopOpacity="0.04" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0.22" />
+          </linearGradient>
+        </defs>
+        {/* smoked acrylic back wall */}
+        <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="rgba(28,22,16,0.72)" stroke="#0d0d0c" strokeWidth="1.4" />
+        {/* the stack of played cards, edge on, with the top card's orange back showing */}
+        {stack > 0.3 && (
+          <>
+            <rect x="12" y={floor - stack} width="76" height={stack} fill="url(#cardEdges)" />
+            <rect x="12" y={floor - stack} width="76" height={stack} fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="0.8" />
+            <rect x="11" y={floor - stack - 2.4} width="78" height="2.8" rx="0.8" fill="var(--orange)" stroke="rgba(0,0,0,0.5)" strokeWidth="0.6" />
+          </>
+        )}
+        {/* one faint tick per deck on the side, like the etched lines on a real tray */}
+        {Array.from({ length: decks - 1 }, (_, i) => (
+          <line key={i} x1="89" x2="94" y1={floor - deckH * (i + 1)} y2={floor - deckH * (i + 1)} stroke="rgba(246,234,211,0.55)" strokeWidth="1.1" />
+        ))}
+        {/* clear front panel and black base */}
+        <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="url(#acrylic)" />
+        <rect x="2" y={floor} width="96" height="8" rx="2.5" fill="#121211" />
+      </svg>
+      <svg className="shoe" viewBox="0 0 100 150" style={{ right: '3cqw', top: '2cqw', width: '11cqw', height: '16.5cqw' }} role="img" aria-label="Shoe">
+        <path d="M18 8 H92 a6 6 0 0 1 6 6 V140 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 V60 Z" fill="#1b1a18" stroke="#000" strokeWidth="2" />
+        <path d="M22 16 H88 V96 H12 V60 Z" fill="#0e0e0d" />
+        <rect x="14" y="62" width="70" height="30" rx="2" fill="var(--orange)" stroke="#000" strokeWidth="1.2" />
+        <rect x="18" y="66" width="62" height="22" rx="1.5" fill="none" stroke="#f6ead3" strokeOpacity="0.6" strokeWidth="1" />
+        <path d="M2 100 H98" stroke="#2d2b28" strokeWidth="2" />
+        <ellipse cx="50" cy="122" rx="24" ry="9" fill="#0e0e0d" />
+      </svg>
     </>
   );
 }

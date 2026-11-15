@@ -12,9 +12,9 @@ export const SPEEDS: { id: Speed; label: string; card: number; linger: number }[
 
 export interface V2Settings {
   rules: Rules;
-  /** Players at the table including you (1..7). */
+  /** Players at the table including you (1..6). */
   players: number;
-  /** Your spot, 1 = first base (dealer's left) .. 7 = third base. */
+  /** Your spot, 1 = first base (dealer's left) .. 6 = third base. */
   seat: number;
   /** Spots you play: 1 or 2. */
   spots: 1 | 2;
@@ -55,13 +55,13 @@ export const DEFAULT_V2: V2Settings = {
 export function mergeV2(s?: Partial<V2Settings>): V2Settings {
   const d = DEFAULT_V2;
   if (!s) return structuredClone(d);
-  const players = Math.min(7, Math.max(1, Math.round(s.players ?? d.players)));
+  const players = Math.min(6, Math.max(1, Math.round(s.players ?? d.players)));
   return {
     ...d,
     ...s,
     rules: normalizeRules({ ...d.rules, ...(s.rules ?? {}), seats: 7 }),
     players,
-    seat: Math.min(7, Math.max(1, Math.round(s.seat ?? d.seat))),
+    seat: Math.min(6, Math.max(1, Math.round(s.seat ?? d.seat))),
     spots: s.spots === 2 ? 2 : 1,
     coach: { ...d.coach, ...(s.coach ?? {}) },
   };

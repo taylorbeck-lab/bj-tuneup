@@ -1,6 +1,5 @@
 import { useV2 } from '../settings';
 import { BRAND } from '../brand';
-import { Mark, Palm, Saguaro, Sun } from '../icons';
 import { LEGAL_LINE } from '../../legal';
 
 /** One-screen welcome: what this is, then straight to the table. */
@@ -9,17 +8,7 @@ export function Welcome() {
   return (
     <div className="frame" style={{ justifyContent: 'center' }}>
       <div className="page" style={{ gap: 22, paddingTop: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, color: 'var(--ink)' }}>
-          <Palm size={64} color="var(--good)" />
-          <Sun size={44} color="var(--coral)" />
-          <Saguaro size={58} color="var(--ink)" />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Mark size={44} />
-          <span className="display" style={{ fontSize: 64 }}>
-            {BRAND.name}
-          </span>
-        </div>
+        <img src={`${import.meta.env.BASE_URL}brand/tornillo-logo-cream.png`} alt={BRAND.long} style={{ width: '82%', maxWidth: 340, alignSelf: 'center' }} />
         <p style={{ fontSize: 30, lineHeight: 1.05, margin: 0 }} className="display">
           Play the hand. <span className="serif" style={{ fontSize: 34 }}>Learn the edge.</span>
         </p>

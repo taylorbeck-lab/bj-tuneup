@@ -118,10 +118,10 @@ export function SettingsPage() {
             </select>
           </Row>
           <Row label="Players" hint="Including you">
-            <Seg label="Players" value={s.players} onChange={(v) => set({ players: v })} options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ v: n, l: String(n) }))} />
+            <Seg label="Players" value={s.players} onChange={(v) => set({ players: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
           </Row>
-          <Row label="Your seat" hint="1 = first base (dealt first) · 7 = third base">
-            <Seg label="Your seat" value={s.seat} onChange={(v) => set({ seat: v })} options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ v: n, l: String(n) }))} />
+          <Row label="Your seat" hint="1 = first base (dealt first) · 6 = third base">
+            <Seg label="Your seat" value={s.seat} onChange={(v) => set({ seat: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
           </Row>
           <Row label="Hands you play">
             <Seg label="Hands" value={s.spots} onChange={(v) => set({ spots: v })} options={[{ v: 1 as const, l: 'One' }, { v: 2 as const, l: 'Two' }]} />
