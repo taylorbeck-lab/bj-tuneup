@@ -206,7 +206,7 @@ export function LimitPlacard({ min, max }: { min: number; max: number }) {
  * exact: a full shoe of discards fills the tray, so you can read decks played off the tray the way
  * counters do.
  */
-export function ShoeAndTray({ discards, decks }: { discards: number; decks: number }) {
+export function ShoeAndTray({ discards, decks, onTray, onShoe }: { discards: number; decks: number; onTray?: () => void; onShoe?: () => void }) {
   const TH = 23; // tray height (cqw)
   const TW = 10; // tray width (cqw)
   const vb = { w: 100, h: (TH / TW) * 100 };
@@ -220,9 +220,12 @@ export function ShoeAndTray({ discards, decks }: { discards: number; decks: numb
       <svg
         className="tray"
         viewBox={`0 0 ${vb.w} ${vb.h}`}
-        style={{ left: '5cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw` }}
-        role="img"
-        aria-label={`Discard tray: ${discards} cards, about ${(Math.round(decksIn * 2) / 2).toFixed(1)} decks played`}
+        style={{ left: '5cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw`, cursor: onTray ? 'pointer' : undefined }}
+        role={onTray ? 'button' : 'img'}
+        tabIndex={onTray ? 0 : undefined}
+        onClick={onTray}
+        onKeyDown={(e) => onTray && (e.key === 'Enter' || e.key === ' ') && onTray()}
+        aria-label={`Discard tray: ${discards} cards, about ${(Math.round(decksIn * 2) / 2).toFixed(1)} decks played${onTray ? '. Tap for the count.' : ''}`}
       >
         <defs>
           <pattern id="cardEdges" width="100" height="2.6" patternUnits="userSpaceOnUse">
@@ -254,7 +257,16 @@ export function ShoeAndTray({ discards, decks }: { discards: number; decks: numb
         <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="url(#acrylic)" />
         <rect x="2" y={floor} width="96" height="8" rx="2.5" fill="#121211" />
       </svg>
-      <svg className="shoe" viewBox="0 0 100 150" style={{ right: '5cqw', top: '2cqw', width: '11cqw', height: '16.5cqw' }} role="img" aria-label="Shoe">
+      <svg
+        className="shoe"
+        viewBox="0 0 100 150"
+        style={{ right: '5cqw', top: '2cqw', width: '11cqw', height: '16.5cqw', cursor: onShoe ? 'pointer' : undefined }}
+        role={onShoe ? 'button' : 'img'}
+        tabIndex={onShoe ? 0 : undefined}
+        onClick={onShoe}
+        onKeyDown={(e) => onShoe && (e.key === 'Enter' || e.key === ' ') && onShoe()}
+        aria-label={onShoe ? 'Shoe. Tap to ask the dealer to shuffle up.' : 'Shoe'}
+      >
         <path d="M18 8 H92 a6 6 0 0 1 6 6 V140 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 V60 Z" fill="#1b1a18" stroke="#000" strokeWidth="2" />
         <path d="M22 16 H88 V96 H12 V60 Z" fill="#0e0e0d" />
         <rect x="14" y="62" width="70" height="30" rx="2" fill="var(--orange)" stroke="#000" strokeWidth="1.2" />

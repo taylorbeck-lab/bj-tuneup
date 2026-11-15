@@ -40,13 +40,14 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 type Coach = V2Settings['coach'];
-/** One-tap learning path: each step turns on the next layer. */
+/**
+ * Three modes, each deciding which feedback cards you get. Betting the count comes before count
+ * plays because most of a counter's edge comes from betting more when the count is up.
+ */
 const PATH: { title: string; sub: string; coach: Partial<Coach> }[] = [
-  { title: 'Play every hand right', sub: 'basic strategy with a coach', coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'off', betCoach: false } },
-  { title: 'Start counting', sub: 'the count shown, plus easy quizzes', coach: { deviations: false, showCount: true, countQuiz: 'sometimes', betCoach: false } },
-  { title: 'Count on your own', sub: 'no helper, more quizzes', coach: { deviations: false, showCount: false, countQuiz: 'often', betCoach: false } },
-  { title: 'Count plays', sub: 'the right play changes with the count', coach: { deviations: true, showCount: false, countQuiz: 'sometimes', betCoach: false } },
-  { title: 'Bet the count', sub: 'raise when the shoe is yours', coach: { deviations: true, showCount: false, countQuiz: 'sometimes', betCoach: true } },
+  { title: 'Basic strategy', sub: 'every hand right, with a peek at what comes next', coach: { deviations: false, countQuiz: 'off', betCoach: false } },
+  { title: 'Count & bet', sub: 'keep the count, bet with it, get tested now and then', coach: { deviations: false, countQuiz: 'sometimes', betCoach: true } },
+  { title: 'Full AP', sub: 'plus count plays: the right play changes with the count', coach: { deviations: true, countQuiz: 'sometimes', betCoach: true } },
 ];
 const matches = (c: Coach, p: Partial<Coach>) => (Object.keys(p) as (keyof Coach)[]).every((k) => k === 'feedback' || c[k] === p[k]);
 
@@ -68,7 +69,7 @@ export function SettingsPage() {
         </span>
       </header>
       <div className="page">
-        <Group title="Learning path">
+        <Group title="Mode">
           <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
             {PATH.map((p, i) => {
               const on = matches(s.coach, p.coach);
@@ -86,14 +87,14 @@ export function SettingsPage() {
           </div>
         </Group>
 
-        <Group title="Learning">
+        <Group title="Fine-tune">
           <Row label="Coach" hint="Feedback after your decisions">
             <Seg label="Coach" value={s.coach.feedback} onChange={(v) => C({ feedback: v })} options={[{ v: 'always', l: 'Always' }, { v: 'mistakes', l: 'Mistakes' }, { v: 'off', l: 'Off' }]} />
           </Row>
           <Row label="Deviations" hint="The right play changes with the count">
             <Tog on={s.coach.deviations} set={(v) => C({ deviations: v })} label="Deviations" />
           </Row>
-          <Row label="Show the count" hint="Training wheels: running count on the table">
+          <Row label="Show the count" hint="Training wheels: the count on the table (tap the discard tray any time to be tested or to ask)">
             <Tog on={s.coach.showCount} set={(v) => C({ showCount: v })} label="Show the count" />
           </Row>
           <Row label="Count quizzes" hint="Dealer asks “what's the count?”">
