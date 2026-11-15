@@ -57,10 +57,29 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const t = g.table;
   const [bets, setBets] = useState<Record<number, number>>({});
   const [lastBets, setLastBets] = useState<Record<number, number>>({});
+  /** Like a real table: after a win or a push your bet stays in the circle; after a loss it's gone. */
+  const carry = useRef<Record<number, number> | null>(null);
+  useEffect(() => {
+    if (!g.result) return;
+    const keep: Record<number, number> = {};
+    for (const [sp, amt] of Object.entries(lastBets)) {
+      const first = g.result.hands.find((h) => h.spot === Number(sp) && h.hand === 0);
+      if (first && first.net >= 0 && amt > 0) keep[Number(sp)] = amt;
+    }
+    carry.current = keep;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.result]);
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
   useEffect(() => {
-    if (g.phase === 'betting' && g.table) hooks.onBetting?.(g.table);
+    if (g.phase !== 'betting') return;
+    if (carry.current) {
+      const keep = carry.current;
+      carry.current = null;
+      const total = Object.values(keep).reduce((a, b) => a + b, 0);
+      if (total > 0 && total <= br.balance) setBets(keep);
+    }
+    if (g.table) hooks.onBetting?.(g.table);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.phase]);
 
@@ -83,7 +102,6 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     g.deal(b, hooks.practiceHand?.());
     setBets({});
   };
-  const rebetAmount = Object.values(lastBets).reduce((a, b) => a + b, 0);
 
   // Exactly what the rules allow (the coach grades against the same list). Play money never takes a
   // double or split away; a short bankroll just dips below zero and reloads between hands.
@@ -225,12 +243,9 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     <Chip key={d} value={d} onClick={() => addChip(d)} disabled={pending + d > br.balance || (bets[activeBetSpot] ?? 0) + d > max} />
                   ))}
                 </div>
-                <div className="actions" style={{ gridTemplateColumns: '1fr 1fr 1.4fr' }}>
+                <div className="actions" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
                   <button className="act" onClick={() => setBets({})} disabled={!pending}>
                     Clear
-                  </button>
-                  <button className="act" onClick={() => doDeal(lastBets)} disabled={!rebetAmount || rebetAmount > br.balance}>
-                    Rebet {rebetAmount ? money(rebetAmount) : ''}
                   </button>
                   <button className="act primary" onClick={() => doDeal(bets)} disabled={!canDeal}>
                     Deal {pending ? money(pending) : ''}

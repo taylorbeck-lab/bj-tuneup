@@ -22,9 +22,9 @@ const per100 = (x: number) => (x >= 0 ? `+$${Math.round(x * 100)}` : `−$${Math
  * On the table it sits in a fixed two-line strip so the screen never scrolls; tap it to open the
  * whole card over the felt, tap again to fold it away.
  */
-export function CoachCard({ msg, onClose, askHref }: { msg: CoachMsg; onClose?: () => void; askHref?: string }) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => setOpen(false), [msg]);
+export function CoachCard({ msg, onClose, askHref, startOpen }: { msg: CoachMsg; onClose?: () => void; askHref?: string; startOpen?: boolean }) {
+  const [open, setOpen] = useState(!!startOpen);
+  useEffect(() => setOpen(!!startOpen), [msg, startOpen]);
   const v = msg.verdict;
   const odds = msg.odds ? [...msg.odds].sort((a, b) => b.ev - a.ev) : null;
   const best = odds?.[0];
@@ -36,7 +36,7 @@ export function CoachCard({ msg, onClose, askHref }: { msg: CoachMsg; onClose?: 
       role="status"
       aria-live="polite"
       aria-expanded={open}
-      onClick={() => setOpen(!open)}
+      onClick={() => (startOpen && open && onClose ? onClose() : setOpen(!open))}
     >
       <div className="head">
         <span className="display">{msg.title}</span>

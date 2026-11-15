@@ -10,6 +10,24 @@ Owner's direction (2026-11-15), in their words where it matters:
 
 Biggest complaint about other apps: the cards don't feel like real blackjack, because a computer shuffle isn't a live hand shuffle.
 
+## Principles (owner, 2026-11-15)
+- **Feedback after the fact.** Never coach before or during a decision.
+- **Never show the count at the wrong time.** Nobody at a real table tells you the count when you lose it; the coach's short line never states it, and the full card (one tap) is where the number lives. The count badge is opt-in training wheels.
+- **No app-only conveniences that don't exist at a real table.** Every deal is a fresh chance to size the bet: Rebet is gone; after a win or push your chips simply stay in the circle, after a loss you bet again. Candidates to review next: "tap to continue" after a round, hand-total tags.
+- **Minimal and pleasing:** a quiet feedback loop, not a wall of text.
+- **Settings live in the environment, through the dealer**, like a friend dealing to a friend to teach.
+
+## Talk to the dealer (next big piece)
+A "say something" button by the dealer opens a few natural lines you'd actually say at a table, which change settings in place:
+- "Cut it a little deeper" / "Shallower cut" (penetration)
+- "Can we play six decks?" / "Double deck?" (decks)
+- "Slow down" / "Speed it up" (dealer pace)
+- "Whisper me the count" (count badge on/off), "Ask me the count more" (count checks)
+- "Shuffle up", "I'll take third base", "Open up a seat" (seat, players)
+- "Raise the limits" / "Lower the limits" (table minimum)
+
+With the player's own Claude key, free text works too ("let's do a tough double-deck game, deep cut, I want count plays"), mapped onto the same changes with tool use. The dealer answers in character (friendly, a bit shady, on your side). The settings page stays as the place for everything else.
+
 ## To bundle with the owner's tweak list (not started)
 1. **More decisions.** A dial that deals more of the hands that teach (splits, soft doubles, insurance spots, plays near their count number) by reordering cards already in the shoe, so the count stays true. Tone down "Practice my misses" (now 35% of rounds whenever there are misses) and never repeat a hand back to back.
 2. **Off-the-chart plays.** When the exact odds for the cards left differ from the chart plus count plays (e.g. split 4s v 4 at +15), the coach shows a bonus note with the gain per $100; not graded unless the player chooses "grade me on everything". Optional "extended" count-plays chart out to big counts.
