@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
 import { MODES, modeMatches } from '../modes';
+import { resetStats } from '../stats';
+import { startFresh } from '../ErrorBoundary';
 import { normalizeRules, type Rules } from '../../engine/rules';
 import { useBankroll, money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
@@ -20,7 +22,7 @@ function Seg<T extends string | number>({ value, options, onChange, label }: { v
 function Tog({ on, set, label }: { on: boolean; set: (v: boolean) => void; label: string }) {
   return <button type="button" role="switch" aria-checked={on} aria-label={label} className="tog" onClick={() => set(!on)} />;
 }
-function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+function Row({ label, hint, children }: { label: string; hint?: string; children?: ReactNode }) {
   return (
     <div className="row">
       <div>
@@ -156,9 +158,28 @@ export function SettingsPage() {
           <Row label="Starting bankroll">
             <Seg label="Starting bankroll" value={s.startBankroll} onChange={(v) => set({ startBankroll: v })} options={[500, 1000, 5000, 10000].map((n) => ({ v: n, l: money(n) }))} />
           </Row>
-          <Row label="Bankroll" hint={`${br.hands} hands played · started at ${money(br.start)}`}>
+          <Row label="Bankroll" hint={`${money(br.balance)} now · ${br.hands} hands played`} />
+        </Group>
+
+        <Group title="Start over">
+          <Row label="How it works" hint="José's intro, from the top">
+            <a className="pill" href="#/home">
+              Show me
+            </a>
+          </Row>
+          <Row label="Reset bankroll" hint={`Back to ${money(s.startBankroll)} of play money`}>
             <button className="pill" onClick={() => confirm(`Reset your bankroll to ${money(s.startBankroll)}?`) && reset(s.startBankroll)}>
-              Reset to {money(s.startBankroll)}
+              Reset
+            </button>
+          </Row>
+          <Row label="Reset stats" hint="Your record and missed hands">
+            <button className="pill" onClick={() => confirm('Reset all your stats? This cannot be undone.') && resetStats()}>
+              Reset
+            </button>
+          </Row>
+          <Row label="Start fresh" hint="Like opening the link for the first time">
+            <button className="pill coral" onClick={() => confirm('Start completely fresh? Your settings, bankroll and stats on this device will be erased.') && void startFresh()}>
+              Start fresh
             </button>
           </Row>
         </Group>

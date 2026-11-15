@@ -29,7 +29,8 @@ export async function startFresh(): Promise<void> {
   } catch {
     /* ignore */
   }
-  location.reload();
+  // back to the front door, as a brand-new player
+  location.replace(location.pathname);
 }
 
 /** If anything breaks while drawing, show a way out instead of a blank page. */

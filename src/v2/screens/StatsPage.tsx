@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useV2 } from '../settings';
 import { useBankroll, money } from '../bankroll';
-import { loadStats, onStats, resetStats, type V2Stats } from '../stats';
+import { loadStats, onStats, type V2Stats } from '../stats';
 import { leaks, parseKey } from '../practice';
 import { useStrategy } from '../../store/strategy';
 import { chartAction, ACTION_LABEL } from '../../engine/strategy/chart';
@@ -141,9 +141,9 @@ export function StatsPage() {
           </div>
         </section>
 
-        <button className="act quiet" onClick={() => confirm('Reset all learning stats?') && resetStats()}>
-          Reset stats
-        </button>
+        <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+          To reset your stats or start over, see Settings → Start over.
+        </p>
       </div>
     </div>
   );
