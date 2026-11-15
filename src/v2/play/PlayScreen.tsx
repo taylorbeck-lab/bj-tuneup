@@ -204,7 +204,7 @@ export function PlayScreen() {
         <div className="sheet-back" onClick={() => setReveal(null)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The count">
             <span className="serif" style={{ fontSize: 20 }}>
-              the dealer leans in…
+              José leans in…
             </span>
             <div className="display" style={{ fontSize: 40, lineHeight: 1.05 }}>
               Running {countWords(reveal.rc)}

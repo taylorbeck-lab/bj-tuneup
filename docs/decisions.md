@@ -108,7 +108,7 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Sizes:** your cards are larger than the other players' cards (phone legibility). Dealer cards are in between.
 - **Pace** (per card / linger before the sweep): slow 1050/3400 ms, average 720/2500, fast 470/1800, extra fast 300/1200. Bots take 1.5× a card's time to decide. Tapping the felt skips the linger.
 - **Engine additions:** several human spots (`humanSeats`), per-spot bets (0 = empty spot, not dealt), per-spot insurance, bot bets (`botBet`) and occasional bot misplays on stiff hands (`botMistakeRate`, 6% in the app).
-- **Default table:** 6 decks, H17, DAS, 3:2, 75% penetration, 5 players, you in seat 4, $25 minimum ($2,500 max), $1,000 bankroll. These are the most common conditions friends will meet; everything can be changed.
+- **Default table:** superseded by the double-deck $10 house game (see Casino El Primo below).
 - **The felt is sized to the screen height** (the controls dock has a fixed area), so nothing moves when the controls change.
 
 ## V2-2 / V2-3
@@ -167,3 +167,5 @@ Judgment calls made while building, newest at the bottom of each milestone.
 ## Casino El Primo
 - **Renamed to Casino El Primo** (the owner's name and logo; "primo" is cousin, with a nod to prime). The logo is cut out of the owner's artwork into `public/brand/el-primo-logo.png` (felt), `el-primo-logo-cream.png` (dark welcome screen) and `el-primo-emblem.png` (top bar, app icons), the same way as before (alpha from the distance to the cream background, colours un-premultiplied so edges stay clean). On the felt it's sized to clear the players' cards.
 - **Direction:** the dealer becomes a character, José, a competent, slightly sketchy dealer who for some reason helps you beat his casino. The engine decides what's correct; José only says it. Polished flat table; no 3D yet. Next: José's voice in the cards, an end-of-session report, and sharing with friends (each device keeps its own stats).
+- **House game: double deck, $10 to $500** (owner: double deck is the most fun to count and the fastest way to learn the true count; single deck barely exists and plays badly once a couple of players sit down). Dealer hits soft 17, double after split, about two-thirds dealt (65%), 4 players (you plus three) so a two-deck shoe gives a few rounds. Posted maximums follow locals casinos: $10 tables top out at $500. Saved settings still on the untouched old 6-deck $25 default move to the new game once; anything changed on purpose is left alone (tested).
+- **Welcome for friends:** José says hello in his own voice and states the game; you pick where to start (the three modes); the table's few hidden tricks are listed once (tap the tray for the count, tap the shoe to shuffle, swipe red cards away, where the charts and stats live). No feedback feature: the owner will gather feedback by watching friends play.

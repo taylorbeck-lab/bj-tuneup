@@ -38,23 +38,41 @@ export interface V2Settings {
   /** Claude API key for "Ask the coach" (stored only on this device). */
   apiKey?: string;
   onboarded: boolean;
+  /** Which set of defaults these settings started from (2 = double deck, $10). */
+  defaultsVersion?: number;
 }
 
+/**
+ * The house game: a double-deck locals game (think Mesquite), dealer hits soft 17, double after
+ * split, about two-thirds dealt, $10 to $500. Double deck is the sweet spot to learn counting: the
+ * true count is easy to work out, and single deck barely exists any more. Six decks is one tap away.
+ */
 export const DEFAULT_V2: V2Settings = {
-  rules: { ...DEFAULT_RULES, decks: 6, h17: true, das: true, lateSurrender: false, penetration: 0.75, seats: 7 },
-  players: 5,
+  rules: { ...DEFAULT_RULES, decks: 2, h17: true, das: true, lateSurrender: false, penetration: 0.65, seats: 7 },
+  players: 4,
   seat: 4,
   spots: 1,
   speed: 'average',
-  tableMin: 25,
+  tableMin: 10,
   startBankroll: 1000,
-  coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'sometimes', betCoach: false, practiceMisses: true },
+  coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'off', betCoach: false, practiceMisses: true },
   onboarded: false,
+  defaultsVersion: 2,
 };
+
+/** Saved settings that still sit on the old untouched 6-deck $25 default move to the new house game. */
+function upgradeDefaults(s: Partial<V2Settings>): Partial<V2Settings> {
+  if (s.defaultsVersion && s.defaultsVersion >= 2) return s;
+  const r = s.rules;
+  const untouched = (!r || (r.decks === 6 && r.h17 && r.das && !r.lateSurrender && r.penetration === 0.75)) && (s.tableMin ?? 25) === 25;
+  if (!untouched) return { ...s, defaultsVersion: 2 };
+  return { ...s, rules: { ...(r ?? DEFAULT_V2.rules), ...DEFAULT_V2.rules }, tableMin: DEFAULT_V2.tableMin, players: s.players === 5 ? DEFAULT_V2.players : s.players, defaultsVersion: 2 };
+}
 
 export function mergeV2(s?: Partial<V2Settings>): V2Settings {
   const d = DEFAULT_V2;
   if (!s) return structuredClone(d);
+  s = upgradeDefaults(s);
   const players = Math.min(6, Math.max(1, Math.round(s.players ?? d.players)));
   return {
     ...d,
@@ -102,6 +120,8 @@ export function V2SettingsProvider({ children }: { children: ReactNode }) {
 export const useV2 = () => useContext(C);
 
 /** Table limits for a minimum bet. */
+/** The posted maximum for a table minimum (locals-casino style: $10 tables top out at $500). */
 export function tableMax(min: number): number {
-  return min * 100 > 10000 ? 10000 : min * 100;
+  const posted: Record<number, number> = { 5: 500, 10: 500, 25: 2500, 50: 5000, 100: 10000 };
+  return posted[min] ?? Math.min(10000, min * 100);
 }
