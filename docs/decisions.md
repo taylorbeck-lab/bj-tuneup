@@ -146,3 +146,5 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **The shoe hides what's left.** A real player can't see the cards behind the cut card, so the app doesn't show them either; decks left are judged from the tray.
 - **Shuffle up** is offered only between hands. It is a real shuffle: all cards back in, new burn card, running count 0. It is the "restart" a player would ask for, not a new game: bankroll and stats carry on.
 - **Table limits** sit on a placard at the dealer's edge, where you look for the minimum at a real table.
+- **One screen, no scrolling.** The table screen is exactly the screen's height (`100dvh`). The top bar and the control dock have fixed heights, and the felt takes the rest: full width when there's room (home-screen app), scaled down evenly when Safari's bars take height. Nothing moves between phases.
+- **Coach strip.** On the table the coach is a fixed two-line strip (verdict plus odds, or the first line of the why) that shares the dock with the play buttons; betting hides it so the chips fit. Tap it to open the whole card over the felt, and tap again to fold it.

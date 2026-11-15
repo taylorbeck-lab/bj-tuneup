@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ACTION_LABEL } from '../../engine/strategy/chart';
 import type { ActionOdds } from '../../workers/handlers';
 import type { CoachVerdict } from './grade';
@@ -16,22 +17,46 @@ export interface CoachMsg {
 const pct = (x: number) => Math.round(x * 100) + '%';
 const per100 = (x: number) => (x >= 0 ? `+$${Math.round(x * 100)}` : `−$${Math.round(-x * 100)}`);
 
-/** The coach's card: verdict, the odds of each play in plain words, and the why. */
+/**
+ * The coach's card: verdict, the odds of each play in plain words, and the why.
+ * On the table it sits in a fixed two-line strip so the screen never scrolls; tap it to open the
+ * whole card over the felt, tap again to fold it away.
+ */
 export function CoachCard({ msg, onClose, askHref }: { msg: CoachMsg; onClose?: () => void; askHref?: string }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [msg]);
   const v = msg.verdict;
   const odds = msg.odds ? [...msg.odds].sort((a, b) => b.ev - a.ev) : null;
   const best = odds?.[0];
   const chosen = v && odds?.find((o) => o.action === v.chosen);
   const correct = v && odds?.find((o) => o.action === v.correct);
   return (
-    <div className={'coach' + (msg.ok === true ? ' ok' : msg.ok === false ? ' no' : '')} role="status" aria-live="polite" onClick={onClose}>
+    <div
+      className={'coach' + (open ? ' open' : ' compact') + (msg.ok === true ? ' ok' : msg.ok === false ? ' no' : '')}
+      role="status"
+      aria-live="polite"
+      aria-expanded={open}
+      onClick={() => setOpen(!open)}
+    >
       <div className="head">
         <span className="display">{msg.title}</span>
         {msg.accent && <span className="serif">{msg.accent}</span>}
-        {msg.hand && (
-          <span className="label" style={{ marginLeft: 'auto' }}>
-            {msg.hand}
-          </span>
+        {msg.hand && <span className="label hand">{msg.hand}</span>}
+        <span className="more" aria-hidden="true">
+          {open ? '▾' : 'why ▴'}
+        </span>
+        {open && onClose && (
+          <button
+            type="button"
+            className="x"
+            aria-label="Dismiss coach"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+          >
+            ✕
+          </button>
         )}
       </div>
       {odds && v && (
