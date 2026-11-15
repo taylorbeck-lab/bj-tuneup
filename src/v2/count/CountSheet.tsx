@@ -57,7 +57,7 @@ function Pad({ onSubmit, label }: { onSubmit: (n: number) => void; label: string
  * Count check: running count first, then the true count with the discard tray reading, then what it
  * means. Grading: running count must be exact; true count within ±1 of running ÷ decks left.
  */
-export function CountSheet({ table, onClose, quiz }: { table: Table; onClose: () => void; quiz?: boolean }) {
+export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; onClose: () => void; quiz?: boolean; onResult?: (runningRight: boolean, trueRight: boolean) => void }) {
   const rc = table.rc;
   const unseen = table.unseenCount();
   const decksLeft = Math.max(0.5, Math.round((unseen / 52) * 2) / 2);
@@ -122,6 +122,7 @@ export function CountSheet({ table, onClose, quiz }: { table: Table; onClose: ()
                 setTcAns(n);
                 setStep('done');
                 recordCount(rcAns === rc, Math.abs(n - tcExact) <= 1);
+                onResult?.(rcAns === rc, Math.abs(n - tcExact) <= 1);
               }}
             />
           </>

@@ -11,6 +11,8 @@ export interface CoachVerdict {
   correct: Action;
   /** The play came from the count (deviation), not the chart. */
   countPlay?: IndexPlay;
+  /** A count play exists for this hand (whether or not the count reached it). */
+  countSpot?: IndexPlay;
   chartPlay: Action;
   title: string;
   accent: string;
@@ -41,9 +43,11 @@ export function gradeDecision(snap: DecisionSnapshot, chart: Chart, plays: Index
   const chartPlay = chartAction(chart, snap.values, snap.up, snap.avail);
   let correct = chartPlay;
   let countPlay: IndexPlay | undefined;
+  let countSpot: IndexPlay | undefined;
   if (deviations) {
     const ix = indexAction(plays, chart, snap.values, snap.up, snap.tc, snap.avail);
     correct = ix.action;
+    countSpot = ix.play;
     if (ix.play && ix.action !== chartPlay) countPlay = ix.play;
   }
   const right = snap.chosen === correct;
@@ -53,6 +57,7 @@ export function gradeDecision(snap: DecisionSnapshot, chart: Chart, plays: Index
     chosen: snap.chosen,
     correct,
     countPlay,
+    countSpot,
     chartPlay,
     title: right ? 'Right call' : 'Not quite',
     accent: right ? (countPlay ? 'count play' : pickPraise(n)) : `${ACTION_LABEL[correct].toLowerCase()} here`,

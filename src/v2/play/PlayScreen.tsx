@@ -11,7 +11,12 @@ import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
 import { countWords } from '../count/words';
-import { gradeBet } from '../count/bet';
+import { gradeBet, recommendedUnits } from '../count/bet';
+import { RoundCoach } from '../coach/RoundCoach';
+import { countPlayPreview, shouldPreview } from '../coach/preview';
+import { kvGet, kvSet } from '../../store/db';
+import { ACTION_LABEL } from '../../engine/strategy/chart';
+import { layersFor, freshRound, applyFeedback, decisionFeedback, betFeedback, insuranceFeedback, type Feedback, type Light, type RoundState } from '../coach/round';
 import type { Table } from '../../engine/game';
 
 
@@ -20,7 +25,19 @@ export function PlayScreen() {
   const { s } = useV2();
   const st = useStrategy(s.rules);
   const { plays } = useIndexPlays(s.rules, st.chart);
+  /** The full card for the latest event (opened by tapping the strip). */
   const [msg, setMsg] = useState<CoachMsg | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const layers = layersFor(s.coach);
+  const [round, setRound] = useState<RoundState>(() => freshRound(layers));
+  const [tick, setTick] = useState<{ text: string; id: number; sub?: string } | undefined>();
+  /** How often each next-level preview has been shown (kept on the device). */
+  const previews = useRef<Record<string, number>>({});
+  useEffect(() => {
+    kvGet<Record<string, number>>('v2previews').then((x) => (previews.current = x ?? {}));
+  }, []);
+  const pendingCount = useRef<Light | undefined>(undefined);
+  const tickId = useRef(0);
   const [countOpen, setCountOpen] = useState<{ t: Table; quiz: boolean } | null>(null);
   const tableRef = useRef<Table | null>(null);
   const n = useRef(0);
@@ -33,11 +50,26 @@ export function PlayScreen() {
     return onStats((x) => (stats.current = x));
   }, []);
 
-  const show = (m: CoachMsg) => {
-    if (s.coach.feedback === 'off' && m.kind !== 'count') return;
-    if (s.coach.feedback === 'mistakes' && m.ok !== false) return;
+  /**
+   * Feedback is after the fact: right plays get a fading tick (unless the coach is set to mistakes
+   * only), anything off lights up the round. The full card waits behind a tap.
+   */
+  const show = (m: CoachMsg, f?: Feedback, sub?: string) => {
+    if (s.coach.feedback === 'off') return;
     setMsg(m);
+    if (!f) return;
+    setRound((r) => applyFeedback(r, f));
+    if (f.ok && f.tick && s.coach.feedback === 'always') {
+      setTick({ text: f.tick, id: ++tickId.current, sub });
+      navigator.vibrate?.(8);
+    }
   };
+  // ticks fade on their own
+  useEffect(() => {
+    if (!tick) return;
+    const id = setTimeout(() => setTick(undefined), tick.sub ? 3400 : 1700);
+    return () => clearTimeout(id);
+  }, [tick]);
 
   return (
     <>
@@ -78,6 +110,10 @@ export function PlayScreen() {
           onBet: (bets, t) => {
             seq.current++;
             setMsg(null);
+            setDetailOpen(false);
+            setTick(undefined);
+            setRound(freshRound(layers, pendingCount.current));
+            pendingCount.current = undefined;
             if (!s.coach.betCoach) return;
             const tc = t.tcPlayer();
             const amounts = Object.values(bets).filter((b) => b > 0);
@@ -85,7 +121,7 @@ export function PlayScreen() {
             const v = gradeBet(bet, s.tableMin, tc);
             recordBet(v.right);
             pushEvent(`Bet ${bet} dollars at true count ${tc}: ${v.right ? 'good' : v.title.toLowerCase()}.`);
-            show({ kind: 'bet', ok: v.right, title: v.title, accent: `true count ${countWords(tc)}`, text: v.text });
+            show({ kind: 'bet', ok: v.right, title: v.title, accent: `true count ${countWords(tc)}`, text: v.text }, betFeedback(v.right, bet, v.rec, recommendedUnits(tc)));
           },
           onDecision: (snap) => {
             if (!st.chart) return;
@@ -94,8 +130,19 @@ export function PlayScreen() {
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
             const id = ++seq.current;
             const practiced = practiceKey.current === v.key;
-            const base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
-            show(base);
+            let base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
+            // Before count plays are switched on, preview them on right plays (the rule, never the count).
+            let sub: string | undefined;
+            if (!s.coach.deviations && v.right) {
+              const pv = countPlayPreview(plays, st.chart, snap.values, snap.up, snap.avail);
+              if (pv && shouldPreview(previews.current[pv.play.id] ?? 0, Math.random())) {
+                previews.current = { ...previews.current, [pv.play.id]: (previews.current[pv.play.id] ?? 0) + 1 };
+                kvSet('v2previews', previews.current);
+                sub = `later: ${ACTION_LABEL[pv.action].toLowerCase()} at ${pv.when}`;
+                base = { ...base, text: `${v.why} Next level: this is a count play. Counters ${ACTION_LABEL[pv.action].toLowerCase()} ${v.hand} when the true count is ${pv.when}; you'll learn it with count plays.` };
+              }
+            }
+            show(base, decisionFeedback(v, practiced && v.right), sub);
             call('coachOdds', snap.unseen, snap.values, snap.up, s.rules, snap.avail).then((odds) => {
               if (seq.current === id) show({ ...base, odds });
             });
@@ -105,7 +152,10 @@ export function PlayScreen() {
             recordInsurance(v.right);
             pushEvent(`Insurance at true count ${t.tcPlayer()}: ${take ? 'took it' : 'declined'}, ${v.right ? 'right' : 'wrong'}.`);
             ++seq.current;
-            show({ kind: 'insurance', ok: v.right, title: v.right ? 'Right call' : 'Not quite', accent: v.shouldTake ? 'take insurance here' : 'skip insurance', text: v.why });
+            show(
+              { kind: 'insurance', ok: v.right, title: v.right ? 'Right call' : 'Not quite', accent: v.shouldTake ? 'take insurance here' : 'skip insurance', text: v.why },
+              insuranceFeedback(v.right, v.shouldTake, s.coach.deviations),
+            );
           },
           onRoundEnd: () => {
             recordHand();
@@ -117,10 +167,36 @@ export function PlayScreen() {
               setCountOpen({ t, quiz: true });
             }
           },
-          coach: msg ? <CoachCard msg={msg} onClose={() => setMsg(null)} askHref={s.apiKey && msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${msg.verdict?.correct ?? ''} on ${msg.hand.replace('↻ ', '')}?`) : undefined} /> : null,
+          coach:
+            s.coach.feedback === 'off' ? null : (
+              <RoundCoach
+                round={round}
+                tick={tick}
+                onOpen={() => msg && setDetailOpen(true)}
+                detail={
+                  detailOpen && msg ? (
+                    <CoachCard
+                      msg={msg}
+                      startOpen
+                      onClose={() => setDetailOpen(false)}
+                      askHref={s.apiKey && msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${msg.verdict?.correct ?? ''} on ${msg.hand.replace('↻ ', '')}?`) : undefined}
+                    />
+                  ) : undefined
+                }
+              />
+            ),
         }}
       />
-      {countOpen && <CountSheet table={countOpen.t} quiz={countOpen.quiz} onClose={() => setCountOpen(null)} />}
+      {countOpen && (
+        <CountSheet
+          table={countOpen.t}
+          quiz={countOpen.quiz}
+          onClose={() => setCountOpen(null)}
+          onResult={(rc, tc) => {
+            pendingCount.current = rc && tc ? 'ok' : 'no';
+          }}
+        />
+      )}
     </>
   );
 }
