@@ -13,6 +13,9 @@ import { CountSheet } from '../count/CountSheet';
 import { countWords } from '../count/words';
 import { gradeBet, recommendedUnits } from '../count/bet';
 import { RoundCoach } from '../coach/RoundCoach';
+import { countPlayPreview, shouldPreview } from '../coach/preview';
+import { kvGet, kvSet } from '../../store/db';
+import { ACTION_LABEL } from '../../engine/strategy/chart';
 import { layersFor, freshRound, applyFeedback, decisionFeedback, betFeedback, insuranceFeedback, type Feedback, type Light, type RoundState } from '../coach/round';
 import type { Table } from '../../engine/game';
 
@@ -27,7 +30,12 @@ export function PlayScreen() {
   const [detailOpen, setDetailOpen] = useState(false);
   const layers = layersFor(s.coach);
   const [round, setRound] = useState<RoundState>(() => freshRound(layers));
-  const [tick, setTick] = useState<{ text: string; id: number } | undefined>();
+  const [tick, setTick] = useState<{ text: string; id: number; sub?: string } | undefined>();
+  /** How often each next-level preview has been shown (kept on the device). */
+  const previews = useRef<Record<string, number>>({});
+  useEffect(() => {
+    kvGet<Record<string, number>>('v2previews').then((x) => (previews.current = x ?? {}));
+  }, []);
   const pendingCount = useRef<Light | undefined>(undefined);
   const tickId = useRef(0);
   const [countOpen, setCountOpen] = useState<{ t: Table; quiz: boolean } | null>(null);
@@ -46,20 +54,20 @@ export function PlayScreen() {
    * Feedback is after the fact: right plays get a fading tick (unless the coach is set to mistakes
    * only), anything off lights up the round. The full card waits behind a tap.
    */
-  const show = (m: CoachMsg, f?: Feedback) => {
+  const show = (m: CoachMsg, f?: Feedback, sub?: string) => {
     if (s.coach.feedback === 'off') return;
     setMsg(m);
     if (!f) return;
     setRound((r) => applyFeedback(r, f));
     if (f.ok && f.tick && s.coach.feedback === 'always') {
-      setTick({ text: f.tick, id: ++tickId.current });
+      setTick({ text: f.tick, id: ++tickId.current, sub });
       navigator.vibrate?.(8);
     }
   };
   // ticks fade on their own
   useEffect(() => {
     if (!tick) return;
-    const id = setTimeout(() => setTick(undefined), 1700);
+    const id = setTimeout(() => setTick(undefined), tick.sub ? 3400 : 1700);
     return () => clearTimeout(id);
   }, [tick]);
 
@@ -122,8 +130,19 @@ export function PlayScreen() {
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
             const id = ++seq.current;
             const practiced = practiceKey.current === v.key;
-            const base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
-            show(base, decisionFeedback(v, practiced && v.right));
+            let base: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
+            // Before count plays are switched on, preview them on right plays (the rule, never the count).
+            let sub: string | undefined;
+            if (!s.coach.deviations && v.right) {
+              const pv = countPlayPreview(plays, st.chart, snap.values, snap.up, snap.avail);
+              if (pv && shouldPreview(previews.current[pv.play.id] ?? 0, Math.random())) {
+                previews.current = { ...previews.current, [pv.play.id]: (previews.current[pv.play.id] ?? 0) + 1 };
+                kvSet('v2previews', previews.current);
+                sub = `later: ${ACTION_LABEL[pv.action].toLowerCase()} at ${pv.when}`;
+                base = { ...base, text: `${v.why} Next level: this is a count play. Counters ${ACTION_LABEL[pv.action].toLowerCase()} ${v.hand} when the true count is ${pv.when}; you'll learn it with count plays.` };
+              }
+            }
+            show(base, decisionFeedback(v, practiced && v.right), sub);
             call('coachOdds', snap.unseen, snap.values, snap.up, s.rules, snap.avail).then((odds) => {
               if (seq.current === id) show({ ...base, odds });
             });
