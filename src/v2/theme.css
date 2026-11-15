@@ -842,6 +842,82 @@ a {
   font-weight: 700;
   cursor: pointer;
 }
+.count-rule {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.count-rule b {
+  color: var(--ink);
+}
+/* short screens (Safari on a small iPhone): the count sheet fits without scrolling */
+@media (max-height: 700px) {
+  .sheet {
+    gap: 9px;
+    padding-top: 12px;
+    max-height: 96dvh;
+  }
+  .sheet .display {
+    font-size: 26px !important;
+  }
+  .pad-read {
+    font-size: 32px !important;
+    min-height: 38px !important;
+  }
+  .dir {
+    min-height: 44px;
+    font-size: 18px;
+  }
+  .keypad {
+    gap: 6px !important;
+  }
+  .keypad button {
+    min-height: 42px !important;
+    font-size: 18px !important;
+  }
+  .sheet .act {
+    min-height: 48px;
+  }
+}
+.pad-read {
+  font-size: 40px;
+  text-align: center;
+  min-height: 48px;
+  letter-spacing: 0.04em;
+}
+.dir-row {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 1fr;
+  gap: 8px;
+}
+.dir {
+  min-height: 52px;
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dir.on {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.dir.up.on {
+  background: var(--juniper, #3c6a4b);
+  color: #fff8ee;
+}
+.dir.down.on {
+  background: var(--orange);
+  color: #fff8ee;
+}
+.dir.even.on {
+  background: var(--mustard);
+}
 .keypad button:active {
   transform: translate(2px, 2px);
   box-shadow: none;
