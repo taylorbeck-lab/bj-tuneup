@@ -192,6 +192,15 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     t.insure(take);
     bump();
   };
+  /**
+   * Ask the dealer to shuffle up: the cards go back in, the shoe is shuffled and cut, and the count
+   * starts over at 0 — exactly like a fresh shoe at a casino. Only between hands.
+   */
+  const shuffleUp = () => {
+    if (phase !== 'betting' || !t) return;
+    placed.current = [];
+    setPhase('shuffling');
+  };
   /** Skip the linger (tap to continue). */
   const hurry = () => {
     if (phase === 'results') setPhase('sweeping');
@@ -215,6 +224,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     act,
     insure,
     hurry,
+    shuffleUp,
     speed,
     spotOfSeat,
     seatOfSpot,

@@ -102,7 +102,7 @@ Judgment calls made while building, newest at the bottom of each milestone.
 # V2
 
 ## V2-1
-- **Name:** "MESA" is a placeholder code name (a desert table mountain; Spanish for "table"). Brand strings live in `src/v2/brand.ts` and all colours in `src/v2/theme.css`.
+- **Name:** "MESA" was the placeholder; the app is now **Casino Tornillo** (the owner's brand, see V2-6). Brand strings live in `src/v2/brand.ts` and all colours in `src/v2/theme.css`.
 - **V1 retired, engine kept.** The V1 screens were deleted (V1 is in history at `3d979b7`). The engine (`src/engine`), the worker and all engine tests stay; V2 is a new UI in `src/v2`.
 - **Fixed card spots.** Positions are computed from (spot, hand, card index) in container units. Each card gets a stable id: once it lands it never re-renders elsewhere or re-animates. A split moves the second card with a short glide, as a dealer does. Cards fan right by half a card width so every corner index stays readable (essential for counting); after four cards a hand wraps to a second row.
 - **Sizes:** your cards are larger than the other players' cards (phone legibility). Dealer cards are in between.
@@ -136,3 +136,13 @@ Judgment calls made while building, newest at the bottom of each milestone.
 - **Model:** `claude-opus-5-5` (the default model), adaptive thinking (its default), effort `medium`, streaming. The server-side refusal fallback is on (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`). A refusal or API error shows a plain message.
 - **Prompt layout for caching:** a stable system prompt (cached), the chat history, then the live context (rules, learning settings, record, leaks, recent coach events) as a mid-conversation system message after the newest user turn.
 - **Lazy loading:** the coach page and the SDK are a separate chunk (375 kB), so the table loads without them.
+
+## V2-6 (Casino Tornillo)
+- **Brand assets** are the owner's logo, cut out to transparent PNGs in `public/brand/` (full logo for the felt, emblem for the top bar and app icons, a cream version for the dark welcome screen).
+- **Palette:** room `#0b1712` (deep green, dim radial light), felt cream `#e9dcc0`, rail `#0d0d0c`, desert orange `#c4561f` for accents and card backs.
+- **6 players max.** Few real tables seat 7 full players, and six spots fit a full-width arc on a phone. Old saved settings with 7 are clamped.
+- **Chips** keep the denominations people know (red 5, green 25, black 100, purple 500) in earthy tones: terracotta `#b3432b`, juniper `#3c6a4b`, black `#1d1c1a`, plum `#5e3b5b`, ochre `#c58f2e` for 1,000. Drawn in SVG; felt bets are stacks seen from the chair, with the total on the top chip.
+- **Discard tray:** height = cards in the tray / (decks × 52) of the tray, so a full shoe fills it; one tick per deck. Every card out of the shoe that is not on the felt is in the tray, the burn card included (that is where it goes at a real table). Smoked acrylic so white card edges read on a cream felt.
+- **The shoe hides what's left.** A real player can't see the cards behind the cut card, so the app doesn't show them either; decks left are judged from the tray.
+- **Shuffle up** is offered only between hands. It is a real shuffle: all cards back in, new burn card, running count 0. It is the "restart" a player would ask for, not a new game: bankroll and stats carry on.
+- **Table limits** sit on a placard at the dealer's edge, where you look for the minimum at a real table.

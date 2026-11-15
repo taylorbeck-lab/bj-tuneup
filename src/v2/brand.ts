@@ -1,6 +1,6 @@
-/** Brand: one place to rename the app. Placeholder code name. */
+/** Brand: one place to rename the app. */
 export const BRAND = {
-  name: 'MESA',
+  name: 'TORNILLO',
+  long: 'Casino Tornillo',
   tagline: 'Blackjack, practiced.',
-  long: 'MESA Blackjack',
 };

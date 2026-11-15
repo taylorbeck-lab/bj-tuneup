@@ -1,41 +1,48 @@
 /*
- * MESA theme: Palm Springs desert-modern meets the casino.
- * Warm sand page, dark forest felt slab, ink outlines with hard offset shadows,
- * colour-blocked actions (coral / mustard / pool / lilac), condensed display + italic serif accents.
+ * Casino Tornillo theme: a dimly lit room in deep green, a cream felt table with a black padded rail,
+ * desert orange from the logo for accents and card backs. Ink-outlined cards and controls with hard
+ * shadows, colour-blocked actions, condensed display + italic serif accents.
  */
 :root {
-  --page: #f1e6d6;
+  --room: #0b1712;
+  --room-hi: #17302a;
+  --page: var(--room);
   --paper: #fbf6ec;
   --ink: #1b1a17;
   --ink-soft: #57534b;
+  --on-dark: #efe4cc;
+  --on-dark-soft: #a9b4a6;
 
-  --felt: #1d3a2e;
-  --felt-hi: #2a4f3f;
-  --felt-ink: rgba(244, 232, 210, 0.55);
-  --felt-line: rgba(244, 232, 210, 0.3);
+  --felt: #e9dcc0;
+  --felt-hi: #f3e9d3;
+  --felt-ink: rgba(150, 70, 26, 0.72);
+  --felt-line: rgba(120, 70, 30, 0.38);
+  --felt-line-strong: rgba(70, 40, 18, 0.55);
+  --rail: #0d0d0c;
 
-  --coral: #ef6f4f;
-  --mustard: #f2bf47;
+  --orange: #c4561f;
+  --orange-deep: #9a3f12;
+  --coral: var(--orange);
+  --mustard: #ecb648;
   --pool: #79b8d9;
   --lilac: #b9a6e8;
-  --blush: #f4c6b8;
   --sage: #9cc28f;
   --cream: #f4e8d2;
 
   --good: #2f7d4f;
   --bad: #c43f22;
 
-  --card: #fbf7ef;
-  --suit-red: #d4492b;
+  --card: #fffdf8;
+  --suit-red: #c8381f;
   --suit-black: #1b1a17;
 
-  --chip-5: #e0573a;
-  --chip-25: #2f8a5c;
-  --chip-100: #1f1f1d;
-  --chip-500: #8c6fd1;
-  --chip-1000: #e9b23e;
+  --chip-5: #b3432b;
+  --chip-25: #3c6a4b;
+  --chip-100: #1d1c1a;
+  --chip-500: #5e3b5b;
+  --chip-1000: #c58f2e;
 
-  --act-hit: var(--coral);
+  --act-hit: var(--orange);
   --act-stand: var(--mustard);
   --act-double: var(--pool);
   --act-split: var(--lilac);
@@ -46,9 +53,9 @@
   --font: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
   --r: 12px;
-  --shadow: 3px 3px 0 var(--ink);
-  --shadow-lg: 5px 5px 0 var(--ink);
-  color-scheme: light;
+  --shadow: 3px 3px 0 #000;
+  --shadow-lg: 5px 5px 0 #000;
+  color-scheme: dark;
 }
 
 *,
@@ -59,8 +66,8 @@
 html,
 body {
   margin: 0;
-  background: var(--page);
-  color: var(--ink);
+  background: radial-gradient(120% 70% at 50% 28%, var(--room-hi) 0%, var(--room) 62%, #050a08 100%) fixed, var(--room);
+  color: var(--on-dark);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -104,10 +111,15 @@ a {
   text-transform: uppercase;
 }
 .muted {
+  color: var(--on-dark-soft);
+}
+.group .muted,
+.coach .muted,
+.sheet .muted {
   color: var(--ink-soft);
 }
 .good {
-  color: var(--good);
+  color: var(--sage);
 }
 .bad {
   color: var(--bad);
@@ -133,10 +145,12 @@ a {
 .hud .brand {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--display);
+  gap: 8px;
+  font-family: var(--serif);
+  font-style: italic;
   font-size: 24px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  color: var(--on-dark);
   text-decoration: none;
 }
 @media (max-width: 420px) {
@@ -151,8 +165,9 @@ a {
   flex: 1;
 }
 .pill {
-  border: 2px solid var(--ink);
+  border: 2px solid #000;
   background: var(--paper);
+  color: var(--ink);
   border-radius: 999px;
   min-height: 38px;
   padding: 0 12px;
@@ -179,24 +194,30 @@ a {
   background: var(--mustard);
 }
 .pill.coral {
-  background: var(--coral);
+  background: var(--orange);
+  color: #fff8ee;
 }
 
 /* ---------- felt slab ---------- */
 .felt-wrap {
   position: relative;
   container-type: inline-size;
-  width: min(calc(100% - 20px), calc((100dvh - 280px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 1.28));
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 .felt {
   position: relative;
   width: 100%;
-  aspect-ratio: 100 / 128;
-  border-radius: 18px 18px 50% 50% / 18px 18px 22% 22%;
-  background: radial-gradient(110% 80% at 50% 18%, var(--felt-hi), var(--felt) 72%);
-  border: 3px solid var(--ink);
-  box-shadow: var(--shadow-lg);
+  aspect-ratio: 100 / 122;
+  border-radius: 0 0 50% 50% / 0 0 40% 40%;
+  background: radial-gradient(120% 85% at 50% 22%, var(--felt-hi), var(--felt) 70%);
+  /* the padded rail: deep black, a little sheen on the inside edge */
+  border: 3.4cqw solid var(--rail);
+  border-top: 0;
+  box-shadow:
+    inset 0 0 0 0.5cqw rgba(255, 255, 255, 0.06),
+    inset 0 1.5cqw 3cqw rgba(60, 40, 15, 0.12),
+    0 2cqw 6cqw rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
 .felt-print {
@@ -220,8 +241,8 @@ a {
     left 260ms ease,
     top 260ms ease;
   background: var(--card);
-  border: max(1px, calc(var(--w) * 0.012)) solid var(--ink);
-  box-shadow: calc(var(--w) * 0.04) calc(var(--w) * 0.04) 0 rgba(10, 20, 15, 0.55);
+  border: max(1px, calc(var(--w) * 0.014)) solid var(--ink);
+  box-shadow: calc(var(--w) * 0.035) calc(var(--w) * 0.045) calc(var(--w) * 0.02) rgba(40, 25, 10, 0.35);
   color: var(--suit-black);
   padding: calc(var(--w) * 0.05) calc(var(--w) * 0.07);
   display: flex;
@@ -256,7 +277,7 @@ a {
   font-size: calc(var(--w) * 0.5);
 }
 .pc.back {
-  background: var(--coral);
+  background: var(--orange);
   padding: 0;
   overflow: hidden;
 }
@@ -289,46 +310,109 @@ a {
   padding: 0;
 }
 .spot.mine {
-  border: 0.6cqw solid var(--mustard);
+  border: 0.7cqw solid var(--orange);
 }
 .spot.active {
-  box-shadow: 0 0 0 1cqw rgba(242, 191, 71, 0.35);
+  box-shadow: 0 0 0 1cqw rgba(196, 86, 31, 0.3);
 }
 .chip {
+  display: inline-block;
   width: 8.6cqw;
   height: 8.6cqw;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 2.5cqw;
-  color: #fff;
-  background: var(--c);
-  border: 0.8cqw dashed rgba(255, 255, 255, 0.85);
-  box-shadow:
-    0 0 0 0.3cqw var(--c),
-    0 0 0 0.6cqw var(--ink);
   flex: none;
 }
+.chip svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .chip.lg {
-  width: 60px;
-  height: 60px;
-  font-size: 14px;
-  border-width: 5px;
-  box-shadow:
-    0 0 0 2px var(--c),
-    0 0 0 4px var(--ink),
-    3px 4px 0 3px var(--ink);
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   cursor: pointer;
+  filter: drop-shadow(0 3px 0 #000) drop-shadow(0 5px 6px rgba(0, 0, 0, 0.45));
+  transition: transform 80ms ease;
 }
 .chip.lg:active {
-  transform: translate(2px, 3px);
+  transform: translateY(3px);
+  filter: drop-shadow(0 1px 0 #000);
 }
 .chip.lg[disabled] {
-  opacity: 0.35;
+  opacity: 0.32;
   cursor: default;
+}
+.bet-stack {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 0;
+}
+.tray,
+.shoe {
+  position: absolute;
+  overflow: visible;
+}
+.shoe {
+  filter: drop-shadow(0.4cqw 0.6cqw 0.6cqw rgba(40, 25, 10, 0.35));
+}
+/* the posted table-limits sign at the dealer's edge */
+.placard {
+  position: absolute;
+  left: 15cqw;
+  top: 2.2cqw;
+  width: 17cqw;
+  padding: 0.9cqw 0.4cqw 1cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2cqw;
+  background: linear-gradient(180deg, #1f1e1b, #0f0f0e);
+  border: 0.35cqw solid var(--orange);
+  border-radius: 1cqw;
+  box-shadow: 0 0.6cqw 1cqw rgba(40, 25, 10, 0.35);
+  color: var(--on-dark);
+  text-align: center;
+  line-height: 1;
+}
+.placard .pl-k {
+  font-family: var(--font);
+  font-size: 1.5cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.placard .pl-v {
+  font-family: var(--display);
+  font-size: 4.6cqw;
+  letter-spacing: 0.04em;
+  color: var(--mustard);
+}
+.dock-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  font-size: 12px;
+}
+.link-btn {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--on-dark-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 .seat-label {
   position: absolute;
@@ -337,7 +421,8 @@ a {
   font-size: 2.3cqw;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--mustard);
+  color: var(--orange-deep);
+  font-weight: 700;
   white-space: nowrap;
 }
 .total-tag {
@@ -363,8 +448,8 @@ a {
 }
 .count-badge {
   position: absolute;
-  left: 3cqw;
-  top: 21cqw;
+  left: 2cqw;
+  top: 27cqw;
   font-family: var(--mono);
   font-size: 2.6cqw;
   color: var(--cream);
@@ -391,7 +476,8 @@ a {
 .act {
   min-height: 56px;
   border-radius: var(--r);
-  border: 2.5px solid var(--ink);
+  color: var(--ink);
+  border: 2.5px solid #000;
   background: var(--paper);
   box-shadow: var(--shadow);
   font-family: var(--display);
@@ -410,6 +496,7 @@ a {
 }
 .act.hit {
   background: var(--act-hit);
+  color: #fff8ee;
 }
 .act.stand {
   background: var(--act-stand);
@@ -435,6 +522,8 @@ a {
   letter-spacing: 0;
   box-shadow: none;
   background: transparent;
+  color: var(--on-dark);
+  border-color: rgba(239, 228, 204, 0.45);
   border-style: dashed;
 }
 .chips-row {
@@ -447,7 +536,8 @@ a {
 
 /* coach card */
 .coach {
-  border: 2.5px solid var(--ink);
+  color: var(--ink);
+  border: 2.5px solid #000;
   border-radius: var(--r);
   background: var(--paper);
   box-shadow: var(--shadow);
@@ -506,6 +596,7 @@ a {
   gap: 16px;
 }
 .page h1 {
+  color: var(--on-dark);
   font-family: var(--display);
   font-size: 40px;
   line-height: 0.95;
@@ -514,9 +605,10 @@ a {
   font-weight: 400;
 }
 .group {
+  color: var(--ink);
   border-radius: var(--r);
   background: var(--paper);
-  border: 2.5px solid var(--ink);
+  border: 2.5px solid #000;
   box-shadow: var(--shadow);
 }
 .group > .gh {
@@ -613,6 +705,7 @@ a {
   justify-content: center;
 }
 .sheet {
+  color: var(--ink);
   width: 100%;
   max-width: 480px;
   background: var(--paper);
