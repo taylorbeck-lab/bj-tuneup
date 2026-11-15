@@ -29,7 +29,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
 
 ## The coach
 - **After every decision:** RIGHT CALL / NOT QUITE, each play's chance to win ("Hit wins 41% · Stand wins 37%", exact for the cards left), and a one-line why. A mistake also shows what it costs per $100 over time.
-- **Count?** (top bar): any time, enter the running count, then the true count, using the discard tray to judge decks left. You get the arithmetic and what that count means. The dealer pauses while you think.
+- **Count?** (top bar): any time, enter the running count, then the true count, the way you say it in your head (tap **Up** or **Down**, then the number, or **Even**), using the discard tray to judge decks left. You get the arithmetic and what that count means. The dealer pauses while you think.
 - **Learning path** (Settings): five one-tap steps.
   1. *Play every hand right*
   2. *Start counting*: the count is shown, with easy quizzes

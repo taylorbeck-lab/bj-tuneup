@@ -1,42 +1,57 @@
 import { useState } from 'react';
 import type { Table } from '../../engine/game';
 import { recordCount } from '../stats';
+import { countWords, padPress, padValue, padText, EMPTY_PAD, type PadState } from './words';
 
-/** Signed number keypad. */
+/**
+ * Count keypad that works the way you count in your head: tap Up or Down (either before or after
+ * the number), then the number, or Even for zero. No plus/minus signs.
+ */
 function Pad({ onSubmit, label }: { onSubmit: (n: number) => void; label: string }) {
-  const [v, setV] = useState('');
-  const press = (k: string) => {
-    if (k === '±') setV((x) => (x.startsWith('-') ? x.slice(1) : '-' + x));
-    else if (k === '⌫') setV((x) => x.slice(0, -1));
-    else setV((x) => (x.replace('-', '').length >= 3 ? x : x + k));
-  };
+  const [p, setP] = useState<PadState>(EMPTY_PAD);
+  const press = (k: string) => setP((x) => padPress(x, k));
+  const value = padValue(p);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div className="mono" style={{ fontSize: 40, fontWeight: 700, textAlign: 'center', minHeight: 48 }} aria-live="polite">
-        {v === '' ? <span className="muted">?</span> : v.replace('-', '−')}
+      <div className="pad-read display" aria-live="polite">
+        {padText(p) === '?' ? <span className="muted">?</span> : padText(p)}
+      </div>
+      <div className="dir-row">
+        <button type="button" className={'dir down' + (p.dir === 'down' ? ' on' : '')} onClick={() => press('down')} aria-pressed={p.dir === 'down'}>
+          ▼ Down
+        </button>
+        <button type="button" className={'dir even' + (p.dir === 'even' ? ' on' : '')} onClick={() => press('even')} aria-pressed={p.dir === 'even'}>
+          Even
+        </button>
+        <button type="button" className={'dir up' + (p.dir === 'up' ? ' on' : '')} onClick={() => press('up')} aria-pressed={p.dir === 'up'}>
+          ▲ Up
+        </button>
       </div>
       <div className="keypad">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '±', '0', '⌫'].map((k) => (
-          <button key={k} type="button" onClick={() => press(k)} aria-label={k === '±' ? 'plus or minus' : k === '⌫' ? 'delete' : k}>
-            {k}
-          </button>
-        ))}
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((k, i) =>
+          k === '' ? (
+            <span key={i} />
+          ) : (
+            <button key={k} type="button" onClick={() => press(k)} aria-label={k === 'del' ? 'delete' : k}>
+              {k === 'del' ? '⌫' : k}
+            </button>
+          ),
+        )}
       </div>
       <button
         className="act primary"
-        disabled={v === '' || v === '-'}
+        disabled={value === null}
         onClick={() => {
-          onSubmit(Number(v));
-          setV('');
+          if (value === null) return;
+          onSubmit(value);
+          setP(EMPTY_PAD);
         }}
       >
-        {label}
+        {value === null ? label : `${label}: ${countWords(value)}`}
       </button>
     </div>
   );
 }
-
-const signed = (n: number) => (n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0');
 
 /**
  * Count check: running count first, then the true count with the discard tray reading, then what it
@@ -73,8 +88,8 @@ export function CountSheet({ table, onClose, quiz }: { table: Table; onClose: ()
 
         {step === 'rc' && (
           <>
-            <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-              Running count of every card you've seen since the shuffle. 2–6 are +1, 7–9 are 0, 10s and aces are −1. The burn card and the dealer's hidden card don't count.
+            <p className="muted count-rule">
+              <b>2–6 up one · 7–9 nothing · 10s &amp; aces down one.</b> Every card since the shuffle, except the burn card and the dealer's hidden card.
             </p>
             <Pad
               label="Check"
@@ -90,9 +105,9 @@ export function CountSheet({ table, onClose, quiz }: { table: Table; onClose: ()
           <div className={'coach ' + (rcRight ? 'ok' : 'no')}>
             <div className="head">
               <span className="display">{rcRight ? 'Spot on' : 'Off a bit'}</span>
-              <span className="serif">running count {signed(rc)}</span>
+              <span className="serif">running count {countWords(rc)}</span>
             </div>
-            {!rcRight && <p>You said {signed(rcAns)}. It happens: find your rhythm by pairing cards that cancel (a 10 and a 5 = 0) and counting the leftovers.</p>}
+            {!rcRight && <p>You said {countWords(rcAns)}. It happens: find your rhythm by pairing cards that cancel (a 10 and a 5 = 0) and counting the leftovers.</p>}
           </div>
         )}
 
@@ -117,11 +132,13 @@ export function CountSheet({ table, onClose, quiz }: { table: Table; onClose: ()
             <div className={'coach ' + (tcRight ? 'ok' : 'no')}>
               <div className="head">
                 <span className="display">{tcRight ? 'Nailed it' : 'Close, not quite'}</span>
-                <span className="serif">true count ≈ {signed(tcShown)}</span>
+                <span className="serif">true count {countWords(tcShown)}</span>
               </div>
               <p>
-                {signed(rc)} ÷ {decksLeft} decks = {tcRaw.toFixed(1).replace('-', '−')} → {signed(tcShown)} (round down)
-                {!tcRight ? `. You said ${signed(tcAns)}.` : '.'}
+                {rc === 0
+                  ? 'Running count even, so the true count is even too'
+                  : `${countWords(rc)} ÷ ${decksLeft} decks left = ${tcRaw > 0 ? 'up' : 'down'} ${Math.abs(tcRaw).toFixed(1)} → ${countWords(tcShown)} (round down)`}
+                {!tcRight ? `. You said ${countWords(tcAns)}.` : '.'}
               </p>
             </div>
             <div className="coach">

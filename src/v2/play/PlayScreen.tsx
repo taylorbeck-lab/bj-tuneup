@@ -10,10 +10,10 @@ import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
+import { countWords } from '../count/words';
 import { gradeBet } from '../count/bet';
 import type { Table } from '../../engine/game';
 
-const signed = (n: number) => (n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0');
 
 /** The table plus the teaching layers: strategy coach, count checks, bet coach. */
 export function PlayScreen() {
@@ -62,10 +62,10 @@ export function PlayScreen() {
             return (
               <div className="count-badge" aria-label="Running count helper">
                 <div>
-                  RUNNING <b>{signed(t.rc)}</b>
+                  RUNNING <b>{countWords(t.rc)}</b>
                 </div>
                 <div>
-                  TRUE <b>{signed(t.tcPlayer())}</b>
+                  TRUE <b>{countWords(t.tcPlayer())}</b>
                 </div>
                 <div style={{ opacity: 0.7, fontSize: '2.1cqw', marginTop: '0.6cqw' }}>
                   2–6 +1 · 7–9 0
@@ -85,7 +85,7 @@ export function PlayScreen() {
             const v = gradeBet(bet, s.tableMin, tc);
             recordBet(v.right);
             pushEvent(`Bet ${bet} dollars at true count ${tc}: ${v.right ? 'good' : v.title.toLowerCase()}.`);
-            show({ kind: 'bet', ok: v.right, title: v.title, accent: `true count ${signed(tc)}`, text: v.text });
+            show({ kind: 'bet', ok: v.right, title: v.title, accent: `true count ${countWords(tc)}`, text: v.text });
           },
           onDecision: (snap) => {
             if (!st.chart) return;
