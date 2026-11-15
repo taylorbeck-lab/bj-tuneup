@@ -760,6 +760,7 @@ a {
   border: 0;
   border-left: 2px solid var(--ink);
   background: none;
+  color: var(--ink);
   padding: 0 10px;
   min-height: 32px;
   font-size: 12.5px;
@@ -924,43 +925,159 @@ a {
 }
 
 /* strategy chart: same colours as the action buttons */
-table.grid {
-  border-collapse: collapse;
-  width: 100%;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  border: 2.5px solid var(--ink);
+/* strategy charts: pair splitting / soft / hard / surrender, dealer upcards across the top.
+   Colour logic: white = hit or no, yellow = stand, green = double / split / surrender,
+   teal = the conditional plays (Ds, Y/N); count numbers in red. */
+.bs-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 2.5px solid #000;
+  border-radius: var(--r);
+  overflow: hidden;
   background: var(--paper);
+  color: var(--ink);
   box-shadow: var(--shadow);
 }
-table.grid th,
-table.grid td {
+.bs-title {
+  margin: 0;
+  padding: 7px 10px 6px;
+  background: #2a2926;
+  color: var(--on-dark);
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   text-align: center;
-  height: 26px;
-  border: 1.5px solid var(--ink);
 }
-table.grid th {
-  background: var(--paper);
+table.bs {
+  --c-h: #fffdf8;
+  --c-s: #f0c63f;
+  --c-d: #43a36b;
+  --c-ds: #3fb0aa;
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  font-family: var(--mono);
+  font-size: 12px;
   font-weight: 600;
 }
-table.grid td.H {
-  background: var(--act-hit);
+table.bs th,
+table.bs td {
+  text-align: center;
+  height: 27px;
+  padding: 0;
+  border: 1px solid rgba(27, 26, 23, 0.35);
 }
-table.grid td.S {
-  background: var(--act-stand);
+table.bs thead th {
+  background: #e6e1d6;
+  font-weight: 700;
 }
-table.grid td.D,
-table.grid td.Ds {
-  background: var(--act-double);
+table.bs thead th.cap {
+  font-family: var(--font);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  height: 22px;
 }
-table.grid td.P {
-  background: var(--act-split);
+table.bs th.corner {
+  background: #e6e1d6;
 }
-table.grid td.Rh,
-table.grid td.Rs,
-table.grid td.Rp {
-  background: var(--paper);
+table.bs tbody th {
+  width: 13%;
+  background: #e6e1d6;
+  font-weight: 700;
+}
+table.bs td.h,
+table.bs td.n,
+table.bs td.blank {
+  background: var(--c-h);
+}
+table.bs td.s {
+  background: var(--c-s);
+}
+table.bs td.d,
+table.bs td.y,
+table.bs td.sur {
+  background: var(--c-d);
+}
+table.bs td.ds,
+table.bs td.yn {
+  background: var(--c-ds);
+}
+table.bs td.yn {
+  font-size: 10.5px;
+}
+.dev {
+  color: #c4261b;
+  font-weight: 800;
+}
+table.bs td.d .dev,
+table.bs td.y .dev,
+table.bs td.sur .dev,
+table.bs td.ds .dev,
+table.bs td.yn .dev,
+table.bs td.s .dev {
+  color: #8f0f08;
+  background: rgba(255, 253, 248, 0.82);
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+.bs-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 8px 10px 9px;
+  font-size: 12px;
+  border-top: 1px solid rgba(27, 26, 23, 0.25);
+}
+.bs-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bs-key i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 30px;
+  text-align: center;
+  padding: 2px 4px;
+  border: 1px solid rgba(27, 26, 23, 0.4);
+  border-radius: 4px;
+}
+.bs-key i.h,
+.bs-key i.n {
+  background: #fffdf8;
+}
+.bs-key i.s {
+  background: #f0c63f;
+}
+.bs-key i.d,
+.bs-key i.y,
+.bs-key i.sur {
+  background: #43a36b;
+}
+.bs-key i.ds,
+.bs-key i.yn {
+  background: #3fb0aa;
+}
+.bs-ins {
+  padding: 11px 12px;
+  border: 2.5px solid #000;
+  border-radius: var(--r);
+  background: #2a2926;
+  color: var(--on-dark);
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.bs-ins .dev {
+  color: #ff6a4d;
 }
 @media (prefers-reduced-motion: reduce) {
   .pc,

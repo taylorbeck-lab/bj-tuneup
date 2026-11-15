@@ -19,7 +19,7 @@ import type { Table } from '../../engine/game';
 export function PlayScreen() {
   const { s } = useV2();
   const st = useStrategy(s.rules);
-  const { plays } = useIndexPlays(s.rules);
+  const { plays } = useIndexPlays(s.rules, st.chart);
   const [msg, setMsg] = useState<CoachMsg | null>(null);
   const [countOpen, setCountOpen] = useState<{ t: Table; quiz: boolean } | null>(null);
   const tableRef = useRef<Table | null>(null);

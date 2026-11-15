@@ -118,6 +118,7 @@ export const CANDIDATES: Candidate[] = [
   { id: 'R15vA', hand: H(15), up: 1, alt: 'surrender', surrender: true },
   { id: 'R16v8', hand: H(16), up: 8, alt: 'surrender', surrender: true },
   { id: 'R17vA', hand: H(17), up: 1, alt: 'surrender', surrender: true },
+  { id: 'R16v9', hand: H(16), up: 9, alt: 'surrender', surrender: true },
   // composition / feel plays
   { id: 'A3v4', hand: S(14), up: 4, alt: 'double' },
   { id: 'A2v4', hand: S(13), up: 4, alt: 'double' },
@@ -132,6 +133,8 @@ export const CANDIDATES: Candidate[] = [
   { id: '15v9', hand: H(15), up: 9, alt: 'stand' },
   { id: '16vA', hand: H(16), up: 1, alt: 'stand' },
   { id: '99v7', hand: P(9), up: 7, alt: 'split' },
+  { id: 'A8v6', hand: S(19), up: 6, alt: 'stand' },
+  { id: '15vA', hand: H(15), up: 1, alt: 'stand' },
 ];
 
 /** Two-card compositions forming a hand spec, with weights (probability-proportional from `comp`). */
