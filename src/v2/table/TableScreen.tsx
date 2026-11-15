@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useV2, tableMax } from '../settings';
 import { useStrategy } from '../../store/strategy';
 import { useBankroll, money } from '../bankroll';
@@ -85,15 +85,12 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   };
   const rebetAmount = Object.values(lastBets).reduce((a, b) => a + b, 0);
 
-  // committed money this round, to check doubles/splits are covered
-  const committed = useMemo(() => {
-    if (!t || betting) return 0;
-    let c = 0;
-    t.seats.forEach((seat) => seat.human && seat.hands.forEach((h) => (c += h.bet)));
-    return c;
-  }, [t, g.tick, betting]); // eslint-disable-line react-hooks/exhaustive-deps
-  const activeBase = t && t.phase === 'play' ? t.seats[t.turn.seat].baseBet : 0;
-  const legal = g.legal.filter((a) => (a === 'double' || a === 'split' ? br.balance >= committed + activeBase : true));
+  // Exactly what the rules allow (the coach grades against the same list). Play money never takes a
+  // double or split away; a short bankroll just dips below zero and reloads between hands.
+  const legal = g.legal;
+  // Hit, Stand and Double always sit in the same three places (Double greys out after the first two
+  // cards); Split joins on a pair, Surrender when the rules offer it.
+  const shown = (['hit', 'stand', 'double', 'split', 'surrender'] as Action[]).filter((a) => a === 'hit' || a === 'stand' || a === 'double' || legal.includes(a));
 
   // keyboard: H S D P R
   useEffect(() => {
@@ -260,14 +257,12 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           </div>
         )}
         {g.phase === 'yourTurn' && (
-          <div className={'actions' + (legal.length > 4 ? ' many' : '')} style={{ gridTemplateColumns: `repeat(${legal.length > 4 ? 3 : legal.length}, 1fr)` }}>
-            {(['hit', 'stand', 'double', 'split', 'surrender'] as Action[])
-              .filter((a) => legal.includes(a))
-              .map((a) => (
-                <button key={a} className={'act ' + a} onClick={() => g.act(a)}>
-                  {ACTION_LABEL[a]}
-                </button>
-              ))}
+          <div className={'actions' + (shown.length > 4 ? ' many' : '')} style={{ gridTemplateColumns: `repeat(${shown.length > 4 ? 3 : shown.length}, 1fr)` }}>
+            {shown.map((a) => (
+              <button key={a} className={'act ' + a} onClick={() => g.act(a)} disabled={!legal.includes(a)}>
+                {ACTION_LABEL[a]}
+              </button>
+            ))}
           </div>
         )}
         {(g.phase === 'dealing' || g.phase === 'playing') && <p className="muted" style={{ margin: 0, textAlign: 'center', minHeight: 56, lineHeight: '56px' }}>…</p>}
