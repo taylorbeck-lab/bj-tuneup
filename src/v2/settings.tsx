@@ -78,10 +78,17 @@ export function V2SettingsProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState(DEFAULT_V2);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    kvGet<V2Settings>('v2settings').then((x) => {
+    // Never leave the app blank: if saved settings can't be read, carry on with the defaults.
+    let done = false;
+    const finish = (x?: Partial<V2Settings>) => {
+      if (done) return;
+      done = true;
       setS(mergeV2(x));
       setLoaded(true);
-    });
+    };
+    kvGet<V2Settings>('v2settings').then(finish, () => finish());
+    const id = setTimeout(() => finish(), 5000);
+    return () => clearTimeout(id);
   }, []);
   const set = useCallback<Ctx['set']>((p) => {
     setS((prev) => {

@@ -125,6 +125,19 @@ a {
   color: var(--bad);
 }
 
+/* loading splash (never a blank page) */
+.splash {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  animation: splash-in 0.6s ease 0.3s both;
+}
+@keyframes splash-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* ---------- app frame ---------- */
 .frame {
   max-width: 480px;

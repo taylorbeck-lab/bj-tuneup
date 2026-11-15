@@ -9,8 +9,21 @@
     <link rel="apple-touch-icon" href="./icon-192.png" />
     <title>Casino Tornillo</title>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0; background: #0b1712">
+    <!-- Shown instantly, before any code arrives (React replaces it). On a weak signal you see this, never a black page. -->
+    <div id="root">
+      <div style="min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #0b1712; color: #a9b4a6; font: 14px/1.4 -apple-system, system-ui, sans-serif; text-align: center; padding: 24px">
+        <img src="./icon-192.png" alt="" width="72" height="72" style="border-radius: 16px" />
+        <div id="boot-msg" style="min-height: 40px"></div>
+      </div>
+    </div>
+    <script>
+      // If the app is still downloading after a few seconds, say so (a weak signal, not a broken app).
+      setTimeout(function () {
+        var m = document.getElementById('boot-msg');
+        if (m) m.textContent = 'Slow connection: still loading. Once it has loaded, the table works offline.';
+      }, 6000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
