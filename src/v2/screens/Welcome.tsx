@@ -8,7 +8,7 @@ export function Welcome() {
   return (
     <div className="frame" style={{ justifyContent: 'center' }}>
       <div className="page" style={{ gap: 22, paddingTop: 40 }}>
-        <img src={`${import.meta.env.BASE_URL}brand/tornillo-logo-cream.png`} alt={BRAND.long} style={{ width: '82%', maxWidth: 340, alignSelf: 'center' }} />
+        <img src={`${import.meta.env.BASE_URL}brand/el-primo-logo-cream.png`} alt={BRAND.long} style={{ width: '82%', maxWidth: 340, alignSelf: 'center' }} />
         <p style={{ fontSize: 30, lineHeight: 1.05, margin: 0 }} className="display">
           Play the hand. <span className="serif" style={{ fontSize: 34 }}>Learn the edge.</span>
         </p>

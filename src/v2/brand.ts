@@ -1,6 +1,6 @@
 /** Brand: one place to rename the app. */
 export const BRAND = {
-  name: 'TORNILLO',
-  long: 'Casino Tornillo',
+  name: 'EL PRIMO',
+  long: 'Casino El Primo',
   tagline: 'Blackjack, practiced.',
 };

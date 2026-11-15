@@ -5,7 +5,7 @@ import { SHOE, CARD_H, CARD_W, FELT_H } from './layout';
 import type { PlacedCard } from './useTableGame';
 import { money } from '../bankroll';
 
-/** Card back: the Tornillo sun and mesa, cream on desert orange. */
+/** Card back: the El Primo sun and canyon, cream on desert orange. */
 function CardBack() {
   const rays = Array.from({ length: 13 }, (_, i) => Math.PI + (i * Math.PI) / 12);
   return (
@@ -163,7 +163,7 @@ export function BetStack({ amount, x, y }: { amount: number; x: number; y: numbe
   );
 }
 
-/** Printed felt: the Casino Tornillo logo in the middle and the rules arc below the dealer. */
+/** Printed felt: the Casino El Primo logo in the middle and the rules arc below the dealer. */
 export function FeltPrint({ rules }: { rules: Rules }) {
   const bj = rules.bjPayout === 1.5 ? 'BLACKJACK PAYS 3 TO 2' : 'BLACKJACK PAYS 6 TO 5';
   const s17 = rules.h17 ? 'Dealer hits soft 17' : 'Dealer stands on all 17s';
@@ -184,7 +184,7 @@ export function FeltPrint({ rules }: { rules: Rules }) {
           {s17} · insurance pays 2 to 1
         </textPath>
       </text>
-      <image href={`${base}brand/tornillo-logo.png`} x="30" y="44" width="40" height="30.3" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+      <image href={`${base}brand/el-primo-logo.png`} x="31.5" y="41" width="37" height="31.5" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
     </svg>
   );
 }
