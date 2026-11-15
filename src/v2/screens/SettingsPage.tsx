@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
+import { MODES, modeMatches } from '../modes';
 import { normalizeRules, type Rules } from '../../engine/rules';
 import { useBankroll, money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
@@ -39,17 +40,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-type Coach = V2Settings['coach'];
-/**
- * Three modes, each deciding which feedback cards you get. Betting the count comes before count
- * plays because most of a counter's edge comes from betting more when the count is up.
- */
-const PATH: { title: string; sub: string; coach: Partial<Coach> }[] = [
-  { title: 'Basic strategy', sub: 'every hand right, with a peek at what comes next', coach: { deviations: false, countQuiz: 'off', betCoach: false } },
-  { title: 'Count & bet', sub: 'keep the count, bet with it, get tested now and then', coach: { deviations: false, countQuiz: 'sometimes', betCoach: true } },
-  { title: 'Full AP', sub: 'plus count plays: the right play changes with the count', coach: { deviations: true, countQuiz: 'sometimes', betCoach: true } },
-];
-const matches = (c: Coach, p: Partial<Coach>) => (Object.keys(p) as (keyof Coach)[]).every((k) => k === 'feedback' || c[k] === p[k]);
 
 export function SettingsPage() {
   const { s, set } = useV2();
@@ -71,8 +61,8 @@ export function SettingsPage() {
       <div className="page">
         <Group title="Mode">
           <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
-            {PATH.map((p, i) => {
-              const on = matches(s.coach, p.coach);
+            {MODES.map((p, i) => {
+              const on = modeMatches(s.coach, p.coach);
               return (
                 <button key={i} className={'act' + (on ? ' stand' : ' quiet')} style={{ textAlign: 'left', padding: '8px 12px', minHeight: 0 }} onClick={() => C(p.coach)}>
                   <span className="display" style={{ fontSize: 18 }}>

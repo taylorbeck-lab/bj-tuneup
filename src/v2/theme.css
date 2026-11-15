@@ -125,6 +125,60 @@ a {
   color: var(--bad);
 }
 
+/* welcome: José's hello and the table tips */
+.jose {
+  border-left: 3px solid var(--orange);
+  padding: 2px 0 2px 14px;
+}
+.jose-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+.jose p {
+  margin: 6px 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.25;
+}
+.beats {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.beats li::marker {
+  font-family: var(--display);
+  color: var(--orange);
+}
+.beats b {
+  color: var(--on-dark);
+}
+.beats em {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--mustard);
+}
+.beats a {
+  color: var(--mustard);
+}
+.tips {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.tips b {
+  color: var(--on-dark);
+  font-weight: 600;
+}
+
 /* loading splash (never a blank page) */
 .splash {
   min-height: 100dvh;

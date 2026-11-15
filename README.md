@@ -17,6 +17,8 @@ You sit down and play. After each decision, the coach tells you whether it was t
 Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. It works offline, and everything stays on the phone.
 
 ## How it plays
+- **The house game:** double deck, dealer hits soft 17, double after split, $10 to $500, about two-thirds of the shoe dealt. Double deck is the sweet spot to learn counting; six decks (and every other rule) is one tap away in Settings.
+- **José deals.** He says hello on the first visit, you pick where to start (Basic strategy, Count & bet, or Full AP), and he tells you after every hand whether you played it right.
 - **A real table:**
   - A cream felt with the Casino El Primo logo, a black padded rail, and up to 6 players in an arc that runs edge to edge.
   - Dealer, shoe, the posted table-limits sign and a smoked acrylic discard tray along the top. The tray stack grows exactly with the cards played, with a tick per deck, so you read decks played the way counters do. You can't see how many cards are left in the shoe, just like a real table.

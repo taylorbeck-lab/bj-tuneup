@@ -1,4 +1,5 @@
-import { useRoute } from '../router';
+import { useState } from 'react';
+import { useRoute, navigate } from '../router';
 import { useV2 } from './settings';
 import { PlayScreen } from './play/PlayScreen';
 import { SettingsPage } from './screens/SettingsPage';
@@ -9,8 +10,26 @@ import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
 const CoachPage = lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage })));
 
+const SEEN = 'elPrimoHomeSeen';
+const seenThisVisit = () => {
+  try {
+    return sessionStorage.getItem(SEEN) === '1';
+  } catch {
+    return false;
+  }
+};
+
 export function App() {
   const path = useRoute();
+  const [seen, setSeen] = useState(seenThisVisit);
+  const markSeen = () => {
+    try {
+      sessionStorage.setItem(SEEN, '1');
+    } catch {
+      /* ignore */
+    }
+    setSeen(true);
+  };
   const { s, loaded } = useV2();
   if (!loaded)
     return (
@@ -18,7 +37,16 @@ export function App() {
         <Emblem height={56} />
       </div>
     );
-  if (!s.onboarded) return <Welcome />;
+  // The front door: every time the app opens (once per visit), and any time from the emblem.
+  if (path === '/home' || (path === '/' && (!s.onboarded || !seen)))
+    return (
+      <Welcome
+        onEnter={() => {
+          markSeen();
+          if (path === '/home') navigate('/');
+        }}
+      />
+    );
   if (path === '/settings') return <SettingsPage />;
   if (path === '/chart') return <ChartPage />;
   if (path === '/stats') return <StatsPage />;
