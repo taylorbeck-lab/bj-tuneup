@@ -242,6 +242,11 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  min-width: 52px;
+  margin-left: -6px;
+  padding: 0 6px;
+  border-radius: 10px;
   font-family: var(--serif);
   font-style: italic;
   font-size: 24px;
