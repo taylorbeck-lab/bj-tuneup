@@ -26,6 +26,10 @@ export interface TableHooks {
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
   paused?: boolean;
+  /** A card the player must swipe away before the next deal (a miss they should read). */
+  hold?: boolean;
+  /** Tap on the discard tray (the count lives there). */
+  onTray?: () => void;
   /** Optional practice hand for the next deal (practice my misses). */
   practiceHand?: () => { values: [number, number]; up: number } | null;
 }
@@ -62,6 +66,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     carry.current = keep;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.result]);
+  const [askShuffle, setAskShuffle] = useState(false);
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
   useEffect(() => {
@@ -81,7 +86,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const idle = betting || g.phase === 'shuffling';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
-  const canDeal = betting && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
+  const canDeal = betting && !hooks.hold && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
   const addChip = (d: number) => {
     const sp = activeBetSpot;
     const cur = bets[sp] ?? 0;
@@ -147,7 +152,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
-            <ShoeAndTray discards={discards} decks={s.rules.decks} />
+            <ShoeAndTray discards={discards} decks={s.rules.decks} onTray={hooks.onTray} onShoe={() => setAskShuffle(true)} />
             <LimitPlacard min={s.tableMin} max={max} />
             {/* betting circles */}
             {[1, 2, 3, 4, 5, 6].map((sp) => {
@@ -219,8 +224,9 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
 
       <div className="dock">
         {/* the coach strip shares the dock with the play buttons (betting needs the room for chips) */}
-        {!idle && hooks.coach && <div className="coach-slot">{hooks.coach}</div>}
-        {betting && (
+        {(!idle || (betting && hooks.hold)) && hooks.coach && <div className="coach-slot">{hooks.coach}</div>}
+        {betting && hooks.hold && <p className="muted hold-hint">Swipe the card away to deal the next hand.</p>}
+        {betting && !hooks.hold && (
           <>
             {br.balance < s.tableMin ? (
               <button className="act primary" onClick={() => reset(s.startBankroll)}>
@@ -241,12 +247,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     Deal {pending ? money(pending) : ''}
                   </button>
                 </div>
-                <div className="dock-foot">
-                  <span className="muted">{g.layout.mine.length > 1 ? 'Tap one of your circles to bet that spot' : ''}</span>
-                  <button type="button" className="link-btn" onClick={g.shuffleUp} aria-label="Shuffle up: new shoe, count back to 0">
-                    ⟲ Shuffle up
-                  </button>
-                </div>
+                {g.layout.mine.length > 1 && <p className="muted hold-hint">Tap one of your circles to bet that spot.</p>}
               </>
             )}
           </>
@@ -276,6 +277,38 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}
         </p>
       </div>
+      {askShuffle && (
+        <div className="sheet-back" onClick={() => setAskShuffle(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle up">
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span className="display" style={{ fontSize: 28 }}>
+                Shuffle up?
+              </span>
+              <span className="serif" style={{ fontSize: 20 }}>
+                fresh shoe, count back to 0
+              </span>
+            </div>
+            {betting ? (
+              <button
+                className="act stand"
+                onClick={() => {
+                  setAskShuffle(false);
+                  g.shuffleUp();
+                }}
+              >
+                Shuffle up
+              </button>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>
+                The dealer shuffles between hands. Ask again once this hand is done.
+              </p>
+            )}
+            <button className="act" onClick={() => setAskShuffle(false)}>
+              Never mind
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

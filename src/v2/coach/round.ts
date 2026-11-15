@@ -1,43 +1,13 @@
 /**
- * The round coach: quiet when you're right, four lights when something needs attention.
- * Feedback is always after the fact, and the short line never states the count (a real table never
- * tells you the count); the number lives in the full card, one tap away.
+ * Feedback classifiers for the feedback card: was a play, bet or insurance decision right, which
+ * layer it belongs to (basic play, count play, bet), and the short line for a miss. Feedback is
+ * always after the fact, and the short line never states the count (a real table never tells you);
+ * the number lives in the full card, one tap away.
  */
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import type { CoachVerdict } from './grade';
 
-export type Light = 'ok' | 'no' | 'idle';
 export type Layer = 'play' | 'count' | 'deviate' | 'bet';
-export const LAYER_LABEL: Record<Layer, string> = { play: 'Play', count: 'Count', deviate: 'Deviate', bet: 'Bet' };
-
-export interface Tile {
-  light: Light;
-  /** Short word on a red tile (e.g. STAND, ↑ BET); never a count number. */
-  word?: string;
-}
-
-export interface RoundState {
-  tiles: Partial<Record<Layer, Tile>>;
-  /** One short line for the latest miss (no count numbers). */
-  line?: string;
-  /** Something went wrong this round: show the lights. */
-  flagged: boolean;
-}
-
-/** Which layers are switched on. */
-export function layersFor(c: { deviations: boolean; countQuiz: 'off' | 'sometimes' | 'often'; betCoach: boolean }): Layer[] {
-  const out: Layer[] = ['play'];
-  if (c.countQuiz !== 'off') out.push('count');
-  if (c.deviations) out.push('deviate');
-  if (c.betCoach) out.push('bet');
-  return out;
-}
-
-export function freshRound(layers: Layer[], count?: Light): RoundState {
-  const tiles: RoundState['tiles'] = {};
-  for (const l of layers) tiles[l] = { light: l === 'count' && count ? count : 'idle' };
-  return { tiles, flagged: count === 'no', line: count === 'no' ? 'Your last count check was off.' : undefined };
-}
 
 const word = (a: Action) => ACTION_LABEL[a].toUpperCase();
 const lower = (a: Action) => ACTION_LABEL[a].toLowerCase();
@@ -86,12 +56,4 @@ export function insuranceFeedback(right: boolean, shouldTake: boolean, deviation
   const layer: Layer = deviations ? 'deviate' : 'play';
   if (right) return { layer, ok: true, tick: shouldTake ? '✓ insurance' : '✓ no insurance' };
   return shouldTake ? { layer, ok: false, word: 'INSURE', line: 'Count says take insurance.' } : { layer, ok: false, word: 'SKIP', line: 'Skip insurance.' };
-}
-
-/** Fold one piece of feedback into the round. A red light stays red for the round. */
-export function applyFeedback(r: RoundState, f: Feedback): RoundState {
-  const tile = r.tiles[f.layer] ?? (f.layer === 'play' ? { light: 'idle' as Light } : undefined);
-  if (!tile) return r; // layer switched off
-  const next: Tile = tile.light === 'no' && f.ok ? tile : { light: f.ok ? 'ok' : 'no', word: f.ok ? undefined : f.word };
-  return { tiles: { ...r.tiles, [f.layer]: next }, line: f.ok ? r.line : f.line, flagged: r.flagged || !f.ok };
 }

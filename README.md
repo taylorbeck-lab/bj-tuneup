@@ -24,13 +24,13 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
   - Cards slide out of the shoe to a fixed spot and stay there. Every card stays readable, and nothing jiggles.
 - **Dealer pace:** slow, average, fast or extra fast. Finished hands stay on the felt for a realistic beat; tap the felt to move on.
 - **Money:** $5 / $25 / $100 / $500 chips in the house colours (terracotta, juniper, black, plum), bets stacked on the felt, and a bankroll that persists (play money). It reloads when you're out.
-- **Shuffle up** (under the bet buttons): between hands, ask the dealer for a fresh shoe. The count starts again at 0, exactly like a new shoe at a casino.
+- **Shuffle up** (tap the shoe): between hands, ask the dealer for a fresh shoe. The count starts again at 0, exactly like a new shoe at a casino.
 - **Other players** bet and play too, and once in a while they misplay, like real tables.
 
 ## The coach
-- **After every decision:** RIGHT CALL / NOT QUITE, each play's chance to win ("Hit wins 41% · Stand wins 37%", exact for the cards left), and a one-line why. A mistake also shows what it costs per $100 over time.
-- **Count?** (top bar): any time, enter the running count, then the true count, the way you say it in your head (tap **Up** or **Down**, then the number, or **Even**), using the discard tray to judge decks left. You get the arithmetic and what that count means. The dealer pauses while you think.
-- **Learning path** (Settings): five one-tap steps.
+- **One feedback card after every decision.** Green for a right play: glance and keep playing (it stays until the next card). Red for a miss: the right play and a one-line why; it stays, even into the next hand, until you swipe it away. Tap either for the full card: each play's chance to win (exact for the cards left), the why, and what a mistake costs per $100.
+- **The count lives in the discard tray:** tap it any time to be tested (enter the running count, then the true count, the way you say it in your head (tap **Up** or **Down**, then the number, or **Even**), using the discard tray to judge decks left. You get the arithmetic and what that count means; the dealer pauses while you think) or just to ask the dealer what the count is.
+- **Three modes** (Settings): *Basic strategy* (with a peek at the count plays to come), *Count & bet* (keep the count, bet with it, get tested now and then), *Full AP* (plus count plays).
   1. *Play every hand right*
   2. *Start counting*: the count is shown, with easy quizzes
   3. *Count on your own*: more quizzes
