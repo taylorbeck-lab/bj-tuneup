@@ -4,10 +4,10 @@ import { rulesKey, type Rules } from '../engine/rules';
 import { REFERENCE_INDICES, type IndexPlay } from '../engine/indices';
 import type { GeneratedIndex } from '../engine/indexgen';
 import type { Chart } from '../engine/strategy/chart';
-import { call } from '../workers/client';
+import { callBackground } from '../workers/client';
 
 export type IndexSource = 'generated' | 'reference' | 'custom';
-const GEN_VERSION = 2;
+const GEN_VERSION = 3;
 const genKey = (rk: string) => `indices-gen:v${GEN_VERSION}:${rk}`;
 const pending = new Map<string, Promise<GeneratedIndex[]>>();
 
@@ -19,7 +19,7 @@ export function loadGeneratedIndices(chart: Chart, rules: Rules): Promise<Genera
     p = (async () => {
       const cached = await kvGet<GeneratedIndex[]>(k);
       if (cached) return cached;
-      const g = await call('generateIndices', chart, rules);
+      const g = await callBackground('generateIndices', chart, rules);
       await kvSet(k, g);
       return g;
     })();
@@ -37,7 +37,7 @@ export async function cachedGeneratedIndices(rules: Rules): Promise<GeneratedInd
  * 'reference' (Illustrious 18 + Fab 4) or 'custom' (edited). Default: generated when it has been
  * computed, else the reference.
  */
-export function useIndexPlays(rules: Rules) {
+export function useIndexPlays(rules: Rules, chart?: Chart) {
   const rk = rulesKey(rules);
   const [plays, setPlays] = useState<IndexPlay[]>(REFERENCE_INDICES);
   const [source, setSourceState] = useState<IndexSource>('reference');
@@ -73,5 +73,18 @@ export function useIndexPlays(rules: Rules) {
     [rk],
   );
   const refresh = useCallback(() => setVer((v) => v + 1), []);
+  // With a chart, build the count plays for these exact rules in the background (cached after the
+  // first time); until then the published reference set is used.
+  useEffect(() => {
+    if (!chart || generated) return;
+    let live = true;
+    loadGeneratedIndices(chart, rules)
+      .then(() => live && refresh())
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chart, rk, !!generated]);
   return { plays, source, setSource, generated, custom, saveCustom, refresh };
 }
