@@ -13,7 +13,7 @@ const pctEdge = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixe
  * The end of the shoe: the cut card is out, so before he shuffles José asks for your count (the
  * ultimate check: did you stay accurate the whole way?), then sums up how good the shoe was.
  */
-export function EndOfShoe({ table, model, counting, onDone }: { table: Table; model?: EdgeModel; counting: boolean; onDone: () => void }) {
+export function EndOfShoe({ table, model, onDone }: { table: Table; model?: EdgeModel; onDone: () => void }) {
   const rc = table.rc;
   const [answer, setAnswer] = useState<number | 'pass' | null>(null);
   const summary = useMemo(() => summariseShoe(table.shoeRounds(), model), [table, model]);
@@ -28,7 +28,7 @@ export function EndOfShoe({ table, model, counting, onDone }: { table: Table; mo
       <div className="sheet" role="dialog" aria-label="End of the shoe">
         <div className="jose" style={{ borderColor: 'var(--orange)' }}>
           <span className="jose-name">José · end of the shoe</span>
-          <p style={{ color: 'var(--ink)' }}>{!answered ? (counting ? 'Cut card’s out. Before I shuffle, what’s your count?' : 'Cut card’s out. Counting along yet? What’s your count?') : 'Here’s how that shoe went.'}</p>
+          <p style={{ color: 'var(--ink)' }}>{!answered ? 'Cut card’s out. Before I shuffle, what’s your count?' : 'Here’s how that shoe went.'}</p>
         </div>
 
         {!answered ? (

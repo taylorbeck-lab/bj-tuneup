@@ -26,7 +26,7 @@ export interface TableHooks {
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
   paused?: boolean;
-  /** The end of the shoe: what José shows before he shuffles (call `done` to shuffle). */
+  /** The end of the shoe: what José shows before he shuffles (call `done` to shuffle; null = shuffle straight away). */
   endOfShoe?: (t: Table, done: () => void) => React.ReactNode;
   /** Tap on the discard tray (the count lives there). */
   onTray?: () => void;
@@ -328,8 +328,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}
         </p>
       </div>
-      {g.phase === 'endOfShoe' && t && hooks.endOfShoe?.(t, g.finishShoe)}
-      {g.phase === 'endOfShoe' && t && !hooks.endOfShoe && <AutoShuffle done={g.finishShoe} />}
+      {g.phase === 'endOfShoe' && t && (hooks.endOfShoe?.(t, g.finishShoe) ?? <AutoShuffle done={g.finishShoe} />)}
       {askShuffle && (
         <div className="sheet-back" onClick={() => setAskShuffle(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle up">
