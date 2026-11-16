@@ -4,8 +4,8 @@ import { useStrategy } from '../../store/strategy';
 import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
-import { Emblem } from '../icons';
-import { spotCenter } from './layout';
+import { StatsIcon, ChartIcon, GearIcon } from '../icons';
+import { spotCenter, LOGO_BOX } from './layout';
 import { JoseZone, joseLine, type JoseMoment } from './Jose';
 import { isBlackjack, valueOf } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
@@ -20,10 +20,8 @@ export interface TableHooks {
   onInsurance?: (take: boolean, t: Table) => void;
   /** Overlays drawn on the felt (count badge, etc). */
   feltExtra?: (t: Table | null) => React.ReactNode;
-  /** Coach strip under the felt. */
-  coach?: React.ReactNode;
-  /** Extra HUD buttons. */
-  hudExtra?: React.ReactNode;
+  /** What José says instead of his own line (feedback on your play, the count when asked). */
+  jose?: React.ReactNode;
   /** Called when the table opens for bets. */
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
@@ -171,32 +169,13 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
 
   return (
     <div className="frame table-frame">
-      <header className="hud">
-        <a className="brand" href="#/home" aria-label={`${BRAND.long}: how it works`}>
-          <Emblem height={24} />
-          <span className="brand-text">{BRAND.name}</span>
-        </a>
-        <span className="spacer" />
-        {hooks.hudExtra}
-        <span className="pill mono mustard" aria-label="Bankroll" title="Bankroll">
-          {money(br.balance)}
-        </span>
-        <a className="pill icon" href="#/stats" aria-label="Your stats">
-          ★
-        </a>
-        <a className="pill icon" href="#/chart" aria-label="Strategy chart">
-          ▦
-        </a>
-        <a className="pill icon" href="#/settings" aria-label="Settings">
-          ⚙
-        </a>
-      </header>
-
       <div className="felt-stage">
-        <JoseZone line={joseLine(joseMoment)} />
+        <JoseZone line={joseLine(joseMoment)} says={hooks.jose ?? undefined} />
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
+            {/* the logo on the felt takes you back to the intro */}
+            <a className="logo-link" href="#/home" aria-label={`${BRAND.long}: how it works`} style={{ left: `${LOGO_BOX.x}cqw`, top: `${LOGO_BOX.y}cqw`, width: `${LOGO_BOX.w}cqw`, height: `${LOGO_BOX.h}cqw` }} />
             <ShoeAndTray discards={discards} decks={s.rules.decks} onTray={hooks.onTray} onShoe={() => setAskShuffle(true)} />
             <LimitPlacard min={s.tableMin} max={max} />
             {/* betting circles */}
@@ -283,9 +262,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       </div>
 
       <div className="dock">
-        {/* the coach strip shares the dock with the play buttons (betting needs the room for chips) */}
-        {(!idle || (betting && hooks.hold)) && hooks.coach && <div className="coach-slot">{hooks.coach}</div>}
-        {betting && hooks.hold && <p className="muted hold-hint">Swipe the card away to deal the next hand.</p>}
+        {betting && hooks.hold && <p className="muted hold-hint">Swipe José’s note away to deal the next hand.</p>}
         {betting && !hooks.hold && (
           <>
             {br.balance < s.tableMin ? (
@@ -331,7 +308,23 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             ))}
           </div>
         )}
-        {(g.phase === 'dealing' || g.phase === 'playing') && <p className="muted" style={{ margin: 0, textAlign: 'center', minHeight: 56, lineHeight: '56px' }}>…</p>}
+        {(g.phase === 'dealing' || g.phase === 'playing') && <p className="muted" style={{ margin: 0, textAlign: 'center', minHeight: 52, lineHeight: '52px' }}>…</p>}
+        {/* the player's side: your bankroll and the menu */}
+        <div className="player-row">
+          <span className="bankroll" aria-label="Bankroll" title="Bankroll">
+            {money(br.balance)}
+          </span>
+          <span className="spacer" />
+          <a className="icon-btn" href="#/stats" aria-label="Your stats">
+            <StatsIcon />
+          </a>
+          <a className="icon-btn" href="#/chart" aria-label="Strategy charts">
+            <ChartIcon />
+          </a>
+          <a className="icon-btn" href="#/settings" aria-label="Settings">
+            <GearIcon />
+          </a>
+        </div>
         {/* the dealer pays or takes on the felt; screen readers still hear the result */}
         <p className="sr-only" aria-live="polite">
           {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}

@@ -17,6 +17,9 @@ export const W_DEALER = 11.4;
 export const CARD_W = W_MINE;
 export const CARD_H = W_MINE * CARD_RATIO;
 
+/** The printed logo on the felt (tap it for the intro). */
+export const LOGO_BOX = { x: 38.5, y: 50.3, w: 23, h: 19.6 };
+
 export const SHOE = { x: 84, y: 2.5 };
 export const TRAY = { x: 5, y: 2.5 };
 

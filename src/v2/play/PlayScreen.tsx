@@ -75,12 +75,18 @@ export function PlayScreen() {
     return id;
   };
   const blocking = !!card && !card.ok;
+  // José's whisper of the count fades on its own; the game doesn't stop for it
+  useEffect(() => {
+    if (!reveal) return;
+    const id = setTimeout(() => setReveal(null), 6000);
+    return () => clearTimeout(id);
+  }, [reveal]);
 
   return (
     <>
       <TableScreen
         hooks={{
-          paused: !!countOpen || !!reveal,
+          paused: !!countOpen,
           hold: blocking,
           practiceHand: () => {
             practiceKey.current = null;
@@ -172,16 +178,15 @@ export function PlayScreen() {
               setCountOpen({ t, quiz: true });
             }
           },
-          coach: !card ? null : detailOpen ? (
-            <CoachCard
-              msg={card.msg}
-              startOpen
-              onClose={() => setDetailOpen(false)}
-              askHref={s.apiKey && card.msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${card.msg.verdict?.correct ?? ''} on ${card.msg.hand.replace('↻ ', '')}?`) : undefined}
-            />
-          ) : (
+          // everything said at the table comes from José: the count when you ask, then your feedback
+          jose: reveal ? (
+            <button type="button" className="jose-say jose-count" onClick={() => setReveal(null)} aria-label={`Running count ${countWords(reveal.rc)}, true count ${countWords(reveal.tc)}`}>
+              <small>José · leans in</small>
+              Running <b>{countWords(reveal.rc)}</b> · true <b>{countWords(reveal.tc)}</b>
+            </button>
+          ) : card && s.coach.feedback !== 'off' ? (
             <FeedbackCard key={card.id} card={card} onOpen={() => setDetailOpen(true)} onDismiss={() => setCard(null)} />
-          ),
+          ) : undefined,
         }}
       />
       {countMenu && tableRef.current && (
@@ -217,20 +222,15 @@ export function PlayScreen() {
           </div>
         </div>
       )}
-      {reveal && (
-        <div className="sheet-back" onClick={() => setReveal(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The count">
-            <span className="serif" style={{ fontSize: 20 }}>
-              José leans in…
-            </span>
-            <div className="display" style={{ fontSize: 40, lineHeight: 1.05 }}>
-              Running {countWords(reveal.rc)}
-              <br />
-              True {countWords(reveal.tc)}
-            </div>
-            <button className="act stand" onClick={() => setReveal(null)}>
-              Got it
-            </button>
+      {detailOpen && card && (
+        <div className="sheet-back" onClick={() => setDetailOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Why">
+            <CoachCard
+              msg={card.msg}
+              startOpen
+              onClose={() => setDetailOpen(false)}
+              askHref={s.apiKey && card.msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${card.msg.verdict?.correct ?? ''} on ${card.msg.hand.replace('↻ ', '')}?`) : undefined}
+            />
           </div>
         </div>
       )}

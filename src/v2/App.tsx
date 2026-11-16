@@ -38,7 +38,7 @@ export function App() {
         <Emblem height={56} />
       </div>
     );
-  // The front door: every time the app opens (once per visit), and any time from the emblem.
+  // The front door: every time the app opens (once per visit), and any time from the logo on the felt.
   if (path === '/home' || (path === '/' && (!s.onboarded || !seen)))
     return (
       <Welcome

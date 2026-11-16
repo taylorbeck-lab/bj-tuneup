@@ -5,7 +5,7 @@ import { money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
 
 /**
- * The front door, shown each time the app opens and any time from the emblem in the top bar: what
+ * The front door, shown each time the app opens and any time from the logo on the felt: what
  * this is, for a complete newbie, in three short beats, then pick where to play. One tap deals you in.
  */
 export function Welcome({ onEnter }: { onEnter: () => void }) {
@@ -73,10 +73,10 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
             <b>Tap the shoe</b> to have him shuffle up (count back to zero).
           </li>
           <li>
-            <b>Red card?</b> Read it, then swipe it away. Tap any card for the full why.
+            <b>José turns red?</b> Read his note, then swipe it away. Tap it for the full why.
           </li>
           <li>
-            <b>The emblem</b> brings you back here. <b>⚙</b> decks, rules, seats, speed · <b>▦</b> charts · <b>★</b> your stats.
+            <b>Tap the logo</b> on the table to come back here. Down by your chips: <b>★</b> your stats · <b>▦</b> charts · <b>⚙</b> decks, rules, seats, speed.
           </li>
         </ul>
         <p className="muted" style={{ fontSize: 11, lineHeight: 1.45, margin: 0 }}>

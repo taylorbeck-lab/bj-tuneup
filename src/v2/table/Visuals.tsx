@@ -163,20 +163,23 @@ export function BetStack({ amount, x, y }: { amount: number; x: number; y: numbe
   );
 }
 
-/** Printed felt: the rules in two straight lines below the dealer, the Casino El Primo logo nested in the arc of betting circles. */
+/**
+ * Printed felt: the rules in two straight lines below the dealer, the Casino El Primo logo nested in
+ * the arc of betting circles, centred between the rules and the circles (LOGO_BOX in layout.ts).
+ */
 export function FeltPrint({ rules }: { rules: Rules }) {
   const bj = rules.bjPayout === 1.5 ? 'BLACKJACK PAYS 3 TO 2' : 'BLACKJACK PAYS 6 TO 5';
   const s17 = rules.h17 ? 'Dealer hits soft 17' : 'Dealer stands on all 17s';
   const base = import.meta.env.BASE_URL;
   return (
     <svg className="felt-print" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
-      <text x="50" y="38.5" textAnchor="middle" fontSize="2.9" fill="var(--felt-ink)" letterSpacing="0.6" fontFamily="var(--font)" fontWeight="700">
+      <text x="50" y="38.5" textAnchor="middle" fontSize="3.4" fill="var(--felt-ink)" letterSpacing="0.65" fontFamily="var(--font)" fontWeight="700">
         {bj}
       </text>
-      <text x="50" y="42.6" textAnchor="middle" fontSize="2.4" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
+      <text x="50" y="43.2" textAnchor="middle" fontSize="2.85" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
         {s17} · insurance pays 2 to 1
       </text>
-      <image href={`${base}brand/el-primo-logo.png`} x="38.5" y="55" width="23" height="19.6" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+      <image href={`${base}brand/el-primo-logo.png`} x="38.5" y="50.3" width="23" height="19.6" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
     </svg>
   );
 }

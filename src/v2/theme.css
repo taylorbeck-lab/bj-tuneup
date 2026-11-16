@@ -179,11 +179,12 @@ a {
   font-weight: 600;
 }
 
-/* José, behind the table: a portrait when there's room, a face and a speech bubble when it's tight */
+/* José, behind the table: a portrait when there's room, a face and a speech bubble when it's tight.
+   His bubble carries everything said at the table: his lines, your feedback, the count when asked. */
 .jose-zone {
   position: relative;
   flex: 1 1 0;
-  min-height: 0;
+  min-height: 72px;
   width: 100%;
   overflow: hidden;
   container-type: size;
@@ -204,27 +205,32 @@ a {
   background: linear-gradient(180deg, rgba(11, 23, 18, 0.25), transparent 30%, transparent 75%, rgba(11, 23, 18, 0.35));
   pointer-events: none;
 }
-.jose-compact {
+.jose-face {
   display: none;
-  height: 100%;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-}
-.jose-compact img {
-  height: min(52px, 82cqh);
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: min(76px, calc(100cqh - 12px));
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 2px solid var(--orange);
+  border: 2.5px solid var(--orange);
   object-fit: cover;
-  flex: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
-.jose-say {
+.jose-slot {
   position: absolute;
   right: 12px;
   top: 12px;
-  max-width: 54%;
+  width: min(62%, 300px);
   z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+}
+.jose-slot > * {
+  max-width: 100%;
+}
+.jose-say {
   background: var(--paper);
   color: var(--ink);
   border: 2px solid #000;
@@ -236,6 +242,7 @@ a {
   line-height: 1.15;
   box-shadow: 2px 2px 0 #000;
   animation: fb-in 220ms ease both;
+  cursor: default;
 }
 .jose-say small {
   display: block;
@@ -247,28 +254,36 @@ a {
   color: var(--orange-deep);
   margin-bottom: 1px;
 }
-@container (max-height: 130px) {
+/* feedback inside José's bubble */
+.jose-slot .fb {
+  height: auto;
+  margin: 0;
+  width: 100%;
+  border-radius: 14px 14px 4px 14px;
+}
+@container (max-height: 150px) {
   .jose-zone .jose-portrait,
-  .jose-say-wide {
-    display: none;
-  }
-  .jose-compact {
-    display: flex;
-  }
   .jose-zone::after {
     display: none;
   }
-  .jose-say {
-    position: static;
-    max-width: none;
-    font-size: 16px;
-    padding: 5px 10px 6px;
+  .jose-face {
+    display: block;
+  }
+  .jose-slot {
+    left: calc(min(76px, 100cqh - 12px) + 24px);
+    right: 12px;
+    width: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    justify-content: flex-start;
+  }
+  .jose-say,
+  .jose-slot .fb {
     border-radius: 14px 14px 14px 4px;
   }
-}
-@container (max-height: 34px) {
-  .jose-compact {
-    display: none;
+  .jose-say {
+    font-size: 16px;
+    padding: 5px 10px 6px;
   }
 }
 
@@ -323,7 +338,7 @@ a {
 }
 /* the table fills the width; José takes whatever height is left above it */
 .felt-stage > .felt-wrap {
-  width: min(100cqw, calc(100cqh * 100 / 95));
+  width: min(100cqw, calc((100cqh - 72px) * 100 / 95));
   flex: none;
 }
 .coach-slot {
@@ -746,8 +761,73 @@ a {
   flex-direction: column;
   justify-content: flex-end;
   gap: 8px;
-  height: 172px;
+  height: 186px;
   flex: none;
+}
+/* the player's side of the table: bankroll and the menu */
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.player-row .spacer {
+  flex: 1;
+}
+.bankroll {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--mustard);
+  border: 2px solid #000;
+  border-radius: 99px;
+  padding: 6px 14px;
+  box-shadow: 2px 2px 0 #000;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--on-dark);
+  border: 2px solid rgba(239, 228, 204, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+}
+.icon-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+/* the logo on the felt is the way back to the intro (under any cards) */
+.logo-link {
+  position: absolute;
+  z-index: 0;
+  border-radius: 2cqw;
+}
+.logo-link:focus-visible {
+  outline: 0.6cqw solid var(--orange);
+}
+/* José's whisper of the count */
+.jose-count {
+  text-align: left;
+  font: inherit;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  cursor: pointer;
+}
+.jose-count b {
+  font-family: var(--display);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+/* the full why, opened from José's note */
+.sheet .coach.open {
+  position: static;
+  max-height: none;
+  box-shadow: var(--shadow);
 }
 .actions {
   display: grid;
@@ -1441,9 +1521,16 @@ table.bs td.s .dev {
     padding-bottom: 3px;
   }
   .dock {
-    height: 150px;
+    height: 164px;
     gap: 6px;
     padding-top: 6px;
+  }
+  .player-row {
+    min-height: 36px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
   }
   .coach-slot {
     height: 60px;
