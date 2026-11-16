@@ -6,8 +6,9 @@ import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, Rail, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { StatsIcon, ChartIcon, GearIcon } from '../icons';
 import { spotCenter, LOGO_BOX } from './layout';
-import { JoseZone, joseLine, type JoseMoment } from './Jose';
-import { isBlackjack, valueOf } from '../../engine/cards';
+import { JoseZone } from './Jose';
+import { joseLine, cutWords, noteRound, currentStreak, type JoseMoment } from './joseLines';
+import { isBlackjack, valueOf, handTotal } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
 import type { DecisionSnapshot } from '../../engine/game';
@@ -105,7 +106,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   }, [g.phase]);
 
   const betting = g.phase === 'betting';
-  /** Between hands: nothing dealt on the felt (betting, or the dealer shuffling up). */
+  /** Between hands: nothing dealt on the felt (betting, or José shuffling). */
   const idle = betting || g.phase === 'shuffling' || g.phase === 'endOfShoe';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
@@ -148,22 +149,40 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   // every card out of the shoe that isn't on the felt is in the tray (burn cards included)
   const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
-  // what José says right now (never the count: the feedback card does the teaching)
-  const myHand = t ? t.seats.find((x) => x.human)?.hands[0] : undefined;
-  const joseMoment: JoseMoment =
-    g.phase === 'shuffling'
-      ? { kind: 'shuffling' }
-      : betting
-        ? { kind: 'betting', first: !t || t.round === 0, seed: t?.round ?? 0 }
-        : g.phase === 'insurance'
-          ? { kind: 'insurance' }
-          : g.phase === 'yourTurn'
-            ? { kind: 'yourTurn', waiting }
-            : (g.phase === 'results' || g.phase === 'sweeping') && g.result
-              ? { kind: 'result', net: g.result.net, blackjack: !!myHand && myHand.cards.length === 2 && isBlackjack(myHand.cards.map(valueOf)) && g.result.net > 0, seed: t?.round ?? 0 }
-              : t?.phase === 'dealer'
-                ? { kind: 'dealer' }
-                : { kind: 'quiet' };
+  // where the cut card went in this shoe (shown as the shoe is cut)
+  const cut = t ? t.shoe.cutFraction : s.rules.penetration;
+
+  // what José says right now (never the count, never advice before you act: the feedback teaches)
+  const myHands = t ? t.seats.filter((x) => x.human).flatMap((x) => x.hands) : [];
+  const myHand = myHands[0];
+  const round = t?.round ?? 0;
+  const myBet = Math.max(0, ...Object.values(bets));
+  const bigBet = myBet >= Math.max(5 * s.tableMin, max / 2);
+  const dealerVals = t ? t.dealer.map(valueOf) : [];
+  const joseMoment: JoseMoment = (() => {
+    if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
+    if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
+    if (g.phase === 'dealing') return { kind: 'dealing', seed: round, bigBet };
+    if (g.phase === 'insurance') return { kind: 'insurance', seed: round };
+    if (g.phase === 'yourTurn') return { kind: 'yourTurn', waiting, seed: round };
+    if ((g.phase === 'results' || g.phase === 'sweeping') && g.result) {
+      const mine = myHand ? myHand.cards.map(valueOf) : [];
+      return {
+        kind: 'result',
+        seed: round,
+        net: g.result.net,
+        blackjack: !!myHand && myHands.length === 1 && mine.length === 2 && isBlackjack(mine) && g.result.net > 0,
+        dealerBlackjack: dealerVals.length === 2 && isBlackjack(dealerVals),
+        dealerBust: dealerVals.length > 2 && handTotal(dealerVals).total > 21,
+        bust: myHands.length > 0 && myHands.every((h) => handTotal(h.cards.map(valueOf)).total > 21),
+        doubled: myHands.some((h) => h.doubled),
+        surrendered: myHands.some((h) => h.surrendered),
+        streak: noteRound(round, g.result.net),
+      };
+    }
+    if (t?.phase === 'dealer') return { kind: 'dealer', seed: round };
+    return { kind: 'quiet' };
+  })();
 
   return (
     <div className="frame table-frame">
@@ -246,14 +265,24 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               })()}
             {hooks.feltExtra?.(t)}
             {g.phase === 'shuffling' && (
-              <div className="shuffle-show" role="status">
-                <div className="riffle" aria-hidden="true">
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <span key={i} style={{ animationDelay: `${i * 70}ms` }} />
-                  ))}
+              <div className="shuffle-show" role="status" aria-label={`Shuffling. Fresh shoe, count back to zero. Cut card ${cutWords(cut)}.`}>
+                <div className="shuffle-art" aria-hidden="true">
+                  <div className="riffle">
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <span key={i} style={{ animationDelay: `${i * 70}ms` }} />
+                    ))}
+                  </div>
+                  {/* then the cut: the whole shoe seen from the side, and the cut card going in where the dealing stops */}
+                  <div className="cut-stack">
+                    <div className="cut-dealt" style={{ width: `${cut * 100}%` }} />
+                    <div className="cut-card" style={{ left: `${cut * 100}%` }} />
+                  </div>
                 </div>
-                <div className="shuffle-title">Shuffling up</div>
-                <div className="shuffle-sub">fresh shoe · count back to zero</div>
+                <div className="shuffle-title">Shuffling</div>
+                <div className="shuffle-sub">
+                  <span className="sub-a">fresh shoe · count back to zero</span>
+                  <span className="sub-b">cut card {cutWords(cut)}</span>
+                </div>
               </div>
             )}
           </div>
@@ -331,10 +360,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       {g.phase === 'endOfShoe' && t && (hooks.endOfShoe?.(t, g.finishShoe) ?? <AutoShuffle done={g.finishShoe} />)}
       {askShuffle && (
         <div className="sheet-back" onClick={() => setAskShuffle(false)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle up">
+          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle">
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span className="display" style={{ fontSize: 28 }}>
-                Shuffle up?
+                Shuffle?
               </span>
               <span className="serif" style={{ fontSize: 20 }}>
                 fresh shoe, count back to 0
@@ -348,11 +377,11 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                   g.shuffleUp();
                 }}
               >
-                Shuffle up
+                Shuffle
               </button>
             ) : (
               <p className="muted" style={{ margin: 0 }}>
-                The dealer shuffles between hands. Ask again once this hand is done.
+                José shuffles between hands. Ask again once this hand is done.
               </p>
             )}
             <button className="act" onClick={() => setAskShuffle(false)}>

@@ -1529,7 +1529,7 @@ table.bs td.s .dev {
   gap: 1.2cqw;
   padding: 3cqw 6cqw 3.4cqw;
   border-radius: 3cqw;
-  background: rgba(13, 13, 12, 0.88);
+  background: rgba(13, 13, 12, 0.95);
   color: var(--on-dark);
   box-shadow: 0 1.5cqw 4cqw rgba(0, 0, 0, 0.45);
   animation: fb-in 260ms ease both;
@@ -1651,4 +1651,273 @@ table.bs td.s .dev {
   border-radius: 50%;
   border: 2px solid var(--ink);
   object-fit: cover;
+}
+
+/* the shuffle, then the cut: the riffle gives way to the whole shoe seen from the side, and the cut
+   card slides in where the dealing will stop (the part before it, shaded, is what gets dealt) */
+.shuffle-art {
+  position: relative;
+  width: 62cqw;
+  height: 14cqw;
+}
+.shuffle-art .riffle {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  animation: art-out 0.35s ease 1.9s forwards;
+}
+.cut-stack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4.5cqw;
+  height: 7cqw;
+  border-radius: 0.8cqw;
+  /* card edges, side by side */
+  background: repeating-linear-gradient(90deg, #f6ead3 0 0.42cqw, #b9a483 0.42cqw 0.6cqw);
+  box-shadow: 0 0.4cqw 0.8cqw rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  animation: art-in 0.4s ease 2.1s forwards;
+}
+.cut-dealt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0.8cqw 0 0 0.8cqw;
+  background: rgba(214, 120, 52, 0.28);
+  opacity: 0;
+  animation: art-in 0.5s ease 3.1s forwards;
+}
+.cut-card {
+  position: absolute;
+  top: -4.5cqw;
+  width: 1.3cqw;
+  height: 13cqw;
+  margin-left: -0.65cqw;
+  border-radius: 0.3cqw;
+  background: var(--mustard);
+  box-shadow: 0 0 0 0.25cqw #000, 0 0.4cqw 0.8cqw rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  animation: cut-in 0.6s cubic-bezier(0.3, 1.3, 0.5, 1) 2.5s forwards;
+}
+@keyframes art-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes art-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cut-in {
+  from {
+    opacity: 1;
+    transform: translateY(-9cqw);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.shuffle-sub {
+  display: grid;
+}
+.shuffle-sub > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.shuffle-sub .sub-a {
+  animation: art-out 0.3s ease 2.6s forwards;
+}
+.shuffle-sub .sub-b {
+  opacity: 0;
+  animation: art-in 0.4s ease 2.9s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shuffle-art .riffle,
+  .shuffle-sub .sub-a {
+    display: none;
+  }
+  .cut-stack,
+  .cut-dealt,
+  .cut-card,
+  .shuffle-sub .sub-b {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* the front door: José's short course, one card at a time, Back / Next at the bottom */
+.page.intro {
+  flex: 1;
+  min-height: 0;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  gap: 12px;
+  touch-action: pan-y;
+}
+.intro-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+}
+.intro-level {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mustard);
+}
+.intro-skip {
+  background: none;
+  border: 0;
+  color: var(--on-dark-soft);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0 8px 12px;
+}
+.intro-frame {
+  height: 100dvh;
+  min-height: 0;
+}
+.intro-card {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* room above the first line so accents on capitals (¿QUÉ MÁS?) aren't clipped by the scroll box */
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fb-in 260ms ease both;
+}
+.page .intro-h {
+  font-size: 34px;
+  margin: 0;
+}
+.intro-logo {
+  width: 66%;
+  max-width: 280px;
+  align-self: center;
+  margin: 4px 0 2px;
+}
+.intro-p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--on-dark-soft);
+}
+.intro-p b {
+  color: var(--on-dark);
+}
+.intro-p a {
+  color: var(--mustard);
+}
+.intro-credit {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--on-dark-soft);
+  font-style: italic;
+}
+.hilo {
+  display: grid;
+  grid-template-columns: 1.25fr 0.9fr 1.25fr;
+  gap: 8px;
+}
+.hilo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  border: 2px solid #000;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 #000;
+  text-align: center;
+}
+.hilo-col b {
+  font-family: var(--display);
+  font-size: 19px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.hilo-col span {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+.hilo-col.up b {
+  color: #2f7d4f;
+}
+.hilo-col.down b {
+  color: #c43f22;
+}
+.hilo-col.even b {
+  color: var(--ink-soft);
+}
+.intro-nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.intro-nav .act {
+  min-height: 48px;
+}
+.intro-back {
+  justify-self: start;
+  background: none;
+  border: 0;
+  color: var(--on-dark-soft);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 8px 12px 0;
+  cursor: pointer;
+}
+.intro-back[disabled] {
+  visibility: hidden;
+}
+@media (max-height: 640px) {
+  .page .intro-h {
+    font-size: 27px;
+  }
+  .intro-p {
+    font-size: 14px;
+    line-height: 1.42;
+  }
+  .intro-card {
+    gap: 10px;
+  }
+  .intro-card .jose p {
+    font-size: 18px;
+  }
+  .intro-logo {
+    width: 48%;
+  }
+  .hilo-col {
+    padding: 7px 4px;
+  }
+}
+.intro-dots {
+  display: flex;
+  gap: 7px;
+}
+.intro-dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(233, 220, 198, 0.3);
+  cursor: pointer;
+}
+.intro-dots button.on {
+  background: var(--mustard);
 }

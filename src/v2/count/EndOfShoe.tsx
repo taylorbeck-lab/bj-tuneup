@@ -97,7 +97,7 @@ export function EndOfShoe({ table, model, onDone }: { table: Table; model?: Edge
               </div>
             )}
             <button className="act stand" onClick={onDone}>
-              Shuffle up
+              Shuffle
             </button>
           </>
         )}

@@ -151,7 +151,7 @@ export class Table {
     this.opts = opts;
     this.rules = opts.rules;
     this.chart = opts.chart;
-    this.shoe = new Shoe(opts.rules.decks, opts.rules.penetration, opts.rules.burn, opts.seed, opts.skew ?? 0);
+    this.shoe = new Shoe(opts.rules.decks, opts.rules.penetration, opts.rules.burn, opts.seed, opts.skew ?? 0, opts.rules.cutSpread ?? 0);
     const humans = opts.humanSeats ?? [opts.humanSeat];
     this.humanSeats = humans;
     this.seats = Array.from({ length: opts.seats }, (_, i) => ({ human: humans.includes(i), hands: [], insurance: 0, baseBet: 1 }));

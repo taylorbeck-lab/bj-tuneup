@@ -290,3 +290,25 @@ describe('shoe snapshot (survives a reload)', () => {
     expect(t6.restoreShoe(t2.snapshotShoe())).toBe(false);
   });
 });
+
+describe('hand-placed cut card', () => {
+  it('stays put when fixed, and wanders around the mark when placed by hand', async () => {
+    const { Shoe } = await import('../src/engine/shoe');
+    const fixed = new Shoe(2, 0.65, 1, 42, 0, 0);
+    for (let i = 0; i < 20; i++) {
+      expect(fixed.cutIndex).toBe(Math.round(104 * 0.65));
+      fixed.shuffle();
+    }
+    const hand = new Shoe(2, 0.65, 1, 42, 0, 0.06);
+    const cuts: number[] = [];
+    for (let i = 0; i < 400; i++) {
+      cuts.push(hand.cutFraction);
+      hand.shuffle();
+    }
+    const mean = cuts.reduce((a, b) => a + b, 0) / cuts.length;
+    expect(Math.abs(mean - 0.65)).toBeLessThan(0.01);
+    expect(Math.min(...cuts)).toBeGreaterThanOrEqual(0.59 - 1 / 104);
+    expect(Math.max(...cuts)).toBeLessThanOrEqual(0.71 + 1 / 104);
+    expect(new Set(cuts.map((c) => c.toFixed(3))).size).toBeGreaterThan(5);
+  });
+});
