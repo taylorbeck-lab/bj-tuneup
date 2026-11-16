@@ -1672,3 +1672,13 @@ table.bs td.s .dev {
   border-style: dashed;
 }
 
+
+/* José's face at the head of his own sheets (count check) */
+.jose-mini {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  object-fit: cover;
+}

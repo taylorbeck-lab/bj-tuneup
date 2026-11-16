@@ -260,7 +260,7 @@ export function ShoeAndTray({ discards, decks, onTray, onShoe }: { discards: num
         tabIndex={onShoe ? 0 : undefined}
         onClick={onShoe}
         onKeyDown={(e) => onShoe && (e.key === 'Enter' || e.key === ' ') && onShoe()}
-        aria-label={onShoe ? 'Shoe. Tap to ask the dealer to shuffle up.' : 'Shoe'}
+        aria-label={onShoe ? 'Shoe. Tap to ask José to shuffle up.' : 'Shoe'}
       >
         <path d="M18 8 H92 a6 6 0 0 1 6 6 V140 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 V60 Z" fill="#1b1a18" stroke="#000" strokeWidth="2" />
         <path d="M22 16 H88 V96 H12 V60 Z" fill="#0e0e0d" />

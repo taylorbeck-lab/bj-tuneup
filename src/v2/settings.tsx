@@ -4,9 +4,9 @@ import { normalizeRules, DEFAULT_RULES, type Rules } from '../engine/rules';
 
 export type Speed = 'slow' | 'average' | 'fast' | 'xfast';
 export const SPEEDS: { id: Speed; label: string; card: number; linger: number }[] = [
-  { id: 'slow', label: 'Slow dealer', card: 1050, linger: 3400 },
-  { id: 'average', label: 'Average dealer', card: 720, linger: 2500 },
-  { id: 'fast', label: 'Fast dealer', card: 470, linger: 1800 },
+  { id: 'slow', label: 'Slow', card: 1050, linger: 3400 },
+  { id: 'average', label: 'Average', card: 720, linger: 2500 },
+  { id: 'fast', label: 'Fast', card: 470, linger: 1800 },
   { id: 'xfast', label: 'Extra fast', card: 300, linger: 1200 },
 ];
 

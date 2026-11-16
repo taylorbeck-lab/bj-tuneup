@@ -194,10 +194,10 @@ export function PlayScreen() {
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The count">
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span className="display" style={{ fontSize: 28 }}>
-                The count
+                Ask José
               </span>
               <span className="serif" style={{ fontSize: 20 }}>
-                test yourself, or just ask
+                test me, or just tell me
               </span>
             </div>
             <button
