@@ -5,14 +5,14 @@ import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { Emblem } from '../icons';
-import { spotCenter, cardPos } from './layout';
+import { spotCenter } from './layout';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
 import type { DecisionSnapshot } from '../../engine/game';
 import type { Table } from '../../engine/game';
 
 export interface TableHooks {
-  onDecision?: (snap: DecisionSnapshot, spot: number, t: Table) => void;
+  onDecision?: (snap: DecisionSnapshot, spot: number, t: Table, ms: number) => void;
   onRoundEnd?: (r: RoundResult, t: Table) => void;
   onBet?: (bets: Record<number, number>, t: Table) => void;
   onInsurance?: (take: boolean, t: Table) => void;
@@ -46,7 +46,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const g = useTableGame(
     s,
     st.chart,
-    (snap, spot) => tRef.current && hooks.onDecision?.(snap, spot, tRef.current),
+    (snap, spot, ms) => tRef.current && hooks.onDecision?.(snap, spot, tRef.current, ms),
     (r, t) => {
       settle(r.net);
       hooks.onRoundEnd?.(r, t);
@@ -74,6 +74,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.result]);
   const [askShuffle, setAskShuffle] = useState(false);
+  // sitting on a decision too long: the table is waiting (your circle pulses)
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    setWaiting(false);
+    if (g.phase !== 'yourTurn') return;
+    const id = setTimeout(() => setWaiting(true), Math.max(0, 8000 - (Date.now() - g.turnStarted.current)));
+    return () => clearTimeout(id);
+  }, [g.phase, g.tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
   useEffect(() => {
@@ -184,7 +192,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                 <div key={sp}>
                   <button
                     type="button"
-                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '')}
+                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '') + (t?.phase === 'play' && g.activeSpot === sp ? ' turn' : '') + (mine && waiting && g.activeSpot === sp ? ' waiting' : '')}
                     style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied ? 1 : 0.35 }}
                     aria-label={mine ? `Your spot ${sp}` : `Spot ${sp}`}
                     onClick={(e) => {
@@ -207,17 +215,26 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             {g.cards.map((p) => (
               <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
             ))}
-            {/* which hand you're playing (splits, two spots): the dealer points at it */}
+            {/* whose turn it is: the dealer's pointer moves player to player, then to the dealer's own hand */}
             {t &&
-              g.phase === 'yourTurn' &&
-              g.activeSpot !== null &&
+              (t.phase === 'play' || t.phase === 'dealer') &&
               (() => {
-                const seat = t.seats[g.seatOfSpot.get(g.activeSpot) ?? -1];
-                if (!seat || (seat.hands.length < 2 && g.layout.mine.length < 2)) return null;
-                const h = seat.hands[g.activeHand];
-                const first = cardPos(g.activeSpot, g.activeHand, 0, true);
-                const last = cardPos(g.activeSpot, g.activeHand, Math.max(0, Math.min(3, h.cards.length - 1)), true);
-                return <span className="hand-pointer" style={{ left: `${(first.x + last.x + last.w) / 2}cqw`, top: `${first.y - 3.6}cqw` }} aria-hidden="true" />;
+                const spot = t.phase === 'dealer' ? 0 : g.activeSpot;
+                const hand = t.phase === 'dealer' ? -1 : g.activeHand;
+                const cards = g.cards.filter((p) => p.spot === spot && (spot === 0 || p.hand === hand));
+                if (!cards.length) return null;
+                const left = Math.min(...cards.map((p) => p.x));
+                const right = Math.max(...cards.map((p) => p.x + p.w));
+                const top = Math.min(...cards.map((p) => p.y));
+                const yours = spot !== 0 && g.layout.mine.includes(spot ?? -1);
+                return (
+                  <span
+                    key={`${spot}-${hand}`}
+                    className={'hand-pointer' + (yours ? ' yours' : '') + (spot === 0 ? ' dealer' : '')}
+                    style={spot === 0 ? { left: `${right + 2.4}cqw`, top: `${top + 4}cqw` } : { left: `${(left + right) / 2}cqw`, top: `${top - 3.4}cqw` }}
+                    aria-hidden="true"
+                  />
+                );
               })()}
             {hooks.feltExtra?.(t)}
             {g.phase === 'shuffling' && (

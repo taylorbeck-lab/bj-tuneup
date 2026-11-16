@@ -32,13 +32,13 @@ export function PlayingCard({ p, sweep, dur, dim }: { p: PlacedCard; sweep?: boo
   } as CSSProperties;
   if (p.faceDown)
     return (
-      <div className={'pc back' + (sweep ? ' sweep' : '')} style={style} aria-label="face-down card">
+      <div className={'pc back' + (sweep ? ' sweep' : '')} style={style} aria-label="face-down card" data-hand={p.spot === 0 ? 'dealer' : `${p.spot}:${p.hand}`}>
         <CardBack />
       </div>
     );
   const c = p.card;
   return (
-    <div className={'pc' + (isRed(c) ? ' red' : '') + (sweep ? ' sweep' : '') + (dim ? ' dim' : '')} style={style} role="img" aria-label={cardName(c)}>
+    <div className={'pc' + (isRed(c) ? ' red' : '') + (sweep ? ' sweep' : '') + (dim ? ' dim' : '')} style={style} role="img" aria-label={cardName(c)} data-hand={p.spot === 0 ? 'dealer' : `${p.spot}:${p.hand}`}>
       <span className="r">{RANK_LABELS[rankOf(c)]}</span>
       <span className="s">{SUIT_GLYPHS[suitOf(c)]}</span>
       <span className="big">{SUIT_GLYPHS[suitOf(c)]}</span>

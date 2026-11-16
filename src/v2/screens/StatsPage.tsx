@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useV2 } from '../settings';
 import { useBankroll, money } from '../bankroll';
-import { loadStats, onStats, type V2Stats } from '../stats';
+import { loadStats, onStats, SEAT_POS_LABEL, type SeatPos, type V2Stats } from '../stats';
 import { leaks, parseKey } from '../practice';
 import { useStrategy } from '../../store/strategy';
 import { chartAction, ACTION_LABEL } from '../../engine/strategy/chart';
@@ -105,6 +105,32 @@ export function StatsPage() {
           <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} decisions`} />
           <Tile label="Bets" value={pct(stats.bets.right, stats.bets.n)} sub="with the bet coach on" color="var(--lilac)" />
         </div>
+
+        <section className="group">
+          <div className="gh">Your pace · seconds per decision</div>
+          {(['first', 'middle', 'third', 'solo'] as SeatPos[]).map((k) => {
+            const p = stats.pace?.[k];
+            if (!p?.n) return null;
+            return (
+              <div className="row" key={k}>
+                <div>
+                  <div className="lbl">{SEAT_POS_LABEL[k]}</div>
+                  <div className="hint">{p.n} decisions</div>
+                </div>
+                <span className="display" style={{ fontSize: 26 }}>
+                  {(p.ms / p.n / 1000).toFixed(1)}s
+                </span>
+              </div>
+            );
+          })}
+          <div className="row">
+            <span className="hint">
+              {stats.pace && Object.values(stats.pace).some((p) => p.n)
+                ? 'Aim for about 2 seconds a decision. At first base the whole table waits on you; at third base you see everyone’s cards first.'
+                : 'Play a few hands: your speed shows up here, by where you sit.'}
+            </span>
+          </div>
+        </section>
 
         <section className="group">
           <div className="gh">Bankroll</div>

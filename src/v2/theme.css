@@ -351,7 +351,8 @@ a {
   border-radius: calc(var(--w) * 0.09);
   transition:
     left 260ms ease,
-    top 260ms ease;
+    top 260ms ease,
+    width 260ms ease;
   background: var(--card);
   border: max(1px, calc(var(--w) * 0.014)) solid var(--ink);
   box-shadow: calc(var(--w) * 0.035) calc(var(--w) * 0.045) calc(var(--w) * 0.02) rgba(40, 25, 10, 0.35);
@@ -533,10 +534,38 @@ a {
   transform: translateX(-50%);
   border-left: 1.6cqw solid transparent;
   border-right: 1.6cqw solid transparent;
-  border-top: 2.2cqw solid var(--orange);
+  border-top: 2.2cqw solid rgba(60, 40, 20, 0.7);
   filter: drop-shadow(0 0.3cqw 0.3cqw rgba(0, 0, 0, 0.25));
   z-index: 5;
   animation: pointer-bob 1.2s ease-in-out infinite;
+}
+.hand-pointer.yours {
+  border-top-color: var(--orange);
+}
+/* the dealer's own turn: a pointer beside the dealer's hand, pointing at it */
+.hand-pointer.dealer {
+  border-top: 1.6cqw solid transparent;
+  border-bottom: 1.6cqw solid transparent;
+  border-left: 0;
+  border-right: 2.2cqw solid rgba(60, 40, 20, 0.55);
+  transform: none;
+  animation: none;
+}
+/* the circle whose turn it is */
+.spot.turn {
+  box-shadow: 0 0 0 0.9cqw rgba(60, 40, 20, 0.16);
+}
+.spot.mine.turn {
+  box-shadow: 0 0 0 1cqw rgba(196, 86, 31, 0.32);
+}
+/* taking a long time at your turn: the table is waiting */
+.spot.mine.turn.waiting {
+  animation: waiting 1.1s ease-in-out infinite;
+}
+@keyframes waiting {
+  50% {
+    box-shadow: 0 0 0 1.8cqw rgba(196, 86, 31, 0.45);
+  }
 }
 @keyframes pointer-bob {
   50% {

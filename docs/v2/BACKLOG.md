@@ -35,7 +35,7 @@ With the player's own Claude key, free text works too ("let's do a tough double-
 4. **Hot-shoe dial** (Off / Sometimes / Often), clearly labelled as training: some shoes run hot late (practise the pounce: ramp, big-count plays, leave), some cold (practise sitting at the minimum). The engine already has a `skew` knob.
 5. **Settings live in the dealer.** A character dealer (a friendly, slightly shady AP friend teaching a friend) through whom most settings happen, instead of a separate settings page.
 6. **Sound and haptics** (chip clicks, card snaps, shuffle riffle).
-7. **Visual polish.** Table shape and symmetry (first pass done: rail drawn over the felt so the spots are symmetric; dealer hand centred).
+7. **Visual polish.** Table shape and symmetry (done: rail over the felt, dealer hand centred, collision-free card layout).
 
 ## Measured baseline (perfect shuffle, 6D H17 DAS, 75% penetration)
 - Per hand: a pair you should split 1 in 40; a soft hand 1 in 11; a double 1 in 10; a blackjack 1 in 21; a stiff (12–16) v 7–A 1 in 4.
