@@ -1,5 +1,6 @@
 /** Learning stats (on this device): per-situation strategy record, count checks, insurance, bets. */
 import { kvGet, kvSet } from '../store/db';
+import { nextSchedule, type Schedule } from './practice';
 
 export interface SitStat {
   n: number;
@@ -7,6 +8,8 @@ export interface SitStat {
   /** Recent results, newest last (1 = right). */
   recent: number[];
   label: string;
+  /** When a missed hand comes back for practice (spaced out, see practice.ts). */
+  sched?: Schedule;
 }
 
 export interface V2Stats {
@@ -99,6 +102,9 @@ export function recordDecision(key: string, label: string, right: boolean, count
     st.n++;
     if (right) st.right++;
     st.recent = [...st.recent, right ? 1 : 0].slice(-10);
+    const sched = nextSchedule(st.sched, right, handsPlayed(s), Math.random);
+    if (sched) st.sched = sched;
+    else delete st.sched;
     const d = (s.days[today()] ??= { decisions: 0, right: 0, hands: 0 });
     d.decisions++;
     if (right) d.right++;

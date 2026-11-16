@@ -5,7 +5,7 @@ import { useStrategy } from '../../store/strategy';
 import { useIndexPlays } from '../../store/indices';
 import { gradeDecision, gradeInsurance } from '../coach/grade';
 import { CoachCard, type CoachMsg } from '../coach/CoachCard';
-import { recordPace, recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, type V2Stats } from '../stats';
+import { recordPace, recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, handsPlayed, type V2Stats } from '../stats';
 import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
@@ -26,6 +26,9 @@ import type { Table } from '../../engine/game';
 
 const firstSentence = (t: string) => (t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t).trim();
 const BET_TITLE: Record<string, string> = { '↑ BET': 'Bet bigger', '↓ MIN': 'Bet the minimum', '↓ BET': 'Bet less' };
+
+/** Hand count at the last practice hand (kept across screens: never two close together). */
+const lastPractice = { current: -Infinity };
 
 /** José's last word on your play (kept while you look at the chart, so a miss isn't lost). */
 let lastCard: (Card & { msg: CoachMsg }) | null = null;
@@ -65,6 +68,7 @@ export function PlayScreen() {
   const lastQuizSeen = useRef(-1);
   const stats = useRef<V2Stats | null>(null);
   const practiceKey = useRef<string | null>(null);
+
   useEffect(() => {
     loadStats().then((x) => (stats.current = x));
     return onStats((x) => (stats.current = x));
@@ -95,11 +99,16 @@ export function PlayScreen() {
       <TableScreen
         hooks={{
           paused: !!countOpen,
+          // a hand you missed comes back, spaced out, and less as the course goes on (see practice.ts)
           practiceHand: () => {
             practiceKey.current = null;
-            if (!s.coach.practiceMisses || !stats.current || Math.random() > 0.35) return null;
-            const p = pickPractice(stats.current, Math.random);
-            if (p) practiceKey.current = p.key;
+            if (!s.coach.practiceMisses || !stats.current) return null;
+            const hands = handsPlayed(stats.current);
+            const p = pickPractice(stats.current, Math.random, { hands, lastPractice: lastPractice.current, level: s.progress.level });
+            if (p) {
+              practiceKey.current = p.key;
+              lastPractice.current = hands;
+            }
             return p;
           },
           // the count lives in the discard tray: tap it to be tested, or to ask
