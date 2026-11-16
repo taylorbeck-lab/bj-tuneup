@@ -23,6 +23,9 @@ import type { Table } from '../../engine/game';
 const firstSentence = (t: string) => (t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t).trim();
 const BET_TITLE: Record<string, string> = { '↑ BET': 'Bet bigger', '↓ MIN': 'Bet the minimum', '↓ BET': 'Bet less' };
 
+/** The feedback card on screen (kept while you look at the chart, so a red card isn't lost). */
+let lastCard: (Card & { msg: CoachMsg }) | null = null;
+
 /**
  * The table plus the teaching layers. One feedback card at a time, chosen by the mode you play in:
  * green for a right play (stays until the next card, nothing to dismiss), red for a miss (stays,
@@ -32,7 +35,13 @@ export function PlayScreen() {
   const { s } = useV2();
   const st = useStrategy(s.rules);
   const { plays } = useIndexPlays(s.rules, st.chart);
-  const [card, setCard] = useState<(Card & { msg: CoachMsg }) | null>(null);
+  const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
+  const setCard: typeof setCardState = (v) =>
+    setCardState((cur) => {
+      const next = typeof v === 'function' ? v(cur) : v;
+      lastCard = next;
+      return next;
+    });
   const [detailOpen, setDetailOpen] = useState(false);
   /** How often each next-level preview has been shown (kept on the device). */
   const previews = useRef<Record<string, number>>({});

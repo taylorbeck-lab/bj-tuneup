@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Table, type DecisionSnapshot } from '../../engine/game';
+import { Table, type DecisionSnapshot, type ShoeSnapshot } from '../../engine/game';
+import { kvGet, kvSet } from '../../store/db';
 import type { Chart, Action } from '../../engine/strategy/chart';
 import { valueOf, type CardId } from '../../engine/cards';
 import { randomSeed } from '../../engine/rng';
@@ -28,6 +29,14 @@ export interface RoundResult {
 }
 
 /**
+ * The live game, kept outside the screen so looking at the chart or settings never ends a hand:
+ * the table, where the round is, and the cards on the felt. Between hands the shoe and the count
+ * are also saved on the device, so a reload (or iOS closing the app) picks up mid-shoe.
+ */
+let live: { key: string; table: Table; phase: UiPhase; result: RoundResult | null; placed: PlacedCard[]; idSeq: number } | null = null;
+const SHOE_KEY = 'v2shoe';
+
+/**
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
  * little longer, finished hands stay on the felt for a realistic beat, then the sweep.
  */
@@ -48,8 +57,19 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
 
   // (re)create the table when the setup changes
   const setupKey = JSON.stringify([s.rules, layout, !!chart]);
+  const restoring = useRef(false);
   useEffect(() => {
     if (!chart) return;
+    // coming back from the chart, stats or settings: carry on exactly where we were
+    if (live && live.key === setupKey) {
+      tableRef.current = live.table;
+      placed.current = live.placed;
+      idSeq.current = live.idSeq;
+      setPhase(live.phase);
+      setResult(live.result);
+      bump();
+      return;
+    }
     const humanSeats = layout.mine.map((sp) => seatOfSpot.get(sp)!);
     const min = s.tableMin;
     tableRef.current = new Table({
@@ -68,8 +88,24 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     setPhase('betting');
     setResult(null);
     bump();
+    // a saved shoe for this same game picks up mid-shoe (count and all)
+    const fresh = tableRef.current;
+    restoring.current = true;
+    kvGet<{ key: string; shoe: ShoeSnapshot }>(SHOE_KEY)
+      .then((saved) => {
+        if (saved && saved.key === setupKey && tableRef.current === fresh && fresh.restoreShoe(saved.shoe)) bump();
+      })
+      .catch(() => {})
+      .finally(() => (restoring.current = false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setupKey]);
+
+  // save the shoe and the count whenever the table opens for bets
+  useEffect(() => {
+    const tb = tableRef.current;
+    if (phase !== 'betting' || !tb || restoring.current) return;
+    void kvSet(SHOE_KEY, { key: setupKey, shoe: tb.snapshotShoe() });
+  }, [phase, tick, setupKey]);
 
   const t = tableRef.current;
 
@@ -107,6 +143,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
 
   // card placements are derived from the engine on every render (ids stay stable)
   if (t) sync();
+  if (t) live = { key: setupKey, table: t, phase, result, placed: placed.current, idSeq: idSeq.current };
 
   // the automatic dealer loop
   useEffect(() => {
@@ -167,7 +204,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   }, [phase, speed.linger, bump, paused]);
 
   const deal = (bets: Record<number, number>, practice?: { values: [number, number]; up: number } | null) => {
-    if (!t) return;
+    if (!t || restoring.current) return;
     const bySeat: Record<number, number> = {};
     for (const [spot, amt] of Object.entries(bets)) {
       const si = seatOfSpot.get(Number(spot));
