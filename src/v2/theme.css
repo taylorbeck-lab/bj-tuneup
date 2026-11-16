@@ -433,7 +433,11 @@ a {
   pointer-events: none;
 }
 .felt::before {
-  background: radial-gradient(60% 55% at 50% 45%, var(--felt-hi), var(--felt) 75%);
+  /* the felt stops 1.5 units inside the rail's outer edge, so no light edge can show past the leather
+     (Safari drew a one-pixel line at the bottom centre, where both curves met the edge of the box) */
+  box-sizing: border-box;
+  border: 1.5cqw solid transparent;
+  background: radial-gradient(60% 55% at 50% 45%, var(--felt-hi), var(--felt) 75%) padding-box;
   box-shadow: inset 0 0 6cqw rgba(60, 40, 15, 0.1);
   z-index: 0;
 }
