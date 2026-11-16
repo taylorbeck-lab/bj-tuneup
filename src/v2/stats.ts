@@ -21,9 +21,23 @@ export interface V2Stats {
   days: Record<string, { decisions: number; right: number; hands: number }>;
   /** How long your decisions take, by where you sit (first base acts first, third base last). */
   pace?: Record<SeatPos, { n: number; ms: number }>;
+  /** End-of-shoe count checks: answered exactly right, answered, and passed. */
+  shoeEnd?: { n: number; right: number; passed: number };
 }
 export type SeatPos = 'solo' | 'first' | 'middle' | 'third';
 export const SEAT_POS_LABEL: Record<SeatPos, string> = { solo: 'Playing alone', first: 'First base', middle: 'Middle seats', third: 'Third base' };
+
+/** The end-of-shoe count: right, wrong, or passed ("don't know" / skip). */
+export function recordShoeEnd(result: 'right' | 'wrong' | 'passed') {
+  return mutate((s) => {
+    const e = (s.shoeEnd ??= { n: 0, right: 0, passed: 0 });
+    if (result === 'passed') e.passed++;
+    else {
+      e.n++;
+      if (result === 'right') e.right++;
+    }
+  });
+}
 
 /** Record how long a decision took (capped, so walking away from the phone doesn't skew it). */
 export function recordPace(pos: SeatPos, ms: number) {

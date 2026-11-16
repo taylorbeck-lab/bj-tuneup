@@ -22,7 +22,7 @@ export interface PlacedCard {
   hand: number;
 }
 
-export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'shuffling';
+export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'endOfShoe' | 'shuffling';
 
 export interface RoundResult {
   net: number;
@@ -36,6 +36,8 @@ export interface RoundResult {
  */
 let live: { key: string; table: Table; phase: UiPhase; result: RoundResult | null; placed: PlacedCard[]; idSeq: number } | null = null;
 const SHOE_KEY = 'v2shoe';
+/** A real shuffle takes a moment: long enough to see it, and to reset your head. */
+export const SHUFFLE_MS = 3600;
 
 /**
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
@@ -216,7 +218,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       const id = setTimeout(() => {
         placed.current = [];
         setResult(null);
-        setPhase(tableRef.current?.needsShuffle ? 'shuffling' : 'betting');
+        // the cut card is out: José stops for the end of the shoe before he shuffles
+        setPhase(tableRef.current?.needsShuffle ? 'endOfShoe' : 'betting');
       }, 450);
       return () => clearTimeout(id);
     }
@@ -225,7 +228,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
         tableRef.current?.reshuffle();
         setPhase('betting');
         bump();
-      }, 1600);
+      }, SHUFFLE_MS);
       return () => clearTimeout(id);
     }
   }, [phase, speed.linger, bump, paused]);
@@ -278,7 +281,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     tick,
     phase,
     layout,
-    cards: phase === 'betting' || phase === 'shuffling' ? [] : placed.current,
+    cards: phase === 'betting' || phase === 'shuffling' || phase === 'endOfShoe' ? [] : placed.current,
     sweeping: phase === 'sweeping',
     result,
     activeSpot,
@@ -290,6 +293,10 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     insure,
     hurry,
     shuffleUp,
+    /** Done with the end of the shoe: shuffle up. */
+    finishShoe: () => {
+      if (phase === 'endOfShoe') setPhase('shuffling');
+    },
     turnStarted,
     speed,
     spotOfSeat,

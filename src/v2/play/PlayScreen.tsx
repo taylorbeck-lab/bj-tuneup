@@ -10,6 +10,8 @@ import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
+import { EndOfShoe } from '../count/EndOfShoe';
+import { useEdgeModel } from '../../store/edge';
 import { countWords } from '../count/words';
 import { gradeBet, recommendedUnits } from '../count/bet';
 import { FeedbackCard, type Card } from '../coach/FeedbackCard';
@@ -35,6 +37,7 @@ export function PlayScreen() {
   const { s } = useV2();
   const st = useStrategy(s.rules);
   const { plays } = useIndexPlays(s.rules, st.chart);
+  const edgeModel = useEdgeModel(s.rules, st.chart);
   const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
   const setCard: typeof setCardState = (v) =>
     setCardState((cur) => {
@@ -88,6 +91,7 @@ export function PlayScreen() {
           },
           // the count lives in the discard tray: tap it to be tested, or to ask
           onTray: () => tableRef.current && setCountMenu(true),
+          endOfShoe: (t, done) => <EndOfShoe table={t} model={edgeModel} counting={s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations} onDone={done} />,
           feltExtra: (t) => {
             tableRef.current = t;
             if (!t || !s.coach.showCount) return null;

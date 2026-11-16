@@ -26,6 +26,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
   - Cards slide out of the shoe to a fixed spot and stay there. Every card stays readable, and nothing jiggles.
 - **Dealer pace:** slow, average, fast or extra fast. Finished hands stay on the felt for a realistic beat; tap the felt to move on.
 - **Money:** $5 / $25 / $100 / $500 chips in the house colours (terracotta, juniper, black, plum), bets stacked on the felt, and a bankroll that persists (play money). It reloads when you're out.
+- **End of the shoe:** when the cut card comes out, José asks for your count before he shuffles (or skip it), then sums up the shoe: how high the count went, how many hands favoured you, your edge, and whether your bets went up when it mattered.
 - **Shuffle up** (tap the shoe): between hands, ask the dealer for a fresh shoe. The count starts again at 0, exactly like a new shoe at a casino.
 - **Other players** bet and play too, and once in a while they misplay, like real tables.
 

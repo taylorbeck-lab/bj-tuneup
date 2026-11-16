@@ -121,6 +121,7 @@ export interface ShoeSnapshot {
   needsShuffle: boolean;
   shoesPlayed: number;
   round: number;
+  shoeStartRound?: number;
 }
 
 export class Table {
@@ -143,6 +144,8 @@ export class Table {
   /** True after a round in which the cut card came out; shoe is reshuffled before the next deal. */
   needsShuffle = false;
   shoesPlayed = 0;
+  /** The last round dealt from the previous shoe (rounds after this belong to the current shoe). */
+  shoeStartRound = 0;
 
   constructor(opts: TableOptions) {
     this.opts = opts;
@@ -276,7 +279,13 @@ export class Table {
       needsShuffle: this.needsShuffle,
       shoesPlayed: this.shoesPlayed,
       round: this.round,
+      shoeStartRound: this.shoeStartRound,
     };
+  }
+
+  /** Rounds dealt from the current shoe. */
+  shoeRounds(): RoundLog[] {
+    return this.logs.filter((l) => l.round > this.shoeStartRound);
   }
 
   /** Put a saved shoe back (between hands only). Returns false if it doesn't fit this table. */
@@ -300,6 +309,7 @@ export class Table {
     this.needsShuffle = s.needsShuffle;
     this.shoesPlayed = s.shoesPlayed;
     this.round = s.round;
+    this.shoeStartRound = s.shoeStartRound ?? s.round;
     return true;
   }
 
@@ -309,6 +319,7 @@ export class Table {
     this.seenCount = 0;
     this.needsShuffle = false;
     this.shoesPlayed++;
+    this.shoeStartRound = this.round;
   }
 
   private draw(who: number, hand: number): CardId {

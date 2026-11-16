@@ -3,7 +3,7 @@ import { kvGet, kvSet } from './db';
 import { rulesKey, type Rules } from '../engine/rules';
 import type { EdgeModel } from '../engine/edge';
 import type { Chart } from '../engine/strategy/chart';
-import { call } from '../workers/client';
+import { callBackground } from '../workers/client';
 
 const V = 2;
 const pending = new Map<string, Promise<EdgeModel>>();
@@ -16,7 +16,7 @@ export function loadEdgeModel(rules: Rules, chart: Chart): Promise<EdgeModel> {
     p = (async () => {
       const c = await kvGet<EdgeModel>(k);
       if (c) return c;
-      const m = await call('edgeModel', rules, chart);
+      const m = await callBackground('edgeModel', rules, chart);
       await kvSet(k, m);
       return m;
     })();

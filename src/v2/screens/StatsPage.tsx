@@ -102,6 +102,7 @@ export function StatsPage() {
           <Tile label="Today" value={today ? pct(today.right, today.decisions) : '—'} sub={today ? `${today.hands} hands` : 'no hands yet'} />
           <Tile label="Count checks" value={pct(stats.count.rcRight, stats.count.n)} sub={`running count exact · true ${pct(stats.count.tcRight, stats.count.n)}`} color="var(--pool)" />
           <Tile label="Count plays" value={pct(stats.deviations.right, stats.deviations.n)} sub={`${stats.deviations.n} times the count changed the play`} />
+          <Tile label="End of shoe" value={pct(stats.shoeEnd?.right ?? 0, stats.shoeEnd?.n ?? 0)} sub={`count exact at the cut card · ${stats.shoeEnd?.n ?? 0} tried, ${stats.shoeEnd?.passed ?? 0} passed`} color="var(--sage)" />
           <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} decisions`} />
           <Tile label="Bets" value={pct(stats.bets.right, stats.bets.n)} sub="with the bet coach on" color="var(--lilac)" />
         </div>

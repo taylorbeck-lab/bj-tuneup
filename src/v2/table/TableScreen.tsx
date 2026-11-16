@@ -30,6 +30,8 @@ export interface TableHooks {
   paused?: boolean;
   /** A card the player must swipe away before the next deal (a miss they should read). */
   hold?: boolean;
+  /** The end of the shoe: what José shows before he shuffles (call `done` to shuffle). */
+  endOfShoe?: (t: Table, done: () => void) => React.ReactNode;
   /** Tap on the discard tray (the count lives there). */
   onTray?: () => void;
   /** Optional practice hand for the next deal (practice my misses). */
@@ -39,6 +41,14 @@ export interface TableHooks {
 
 /** Chips you've put out but not dealt yet (kept while you look at the chart). */
 let pendingBets: Record<number, number> = {};
+
+/** Without an end-of-shoe screen, shuffle straight away. */
+function AutoShuffle({ done }: { done: () => void }) {
+  useEffect(() => {
+    done();
+  }, [done]);
+  return null;
+}
 
 export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const { s } = useV2();
@@ -100,7 +110,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
 
   const betting = g.phase === 'betting';
   /** Between hands: nothing dealt on the felt (betting, or the dealer shuffling up). */
-  const idle = betting || g.phase === 'shuffling';
+  const idle = betting || g.phase === 'shuffling' || g.phase === 'endOfShoe';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
   const canDeal = betting && !hooks.hold && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
@@ -258,8 +268,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               })()}
             {hooks.feltExtra?.(t)}
             {g.phase === 'shuffling' && (
-              <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
-                Shuffling up · count starts at 0
+              <div className="shuffle-show" role="status">
+                <div className="riffle" aria-hidden="true">
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span key={i} style={{ animationDelay: `${i * 70}ms` }} />
+                  ))}
+                </div>
+                <div className="shuffle-title">Shuffling up</div>
+                <div className="shuffle-sub">fresh shoe · count back to zero</div>
               </div>
             )}
           </div>
@@ -321,6 +337,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}
         </p>
       </div>
+      {g.phase === 'endOfShoe' && t && hooks.endOfShoe?.(t, g.finishShoe)}
+      {g.phase === 'endOfShoe' && t && !hooks.endOfShoe && <AutoShuffle done={g.finishShoe} />}
       {askShuffle && (
         <div className="sheet-back" onClick={() => setAskShuffle(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle up">
