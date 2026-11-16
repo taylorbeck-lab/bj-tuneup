@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { kvGet, kvSet } from '../store/db';
 import { normalizeRules, DEFAULT_RULES, type Rules } from '../engine/rules';
 
+/** A dealer's hand cut: the cut card usually lands within about ±6% of the shoe from the mark. */
+export const HAND_CUT = 0.06;
+
 export type Speed = 'slow' | 'average' | 'fast' | 'xfast';
 export const SPEEDS: { id: Speed; label: string; card: number; linger: number }[] = [
   { id: 'slow', label: 'Slow', card: 1050, linger: 3400 },
@@ -48,7 +51,7 @@ export interface V2Settings {
  * true count is easy to work out, and single deck barely exists any more. Six decks is one tap away.
  */
 export const DEFAULT_V2: V2Settings = {
-  rules: { ...DEFAULT_RULES, decks: 2, h17: true, das: true, lateSurrender: false, penetration: 0.65, seats: 7 },
+  rules: { ...DEFAULT_RULES, decks: 2, h17: true, das: true, lateSurrender: false, penetration: 0.65, cutSpread: HAND_CUT, seats: 7 },
   players: 4,
   seat: 4,
   spots: 1,

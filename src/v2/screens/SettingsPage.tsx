@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
+import { HAND_CUT, useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
 import { MODES, modeMatches } from '../modes';
 import { resetStats } from '../stats';
 import { startFresh } from '../ErrorBoundary';
@@ -146,8 +146,11 @@ export function SettingsPage() {
           <Row label="Late surrender">
             <Tog on={r.lateSurrender} set={(v) => R({ lateSurrender: v })} label="Late surrender" />
           </Row>
-          <Row label="Penetration" hint={`Cut card after ${Math.round(r.penetration * 100)}% of the shoe`}>
+          <Row label="Penetration" hint={r.cutSpread ? `Cut card around ${Math.round(r.penetration * 100)}% of the shoe` : `Cut card at ${Math.round(r.penetration * 100)}% every shoe`}>
             <input type="range" min={50} max={90} step={5} value={Math.round(r.penetration * 100)} onChange={(e) => R({ penetration: Number(e.target.value) / 100 })} aria-label="Penetration" />
+          </Row>
+          <Row label="Cut card" hint={r.cutSpread ? 'Placed by hand: a little deeper or shallower each shoe' : 'Same spot every shoe, like a notched tray'}>
+            <Seg label="Cut card" value={r.cutSpread ? 'hand' : 'fixed'} onChange={(v) => R({ cutSpread: v === 'hand' ? HAND_CUT : 0 })} options={[{ v: 'hand', l: 'By hand' }, { v: 'fixed', l: 'Fixed' }]} />
           </Row>
         </Group>
 

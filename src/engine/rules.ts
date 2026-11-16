@@ -17,6 +17,11 @@ export interface Rules {
   bjPayout: 1.5 | 1.2;
   /** Fraction of the shoe dealt before the cut card (0.5 .. 0.9). */
   penetration: number;
+  /**
+   * How far a hand-placed cut card wanders from `penetration` (0 = fixed, like a notched tray;
+   * 0.06 = a dealer's cut, usually within about ±6% of the shoe, most often close to the mark).
+   */
+  cutSpread?: number;
   /** Seats at the table including the player (1..6). */
   seats: number;
   /** Cards burned after each shuffle (0 or 1). */
@@ -41,6 +46,7 @@ export const DEFAULT_RULES: Rules = {
   lateSurrender: false,
   bjPayout: 1.5,
   penetration: 0.65,
+  cutSpread: 0,
   seats: 3,
   burn: 1,
 };
@@ -89,6 +95,7 @@ export function normalizeRules(r: Partial<Rules>): Rules {
     lateSurrender: !!m.lateSurrender,
     bjPayout: m.bjPayout === 1.2 ? 1.2 : 1.5,
     penetration: Math.min(0.92, Math.max(0.4, Number(m.penetration) || 0.65)),
+    cutSpread: Math.min(0.12, Math.max(0, Number(m.cutSpread) || 0)),
     seats: Math.min(6, Math.max(1, Math.round(m.seats))),
     burn: m.burn ? 1 : 0,
   };

@@ -38,8 +38,12 @@ export class Shoe {
   /** 0..1: front-load small cards so the count runs high later in the shoe (training extreme counts). */
   readonly skew: number;
 
-  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed(), skew = 0) {
+  /** How far a hand-placed cut wanders from `penetration` (0 = fixed). */
+  readonly cutSpread: number;
+
+  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed(), skew = 0, cutSpread = 0) {
     this.skew = skew;
+    this.cutSpread = cutSpread;
     this.decks = decks;
     this.seed = seed;
     this.penetration = penetration;
@@ -58,8 +62,23 @@ export class Shoe {
     this.burned = [];
     this.remainingByValue = fullComp(this.decks);
     this.remainingByCard = new Array(52).fill(this.decks);
-    this.cutIndex = Math.round(this.cards.length * this.penetration);
+    this.cutIndex = Math.round(this.cards.length * this.cutAt());
     for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
+  }
+
+  /**
+   * Where the cut card goes this shoe. Fixed at the penetration, or placed by hand: near the mark
+   * most of the time (the sum of two random draws peaks in the middle), now and then a little off.
+   */
+  private cutAt(): number {
+    if (!this.cutSpread) return this.penetration;
+    const off = (this.rng() + this.rng() - 1) * this.cutSpread;
+    return Math.min(0.92, Math.max(0.4, this.penetration + off));
+  }
+
+  /** Where the cut card sits, as a share of the shoe (0..1). */
+  get cutFraction(): number {
+    return this.cards.length ? this.cutIndex / this.cards.length : this.penetration;
   }
 
   /** Swap small cards (2-6) from the back of the dealt region into the front half. */

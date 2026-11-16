@@ -37,7 +37,7 @@ export interface RoundResult {
 let live: { key: string; table: Table; phase: UiPhase; result: RoundResult | null; placed: PlacedCard[]; idSeq: number } | null = null;
 const SHOE_KEY = 'v2shoe';
 /** A real shuffle takes a moment: long enough to see it, and to reset your head. */
-export const SHUFFLE_MS = 3600;
+export const SHUFFLE_MS = 4600;
 
 /**
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
@@ -224,8 +224,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       return () => clearTimeout(id);
     }
     if (phase === 'shuffling') {
+      // the shoe was shuffled and cut as this began (so the cut card can be shown going in)
       const id = setTimeout(() => {
-        tableRef.current?.reshuffle();
         setPhase('betting');
         bump();
       }, SHUFFLE_MS);
@@ -261,12 +261,13 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     bump();
   };
   /**
-   * Ask the dealer to shuffle up: the cards go back in, the shoe is shuffled and cut, and the count
+   * Ask the dealer to shuffle: the cards go back in, the shoe is shuffled and cut, and the count
    * starts over at 0 — exactly like a fresh shoe at a casino. Only between hands.
    */
   const shuffleUp = () => {
     if (phase !== 'betting' || !t) return;
     placed.current = [];
+    t.reshuffle();
     setPhase('shuffling');
   };
   /** Skip the linger (tap to continue). */
@@ -293,9 +294,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     insure,
     hurry,
     shuffleUp,
-    /** Done with the end of the shoe: shuffle up. */
+    /** Done with the end of the shoe: shuffle. */
     finishShoe: () => {
-      if (phase === 'endOfShoe') setPhase('shuffling');
+      if (phase !== 'endOfShoe') return;
+      tableRef.current?.reshuffle();
+      setPhase('shuffling');
     },
     turnStarted,
     speed,
