@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useV2 } from '../settings';
+import { nextStep, LEVEL_NAME } from '../progress';
 import { useBankroll, money } from '../bankroll';
 import { loadStats, onStats, SEAT_POS_LABEL, type SeatPos, type V2Stats } from '../stats';
 import { leaks, parseKey } from '../practice';
@@ -61,6 +62,50 @@ function BankrollChart({ points, start }: { points: { t: number; b: number }[]; 
   );
 }
 
+/** Where you are in the course, and what the next level takes (José offers it at a shoe's end). */
+function Course({ stats }: { stats: V2Stats }) {
+  const { s } = useV2();
+  const p = s.progress;
+  const step = nextStep(stats, p);
+  return (
+    <section className="group course">
+      <div className="gh">
+        Your level · {p.level}. {LEVEL_NAME[p.level]}
+        {p.level === 3 && p.tier < 3 ? ` · count plays ${p.tier === 1 ? 'set 1 of 3' : 'set 2 of 3'}` : ''}
+      </div>
+      {step ? (
+        <>
+          <div className="row">
+            <span className="hint">
+              {step.title}. {step.ready ? (p.auto ? 'You’re ready: José will offer it at the end of a shoe.' : 'You’re ready (José moving you up is off in Settings).') : 'José offers it at the end of a shoe once every line is full.'}
+            </span>
+          </div>
+          {step.checks.map((c) => (
+            <div className="row course-check" key={c.label}>
+              <div style={{ flex: 1 }}>
+                <div className="lbl">
+                  {c.ok ? '✓ ' : ''}
+                  {c.label}
+                </div>
+                <div className="hint">
+                  {c.have} · need {c.need}
+                </div>
+                <div className="course-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.round(c.frac * 100)}%` }} className={c.ok ? 'ok' : ''} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
+      ) : (
+        <div className="row">
+          <span className="hint">The whole course is done: every count play is yours. From here it’s practice, a tune-up before the real thing.</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function StatsPage() {
   const { s } = useV2();
   const { br } = useBankroll(s.startBankroll);
@@ -97,6 +142,7 @@ export function StatsPage() {
         <h1>
           Your game <span className="serif" style={{ fontSize: 34 }}>so far</span>
         </h1>
+        <Course stats={stats} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Tile label="Right calls" value={pct(stats.right, stats.decisions)} sub={`${stats.right} of ${stats.decisions} decisions`} color="var(--mustard)" />
           <Tile label="Today" value={today ? pct(today.right, today.decisions) : '—'} sub={today ? `${today.hands} hands` : 'no hands yet'} />

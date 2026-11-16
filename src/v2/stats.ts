@@ -21,9 +21,21 @@ export interface V2Stats {
   days: Record<string, { decisions: number; right: number; hands: number }>;
   /** How long your decisions take, by where you sit (first base acts first, third base last). */
   pace?: Record<SeatPos, { n: number; ms: number }>;
-  /** End-of-shoe count checks: answered exactly right, answered, and passed. */
-  shoeEnd?: { n: number; right: number; passed: number };
+  /** End-of-shoe count checks: answered exactly right, answered, and passed; `recent` 1 = exact, 0 = off or passed. */
+  shoeEnd?: { n: number; right: number; passed: number; recent?: number[] };
+  /**
+   * Your latest decisions, oldest first, one letter each: H/S/P for a right play on a hard, soft or
+   * pair hand, h/s/p for a miss. The level checks read these windows.
+   */
+  log?: string;
+  /** Latest true-count checks (1 = within one), latest bets (1 = right), latest count-play spots (1 = right). */
+  tcRecent?: number[];
+  betRecent?: number[];
+  devRecent?: number[];
 }
+export type HandKind = 'hard' | 'soft' | 'pair';
+const KIND_CH: Record<HandKind, string> = { hard: 'h', soft: 's', pair: 'p' };
+const LOG_MAX = 400;
 export type SeatPos = 'solo' | 'first' | 'middle' | 'third';
 export const SEAT_POS_LABEL: Record<SeatPos, string> = { solo: 'Playing alone', first: 'First base', middle: 'Middle seats', third: 'Third base' };
 
@@ -31,6 +43,7 @@ export const SEAT_POS_LABEL: Record<SeatPos, string> = { solo: 'Playing alone', 
 export function recordShoeEnd(result: 'right' | 'wrong' | 'passed') {
   return mutate((s) => {
     const e = (s.shoeEnd ??= { n: 0, right: 0, passed: 0 });
+    e.recent = [...(e.recent ?? []), result === 'right' ? 1 : 0].slice(-20);
     if (result === 'passed') e.passed++;
     else {
       e.n++;
@@ -71,13 +84,16 @@ export function onStats(l: (s: V2Stats) => void) {
 }
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean) {
+export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean, kind: HandKind = 'hard') {
   return mutate((s) => {
     s.decisions++;
     if (right) s.right++;
+    const ch = KIND_CH[kind];
+    s.log = ((s.log ?? '') + (right ? ch.toUpperCase() : ch)).slice(-LOG_MAX);
     if (countPlay) {
       s.deviations.n++;
       if (right) s.deviations.right++;
+      s.devRecent = [...(s.devRecent ?? []), right ? 1 : 0].slice(-40);
     }
     const st = (s.sits[key] ??= { n: 0, right: 0, recent: [], label });
     st.n++;
@@ -100,6 +116,7 @@ export function recordCount(rcRight: boolean, tcRight: boolean | null) {
     if (rcRight) s.count.rcRight++;
     if (tcRight) s.count.tcRight++;
     s.count.recent = [...s.count.recent, rcRight ? 1 : 0].slice(-20);
+    if (tcRight !== null) s.tcRecent = [...(s.tcRecent ?? []), tcRight ? 1 : 0].slice(-20);
   });
 }
 export function recordInsurance(right: boolean) {
@@ -112,8 +129,12 @@ export function recordBet(right: boolean) {
   return mutate((s) => {
     s.bets.n++;
     if (right) s.bets.right++;
+    s.betRecent = [...(s.betRecent ?? []), right ? 1 : 0].slice(-120);
   });
 }
+/** Hands played, all time. */
+export const handsPlayed = (s: V2Stats) => Object.values(s.days).reduce((a, d) => a + d.hands, 0);
+
 export async function resetStats() {
   cache = structuredClone(EMPTY);
   await kvSet('v2stats', cache);

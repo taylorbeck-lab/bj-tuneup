@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { kvGet, kvSet } from '../store/db';
 import { normalizeRules, DEFAULT_RULES, type Rules } from '../engine/rules';
+import { DEFAULT_PROGRESS, type Progress } from './progress';
+import { MODES, modeMatches } from './modes';
 
 /** A dealer's hand cut: the cut card usually lands within about ±6% of the shoe from the mark. */
 export const HAND_CUT = 0.06;
@@ -38,6 +40,8 @@ export interface V2Settings {
     /** Hands you miss come back more often. */
     practiceMisses: boolean;
   };
+  /** Where you are in the course (José moves you up), see progress.ts. */
+  progress: Progress;
   /** Claude API key for "Ask the coach" (stored only on this device). */
   apiKey?: string;
   onboarded: boolean;
@@ -60,8 +64,18 @@ export const DEFAULT_V2: V2Settings = {
   startBankroll: 1000,
   coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'off', betCoach: false, practiceMisses: true },
   onboarded: false,
+  progress: { ...DEFAULT_PROGRESS },
   defaultsVersion: 2,
 };
+
+/** Settings saved before the course existed: start the course at the level the coach was already set to. */
+function progressFrom(s: Partial<V2Settings>, coach: V2Settings['coach']): Progress {
+  if (s.progress) return { ...DEFAULT_PROGRESS, ...s.progress };
+  if (!s.onboarded) return { ...DEFAULT_PROGRESS };
+  const at = MODES.findIndex((m) => modeMatches(coach, m.coach));
+  const level = (at >= 0 ? at + 1 : coach.deviations ? 3 : coach.betCoach ? 2 : 1) as Progress['level'];
+  return { ...DEFAULT_PROGRESS, level, tier: level === 3 ? 3 : 1 };
+}
 
 /** Saved settings that still sit on the old untouched 6-deck $25 default move to the new house game. */
 function upgradeDefaults(s: Partial<V2Settings>): Partial<V2Settings> {
@@ -85,6 +99,7 @@ export function mergeV2(s?: Partial<V2Settings>): V2Settings {
     seat: Math.min(6, Math.max(1, Math.round(s.seat ?? d.seat))),
     spots: s.spots === 2 ? 2 : 1,
     coach: { ...d.coach, ...(s.coach ?? {}) },
+    progress: progressFrom(s, { ...d.coach, ...(s.coach ?? {}) }),
   };
 }
 

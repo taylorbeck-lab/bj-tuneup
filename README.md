@@ -87,3 +87,6 @@ Pushing to `main` runs `.github/workflows/deploy.yml`, which tests, builds and p
 Version 1 (the full analysis suite) is preserved in git history at commit `3d979b7`.
 
 **Smoke test:** with the built app running (`npm run build && npm run preview`), `npm run smoke` drives the core flows in Chromium (Playwright) and fails on any broken button or console error.
+
+## The course
+Everyone starts at Level 1 (basic strategy). When your stats show you're ready, José offers the next level at the end of a shoe: counting and betting with the count, then the count plays a few at a time. Advantage players can unlock everything from the intro; Settings can change the level any time. Thresholds live in `src/v2/progress.ts`.

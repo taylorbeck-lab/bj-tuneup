@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { HAND_CUT, useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
-import { MODES, modeMatches } from '../modes';
+import { MODES } from '../modes';
+import { levelSettings } from '../course/LevelUp';
+import type { Level } from '../progress';
 import { resetStats } from '../stats';
 import { startFresh } from '../ErrorBoundary';
 import { normalizeRules, type Rules } from '../../engine/rules';
@@ -71,22 +73,38 @@ export function SettingsPage() {
         </span>
       </header>
       <div className="page">
-        <Group title="Mode">
+        <Group title="Your level">
           <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
-            {MODES.map((p, i) => {
-              const on = modeMatches(s.coach, p.coach);
+            {MODES.map((m, i) => {
+              const level = (i + 1) as Level;
+              const on = s.progress.level === level;
               return (
-                <button key={i} className={'act' + (on ? ' stand' : ' quiet')} style={{ textAlign: 'left', padding: '8px 12px', minHeight: 0 }} onClick={() => C(p.coach)}>
+                <button
+                  key={i}
+                  className={'act' + (on ? ' stand' : ' quiet')}
+                  style={{ textAlign: 'left', padding: '8px 12px', minHeight: 0 }}
+                  aria-pressed={on}
+                  // picking Level 3 yourself means you know the count plays: all of them are graded
+                  onClick={() => set(levelSettings(s, level, level === 3 ? { tier: 3 } : {}))}
+                >
                   <span className="display" style={{ fontSize: 18 }}>
-                    {i + 1}. {p.title}
+                    Level {level} · {m.title}
                   </span>{' '}
                   <span className="serif" style={{ fontSize: 17, textTransform: 'none' }}>
-                    {p.sub}
+                    {m.sub}
                   </span>
                 </button>
               );
             })}
           </div>
+          <Row label="José moves me up" hint="When your stats show you’re ready, he offers the next level at the end of a shoe">
+            <Tog on={s.progress.auto} set={(v) => set({ progress: { ...s.progress, auto: v } })} label="José moves me up" />
+          </Row>
+          <Row label="Your progress" hint="What the next level takes, and how close you are">
+            <a className="pill" href="#/stats">
+              See it
+            </a>
+          </Row>
         </Group>
 
         <Group title="Fine-tune">
