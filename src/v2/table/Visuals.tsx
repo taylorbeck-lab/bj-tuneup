@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { rankOf, suitOf, isRed, RANK_LABELS, SUIT_GLYPHS, cardName } from '../../engine/cards';
 import type { Rules } from '../../engine/rules';
-import { SHOE, CARD_H, CARD_W, FELT_H, FRONT, RAIL } from './layout';
+import { SHOE, CARD_H, CARD_W, FELT_H, FRONT, RAIL, LOGO_BOX } from './layout';
 import type { PlacedCard } from './useTableGame';
 import { money } from '../bankroll';
 
@@ -173,13 +173,13 @@ export function FeltPrint({ rules }: { rules: Rules }) {
   const base = import.meta.env.BASE_URL;
   return (
     <svg className="felt-print" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
-      <text x="50" y="38.5" textAnchor="middle" fontSize="3.4" fill="var(--felt-ink)" letterSpacing="0.65" fontFamily="var(--font)" fontWeight="700">
+      <text x="50" y="38.5" textAnchor="middle" fontSize="3.74" fill="var(--felt-ink)" letterSpacing="0.7" fontFamily="var(--font)" fontWeight="700">
         {bj}
       </text>
-      <text x="50" y="43.2" textAnchor="middle" fontSize="2.85" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
+      <text x="50" y="43.7" textAnchor="middle" fontSize="3.13" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
         {s17} · insurance pays 2 to 1
       </text>
-      <image href={`${base}brand/el-primo-logo.png`} x="38.5" y="50.3" width="23" height="19.6" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+      <image href={`${base}brand/el-primo-logo.png`} x={LOGO_BOX.x} y={LOGO_BOX.y} width={LOGO_BOX.w} height={LOGO_BOX.h} opacity="0.92" preserveAspectRatio="xMidYMid meet" />
     </svg>
   );
 }
