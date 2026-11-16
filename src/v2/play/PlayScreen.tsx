@@ -191,6 +191,7 @@ export function PlayScreen() {
             }
           },
           // everything said at the table comes from José: the count when you ask, then your feedback
+          joseYields: !reveal && (!card || card.ok),
           jose: reveal ? (
             <button type="button" className="jose-say jose-count" onClick={() => setReveal(null)} aria-label={`Running count ${countWords(reveal.rc)}, true count ${countWords(reveal.tc)}`}>
               <small>José · leans in</small>

@@ -12,6 +12,10 @@ export type JoseMoment =
   | { kind: 'dealing'; seed: number; bigBet: boolean }
   | { kind: 'yourTurn'; waiting: boolean; seed: number }
   | { kind: 'insurance'; seed: number }
+  /** Ace or ten up: the dealer checks the hole card for blackjack. */
+  | { kind: 'peek'; seed: number; ace: boolean }
+  /** He checked: no blackjack, play on. */
+  | { kind: 'peekClear'; seed: number }
   | { kind: 'dealer'; seed: number }
   | {
       kind: 'result';
@@ -81,6 +85,10 @@ export function joseLine(m: JoseMoment): string | null {
       return pick(['Your action, primo.', 'What’ll it be, primo?', 'Up to you, primo.', 'Your call, primo.'], m.seed, 3);
     case 'insurance':
       return pick(['Ace up. Insurance, primo?', 'Insurance open.', 'Insurance, anyone?'], m.seed, 4);
+    case 'peek':
+      return m.ace ? pick(['Insurance is closed. Checking…', 'Let me check for blackjack…', 'Checking under the ace…'], m.seed, 19) : pick(['Ten up. Checking for blackjack…', 'Let me check, primo…', 'Checking…'], m.seed, 20);
+    case 'peekClear':
+      return pick(['No blackjack. Play on, primo.', 'Nothing there. Let’s play.', 'No blackjack. Your money’s still alive, primo.'], m.seed, 21);
     case 'dealer':
       return pick(['Dealer’s turn.', 'Let’s see what I’ve got.', 'Here we go, primo.', 'My turn.'], m.seed, 5);
     case 'result': {

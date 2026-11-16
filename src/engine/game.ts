@@ -34,7 +34,7 @@ export interface Seat {
   baseBet: number;
 }
 
-export type Phase = 'bet' | 'deal' | 'insurance' | 'play' | 'dealer' | 'settled';
+export type Phase = 'bet' | 'deal' | 'insurance' | 'peek' | 'play' | 'dealer' | 'settled';
 
 export interface DecisionSnapshot {
   round: number;
@@ -109,6 +109,11 @@ export interface TableOptions {
   botBet?: (seat: number) => number;
   /** Probability a bot misplays a stiff hard 12-16 (realistic tables). Default 0. */
   botMistakeRate?: number;
+  /**
+   * Pause for the dealer's peek: with an ace or ten up, the table stops in the 'peek' phase until the
+   * next step(), so a screen can show the dealer checking for blackjack. Off: the peek is instant.
+   */
+  peekPause?: boolean;
 }
 
 export interface ShoeSnapshot {
@@ -361,11 +366,24 @@ export class Table {
         this.apply(a);
         return true;
       }
+      case 'peek':
+        this.peekAndContinue();
+        return true;
       case 'dealer':
         return this.dealerStep();
       default:
         return false;
     }
+  }
+
+  /** The dealer checks the hole card for blackjack (with a pause first when the screen wants one). */
+  private beginPeek(): void {
+    const up = valueOf(this.dealer[0]);
+    if (this.opts.peekPause && (up === 1 || up === 10)) {
+      this.phase = 'peek';
+      return;
+    }
+    this.peekAndContinue();
   }
 
   private afterDeal(): void {
@@ -375,7 +393,7 @@ export class Table {
       this.phase = 'insurance';
       return;
     }
-    this.peekAndContinue();
+    this.beginPeek();
   }
 
   /** Human insurance decision for the next undecided spot (insurance stake = half the bet). */
@@ -393,7 +411,7 @@ export class Table {
         take,
         evenMoney: isBlackjack(s.hands[0].cards.map(valueOf)),
       };
-    if (!this.pendingInsurance.length) this.peekAndContinue();
+    if (!this.pendingInsurance.length) this.beginPeek();
   }
 
   private peekAndContinue(): void {

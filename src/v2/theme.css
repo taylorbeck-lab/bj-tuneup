@@ -1987,3 +1987,41 @@ table.bs td.s .dev {
 .course-bar span.ok {
   background: #5fae7c;
 }
+
+/* the dealer's peek: with an ace or ten up, the hole card slides up into the peeker and tips its
+   corner, holds while he looks, and settles back (or turns over, below) */
+.pc.back.peek {
+  transform-origin: 50% 100%;
+  animation: peek 1.5s ease-in-out both;
+}
+@keyframes peek {
+  0% {
+    transform: none;
+  }
+  25%,
+  72% {
+    transform: translateY(-14%) rotate(-5deg) scaleY(0.94);
+    box-shadow: 0 calc(var(--w) * 0.08) calc(var(--w) * 0.1) rgba(40, 25, 10, 0.4);
+  }
+  100% {
+    transform: none;
+  }
+}
+/* the hole card turning over */
+.pc.hole:not(.sweep) {
+  animation: hole-flip 420ms ease-out both;
+}
+@keyframes hole-flip {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pc.back.peek,
+  .pc.hole {
+    animation: none;
+  }
+}

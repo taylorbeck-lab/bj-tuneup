@@ -24,6 +24,8 @@ describe('José’s lines', () => {
       moments.push({ kind: 'yourTurn', seed, waiting: seed % 2 === 0 });
       moments.push({ kind: 'insurance', seed });
       moments.push({ kind: 'dealer', seed });
+      moments.push({ kind: 'peek', seed, ace: seed % 2 === 0 });
+      moments.push({ kind: 'peekClear', seed });
       moments.push({ kind: 'shuffling', seed, cut: 0.55 + (seed % 5) * 0.05, pen: 0.65 });
       for (const o of [{ net: 1 }, { net: -1 }, { net: 0 }, { net: 1.5, blackjack: true }, { net: -1, bust: true }, { net: 1, dealerBust: true }, { net: 2, doubled: true }, { net: -1, dealerBlackjack: true }, { net: -0.5, surrendered: true }, { net: 1, streak: 4 }, { net: -1, streak: -5 }])
         moments.push(result({ seed, ...o }));
