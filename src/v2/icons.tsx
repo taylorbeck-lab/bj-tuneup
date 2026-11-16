@@ -72,3 +72,41 @@ export function Mark({ size = 26, color = 'currentColor', sun = 'var(--coral)' }
 export function Emblem({ height = 22 }: { height?: number }) {
   return <img src={`${import.meta.env.BASE_URL}brand/el-primo-emblem.png`} alt="" height={height} style={{ height, width: 'auto', display: 'block' }} />;
 }
+
+/* Menu icons: one solid colour, the same size and visual weight. */
+type IconProps = { size?: number };
+
+export function StatsIcon({ size = 20 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2.3l2.95 6.2 6.8.8-5.05 4.65 1.35 6.75L12 17.3l-6.05 3.4 1.35-6.75L2.25 9.3l6.8-.8z" />
+    </svg>
+  );
+}
+
+/** The strategy charts: a simple 3 x 3 grid. */
+export function ChartIcon({ size = 20 }: IconProps) {
+  const cells = [0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => ({ x: 3 + c * 6.4, y: 3 + r * 6.4 })));
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      {cells.map((p, i) => (
+        <rect key={i} x={p.x} y={p.y} width="5" height="5" rx="1.1" />
+      ))}
+    </svg>
+  );
+}
+
+/** Settings: an eight-tooth gear with a round hole. */
+export function GearIcon({ size = 20 }: IconProps) {
+  const teeth = Array.from({ length: 8 }, (_, i) => i * 45);
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <g transform="translate(12 12)">
+        {teeth.map((a) => (
+          <path key={a} transform={`rotate(${a})`} d="M-1.9 -10.6 h3.8 l0.5 3.6 h-4.8 z" />
+        ))}
+        <path fillRule="evenodd" d="M0 -7.6a7.6 7.6 0 1 1 0 15.2a7.6 7.6 0 1 1 0 -15.2zM0 -3.1a3.1 3.1 0 1 0 0 6.2a3.1 3.1 0 1 0 0 -6.2z" />
+      </g>
+    </svg>
+  );
+}

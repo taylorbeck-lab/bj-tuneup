@@ -89,7 +89,7 @@ export function SettingsPage() {
           <Row label="Show the count" hint="Training wheels: the count on the table (tap the discard tray any time to be tested or to ask)">
             <Tog on={s.coach.showCount} set={(v) => C({ showCount: v })} label="Show the count" />
           </Row>
-          <Row label="Count quizzes" hint="Dealer asks “what's the count?”">
+          <Row label="Count quizzes" hint="José asks “what's the count?”">
             <Seg label="Count quizzes" value={s.coach.countQuiz} onChange={(v) => C({ countQuiz: v })} options={[{ v: 'off', l: 'Off' }, { v: 'sometimes', l: 'Sometimes' }, { v: 'often', l: 'Often' }]} />
           </Row>
           <Row label="Practice my misses" hint="Hands you get wrong come back more often">
@@ -101,8 +101,8 @@ export function SettingsPage() {
         </Group>
 
         <Group title="Table">
-          <Row label="Dealer">
-            <select value={s.speed} onChange={(e) => set({ speed: e.target.value as V2Settings['speed'] })} aria-label="Dealer speed" style={{ background: 'transparent', border: '1px solid rgba(233,220,198,0.25)', borderRadius: 99, padding: '6px 10px' }}>
+          <Row label="José’s pace">
+            <select value={s.speed} onChange={(e) => set({ speed: e.target.value as V2Settings['speed'] })} aria-label="José’s dealing pace" style={{ background: 'transparent', border: '1px solid rgba(233,220,198,0.25)', borderRadius: 99, padding: '6px 10px' }}>
               {SPEEDS.map((x) => (
                 <option key={x.id} value={x.id} style={{ background: '#18241e' }}>
                   {x.label}
