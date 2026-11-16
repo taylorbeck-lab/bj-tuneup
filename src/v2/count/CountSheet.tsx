@@ -7,7 +7,7 @@ import { countWords, padPress, padValue, padText, EMPTY_PAD, type PadState } fro
  * Count keypad that works the way you count in your head: tap Up or Down (either before or after
  * the number), then the number, or Even for zero. No plus/minus signs.
  */
-function Pad({ onSubmit, label }: { onSubmit: (n: number) => void; label: string }) {
+export function Pad({ onSubmit, label }: { onSubmit: (n: number) => void; label: string }) {
   const [p, setP] = useState<PadState>(EMPTY_PAD);
   const press = (k: string) => setP((x) => padPress(x, k));
   const value = padValue(p);

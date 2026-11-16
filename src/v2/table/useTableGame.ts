@@ -5,7 +5,8 @@ import type { Chart, Action } from '../../engine/strategy/chart';
 import { valueOf, type CardId } from '../../engine/cards';
 import { randomSeed } from '../../engine/rng';
 import { SPEEDS, tableMax, type V2Settings } from '../settings';
-import { occupiedSpots, cardPos, dealerCardPos } from './layout';
+import { thinkFactor, thinkMs, personality } from './pace';
+import { occupiedSpots, dealerCardPos, layoutTable, type TableLayout, type SpotShape } from './layout';
 
 export interface PlacedCard {
   id: string;
@@ -21,7 +22,7 @@ export interface PlacedCard {
   hand: number;
 }
 
-export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'shuffling';
+export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'endOfShoe' | 'shuffling';
 
 export interface RoundResult {
   net: number;
@@ -35,12 +36,14 @@ export interface RoundResult {
  */
 let live: { key: string; table: Table; phase: UiPhase; result: RoundResult | null; placed: PlacedCard[]; idSeq: number } | null = null;
 const SHOE_KEY = 'v2shoe';
+/** A real shuffle takes a moment: long enough to see it, and to reset your head. */
+export const SHUFFLE_MS = 3600;
 
 /**
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
  * little longer, finished hands stay on the felt for a realistic beat, then the sweep.
  */
-export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void, paused = false) {
+export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number, ms: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void, paused = false) {
   const layout = useMemo(() => occupiedSpots(s.players, s.seat, s.spots), [s.players, s.seat, s.spots]);
   const speed = SPEEDS.find((x) => x.id === s.speed)!;
   const tableRef = useRef<Table | null>(null);
@@ -58,6 +61,10 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   // (re)create the table when the setup changes
   const setupKey = JSON.stringify([s.rules, layout, !!chart]);
   const restoring = useRef(false);
+  /** When your current decision started (for your pace and the table-is-waiting cue). */
+  const turnStarted = useRef(Date.now());
+  /** Each other player's own pace (quick regular to slow ponderer), fixed per table. */
+  const paces = useRef<Record<number, number>>({});
   useEffect(() => {
     if (!chart) return;
     // coming back from the chart, stats or settings: carry on exactly where we were
@@ -72,6 +79,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
     const humanSeats = layout.mine.map((sp) => seatOfSpot.get(sp)!);
     const min = s.tableMin;
+    paces.current = {};
     tableRef.current = new Table({
       rules: s.rules,
       seats: layout.spots.length,
@@ -109,10 +117,20 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
 
   const t = tableRef.current;
 
+  /** Where every hand sits this round (collision-free; re-placed only when a spot's hands change). */
+  const tableLayout = useRef<{ round: number; layout?: TableLayout }>({ round: -1 });
+
   /** Recompute card placements, keeping ids stable so landed cards never move or re-animate. */
   const sync = useCallback(() => {
     const tb = tableRef.current;
     if (!tb) return;
+    if (tableLayout.current.round !== tb.round) tableLayout.current = { round: tb.round };
+    const shapes: SpotShape[] = [];
+    tb.seats.forEach((seat, si) => {
+      if (seat.hands.some((h) => h.cards.length)) shapes.push({ spot: spotOfSeat(si), mine: seat.human, hands: seat.hands.map((h) => h.cards.length) });
+    });
+    const lay = layoutTable(shapes, tb.dealer.length, layout.spots, tableLayout.current.layout);
+    tableLayout.current.layout = lay;
     const prev = placed.current;
     const used = new Set<string>();
     const next: PlacedCard[] = [];
@@ -130,7 +148,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       const spot = spotOfSeat(si);
       seat.hands.forEach((h, hi) => {
         h.cards.forEach((c, ci) => {
-          const pos = cardPos(spot, hi, ci, seat.human);
+          const pos = lay.spots.get(spot)!.cards[hi][ci];
           const m =
             take((p) => p.spot === spot && p.card === c && p.hand === hi && Math.abs(p.x - pos.x) < 0.01 && Math.abs(p.y - pos.y) < 0.01) ??
             take((p) => p.spot === spot && p.card === c);
@@ -166,14 +184,25 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     if (ph === 'bet') return;
     if (paused) return;
     if (t.waitingForHuman) {
+      if (phase !== 'yourTurn' && phase !== 'insurance') turnStarted.current = Date.now();
       setPhase(ph === 'insurance' ? 'insurance' : 'yourTurn');
       return;
     }
     setPhase(ph === 'deal' ? 'dealing' : 'playing');
-    const botThinking = ph === 'play' ? 1.5 : 1;
+    // the dealer deals at an even pace; another player thinks as long as the decision deserves
+    let wait = speed.card;
+    if (ph === 'play') {
+      const hand = t.seats[t.turn.seat]?.hands[t.turn.hand];
+      if (hand) {
+        const values = hand.cards.map(valueOf);
+        const first = hand.cards.length === 2;
+        const pace = (paces.current[t.turn.seat] ??= personality(Math.random));
+        wait = thinkMs(speed.card, thinkFactor(values, valueOf(t.dealer[0]), first), pace, Math.random);
+      }
+    }
     const id = setTimeout(() => {
       if (t.step()) bump();
-    }, speed.card * botThinking);
+    }, wait);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, tick, paused]);
@@ -189,7 +218,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       const id = setTimeout(() => {
         placed.current = [];
         setResult(null);
-        setPhase(tableRef.current?.needsShuffle ? 'shuffling' : 'betting');
+        // the cut card is out: José stops for the end of the shoe before he shuffles
+        setPhase(tableRef.current?.needsShuffle ? 'endOfShoe' : 'betting');
       }, 450);
       return () => clearTimeout(id);
     }
@@ -198,7 +228,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
         tableRef.current?.reshuffle();
         setPhase('betting');
         bump();
-      }, 1600);
+      }, SHUFFLE_MS);
       return () => clearTimeout(id);
     }
   }, [phase, speed.linger, bump, paused]);
@@ -221,7 +251,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     if (!t || t.phase !== 'play') return;
     const spot = spotOfSeat(t.turn.seat);
     const snap = t.act(a);
-    onDecision?.(snap, spot);
+    onDecision?.(snap, spot, Date.now() - turnStarted.current);
+    turnStarted.current = Date.now();
     bump();
   };
   const insure = (take: boolean) => {
@@ -250,7 +281,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     tick,
     phase,
     layout,
-    cards: phase === 'betting' || phase === 'shuffling' ? [] : placed.current,
+    cards: phase === 'betting' || phase === 'shuffling' || phase === 'endOfShoe' ? [] : placed.current,
     sweeping: phase === 'sweeping',
     result,
     activeSpot,
@@ -262,6 +293,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     insure,
     hurry,
     shuffleUp,
+    /** Done with the end of the shoe: shuffle up. */
+    finishShoe: () => {
+      if (phase === 'endOfShoe') setPhase('shuffling');
+    },
+    turnStarted,
     speed,
     spotOfSeat,
     seatOfSpot,

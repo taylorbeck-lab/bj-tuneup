@@ -32,13 +32,13 @@ export function PlayingCard({ p, sweep, dur, dim }: { p: PlacedCard; sweep?: boo
   } as CSSProperties;
   if (p.faceDown)
     return (
-      <div className={'pc back' + (sweep ? ' sweep' : '')} style={style} aria-label="face-down card">
+      <div className={'pc back' + (sweep ? ' sweep' : '')} style={style} aria-label="face-down card" data-hand={p.spot === 0 ? 'dealer' : `${p.spot}:${p.hand}`}>
         <CardBack />
       </div>
     );
   const c = p.card;
   return (
-    <div className={'pc' + (isRed(c) ? ' red' : '') + (sweep ? ' sweep' : '') + (dim ? ' dim' : '')} style={style} role="img" aria-label={cardName(c)}>
+    <div className={'pc' + (isRed(c) ? ' red' : '') + (sweep ? ' sweep' : '') + (dim ? ' dim' : '')} style={style} role="img" aria-label={cardName(c)} data-hand={p.spot === 0 ? 'dealer' : `${p.spot}:${p.hand}`}>
       <span className="r">{RANK_LABELS[rankOf(c)]}</span>
       <span className="s">{SUIT_GLYPHS[suitOf(c)]}</span>
       <span className="big">{SUIT_GLYPHS[suitOf(c)]}</span>
@@ -163,28 +163,20 @@ export function BetStack({ amount, x, y }: { amount: number; x: number; y: numbe
   );
 }
 
-/** Printed felt: the Casino El Primo logo in the middle and the rules arc below the dealer. */
+/** Printed felt: the rules in two straight lines below the dealer, the Casino El Primo logo nested in the arc of betting circles. */
 export function FeltPrint({ rules }: { rules: Rules }) {
   const bj = rules.bjPayout === 1.5 ? 'BLACKJACK PAYS 3 TO 2' : 'BLACKJACK PAYS 6 TO 5';
   const s17 = rules.h17 ? 'Dealer hits soft 17' : 'Dealer stands on all 17s';
   const base = import.meta.env.BASE_URL;
   return (
     <svg className="felt-print" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
-      <defs>
-        <path id="arc1" d="M 16 28 Q 50 40.5 84 28" />
-        <path id="arc2" d="M 19.5 31.9 Q 50 44.1 80.5 31.9" />
-      </defs>
-      <text fontSize="3.1" fill="var(--felt-ink)" letterSpacing="0.55" fontFamily="var(--font)" fontWeight="700">
-        <textPath href="#arc1" startOffset="50%" textAnchor="middle">
-          {bj}
-        </textPath>
+      <text x="50" y="38.5" textAnchor="middle" fontSize="2.9" fill="var(--felt-ink)" letterSpacing="0.6" fontFamily="var(--font)" fontWeight="700">
+        {bj}
       </text>
-      <text fontSize="2.5" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
-        <textPath href="#arc2" startOffset="50%" textAnchor="middle">
-          {s17} · insurance pays 2 to 1
-        </textPath>
+      <text x="50" y="42.6" textAnchor="middle" fontSize="2.4" fill="var(--felt-ink)" letterSpacing="0.15" fontFamily="var(--serif)" fontStyle="italic">
+        {s17} · insurance pays 2 to 1
       </text>
-      <image href={`${base}brand/el-primo-logo.png`} x="31.5" y="41" width="37" height="31.5" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+      <image href={`${base}brand/el-primo-logo.png`} x="38.5" y="55" width="23" height="19.6" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
     </svg>
   );
 }

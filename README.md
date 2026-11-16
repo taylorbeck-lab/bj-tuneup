@@ -18,7 +18,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
 
 ## How it plays
 - **The house game:** double deck, dealer hits soft 17, double after split, $10 to $500, about two-thirds of the shoe dealt. Double deck is the sweet spot to learn counting; six decks (and every other rule) is one tap away in Settings.
-- **José deals.** He says hello on the first visit, you pick where to start (Basic strategy, Count & bet, or Full AP), and he tells you after every hand whether you played it right.
+- **José deals.** He stands behind the table (a portrait, or a face and a speech bubble on smaller screens) and calls the game; he says hello on the first visit, you pick where to start (Basic strategy, Count & bet, or Full AP), and he tells you after every hand whether you played it right.
 - **A real table:**
   - A cream felt with the Casino El Primo logo, a black padded rail, and up to 6 players in an arc that runs edge to edge.
   - Dealer, shoe, the posted table-limits sign and a smoked acrylic discard tray along the top. The tray stack grows exactly with the cards played, with a tick per deck, so you read decks played the way counters do. You can't see how many cards are left in the shoe, just like a real table.
@@ -26,6 +26,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
   - Cards slide out of the shoe to a fixed spot and stay there. Every card stays readable, and nothing jiggles.
 - **Dealer pace:** slow, average, fast or extra fast. Finished hands stay on the felt for a realistic beat; tap the felt to move on.
 - **Money:** $5 / $25 / $100 / $500 chips in the house colours (terracotta, juniper, black, plum), bets stacked on the felt, and a bankroll that persists (play money). It reloads when you're out.
+- **End of the shoe:** when the cut card comes out, José asks for your count before he shuffles (or skip it), then sums up the shoe: how high the count went, how many hands favoured you, your edge, and whether your bets went up when it mattered.
 - **Shuffle up** (tap the shoe): between hands, ask the dealer for a fresh shoe. The count starts again at 0, exactly like a new shoe at a casino.
 - **Other players** bet and play too, and once in a while they misplay, like real tables.
 

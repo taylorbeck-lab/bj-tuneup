@@ -19,6 +19,33 @@ export interface V2Stats {
   bets: { n: number; right: number };
   /** Daily totals for streaks and trends. */
   days: Record<string, { decisions: number; right: number; hands: number }>;
+  /** How long your decisions take, by where you sit (first base acts first, third base last). */
+  pace?: Record<SeatPos, { n: number; ms: number }>;
+  /** End-of-shoe count checks: answered exactly right, answered, and passed. */
+  shoeEnd?: { n: number; right: number; passed: number };
+}
+export type SeatPos = 'solo' | 'first' | 'middle' | 'third';
+export const SEAT_POS_LABEL: Record<SeatPos, string> = { solo: 'Playing alone', first: 'First base', middle: 'Middle seats', third: 'Third base' };
+
+/** The end-of-shoe count: right, wrong, or passed ("don't know" / skip). */
+export function recordShoeEnd(result: 'right' | 'wrong' | 'passed') {
+  return mutate((s) => {
+    const e = (s.shoeEnd ??= { n: 0, right: 0, passed: 0 });
+    if (result === 'passed') e.passed++;
+    else {
+      e.n++;
+      if (result === 'right') e.right++;
+    }
+  });
+}
+
+/** Record how long a decision took (capped, so walking away from the phone doesn't skew it). */
+export function recordPace(pos: SeatPos, ms: number) {
+  return mutate((s) => {
+    const p = (s.pace ??= { solo: { n: 0, ms: 0 }, first: { n: 0, ms: 0 }, middle: { n: 0, ms: 0 }, third: { n: 0, ms: 0 } });
+    p[pos].n++;
+    p[pos].ms += Math.min(ms, 30000);
+  });
 }
 
 const EMPTY: V2Stats = { decisions: 0, right: 0, deviations: { n: 0, right: 0 }, sits: {}, count: { n: 0, rcRight: 0, tcRight: 0, recent: [] }, insurance: { n: 0, right: 0 }, bets: { n: 0, right: 0 }, days: {} };

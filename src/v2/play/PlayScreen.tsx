@@ -5,11 +5,13 @@ import { useStrategy } from '../../store/strategy';
 import { useIndexPlays } from '../../store/indices';
 import { gradeDecision, gradeInsurance } from '../coach/grade';
 import { CoachCard, type CoachMsg } from '../coach/CoachCard';
-import { recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, type V2Stats } from '../stats';
+import { recordPace, recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, type V2Stats } from '../stats';
 import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
+import { EndOfShoe } from '../count/EndOfShoe';
+import { useEdgeModel } from '../../store/edge';
 import { countWords } from '../count/words';
 import { gradeBet, recommendedUnits } from '../count/bet';
 import { FeedbackCard, type Card } from '../coach/FeedbackCard';
@@ -35,6 +37,7 @@ export function PlayScreen() {
   const { s } = useV2();
   const st = useStrategy(s.rules);
   const { plays } = useIndexPlays(s.rules, st.chart);
+  const edgeModel = useEdgeModel(s.rules, st.chart);
   const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
   const setCard: typeof setCardState = (v) =>
     setCardState((cur) => {
@@ -88,6 +91,7 @@ export function PlayScreen() {
           },
           // the count lives in the discard tray: tap it to be tested, or to ask
           onTray: () => tableRef.current && setCountMenu(true),
+          endOfShoe: (t, done) => <EndOfShoe table={t} model={edgeModel} counting={s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations} onDone={done} />,
           feltExtra: (t) => {
             tableRef.current = t;
             if (!t || !s.coach.showCount) return null;
@@ -118,8 +122,12 @@ export function PlayScreen() {
             if (!v.right) show({ ok: false, title: BET_TITLE[f.word ?? ''] ?? 'Bet', line: f.line, msg });
             else if (recommendedUnits(tc) > 1) show({ ok: true, title: 'Bet up', line: 'Good size for this shoe.', msg });
           },
-          onDecision: (snap) => {
+          onDecision: (snap, _spot, t, ms) => {
             if (!st.chart) return;
+            // your pace, by where you sit: first base acts first, third base last
+            const order = t.seats.map((x, i) => (x.hands.length ? i : -1)).filter((i) => i >= 0);
+            const me = order.findIndex((i) => t.seats[i].human);
+            recordPace(order.length <= 1 ? 'solo' : me === 0 ? 'first' : me === order.length - 1 ? 'third' : 'middle', ms);
             const v = gradeDecision(snap, st.chart, plays, s.coach.deviations, n.current++);
             recordDecision(v.key, v.hand, v.right, !!v.countPlay);
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);

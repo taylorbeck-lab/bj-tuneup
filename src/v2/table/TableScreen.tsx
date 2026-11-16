@@ -5,14 +5,16 @@ import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { Emblem } from '../icons';
-import { spotCenter, cardPos } from './layout';
+import { spotCenter } from './layout';
+import { JoseZone, joseLine, type JoseMoment } from './Jose';
+import { isBlackjack, valueOf } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
 import type { DecisionSnapshot } from '../../engine/game';
 import type { Table } from '../../engine/game';
 
 export interface TableHooks {
-  onDecision?: (snap: DecisionSnapshot, spot: number, t: Table) => void;
+  onDecision?: (snap: DecisionSnapshot, spot: number, t: Table, ms: number) => void;
   onRoundEnd?: (r: RoundResult, t: Table) => void;
   onBet?: (bets: Record<number, number>, t: Table) => void;
   onInsurance?: (take: boolean, t: Table) => void;
@@ -28,6 +30,8 @@ export interface TableHooks {
   paused?: boolean;
   /** A card the player must swipe away before the next deal (a miss they should read). */
   hold?: boolean;
+  /** The end of the shoe: what José shows before he shuffles (call `done` to shuffle). */
+  endOfShoe?: (t: Table, done: () => void) => React.ReactNode;
   /** Tap on the discard tray (the count lives there). */
   onTray?: () => void;
   /** Optional practice hand for the next deal (practice my misses). */
@@ -38,6 +42,14 @@ export interface TableHooks {
 /** Chips you've put out but not dealt yet (kept while you look at the chart). */
 let pendingBets: Record<number, number> = {};
 
+/** Without an end-of-shoe screen, shuffle straight away. */
+function AutoShuffle({ done }: { done: () => void }) {
+  useEffect(() => {
+    done();
+  }, [done]);
+  return null;
+}
+
 export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const { s } = useV2();
   const st = useStrategy(s.rules);
@@ -46,7 +58,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const g = useTableGame(
     s,
     st.chart,
-    (snap, spot) => tRef.current && hooks.onDecision?.(snap, spot, tRef.current),
+    (snap, spot, ms) => tRef.current && hooks.onDecision?.(snap, spot, tRef.current, ms),
     (r, t) => {
       settle(r.net);
       hooks.onRoundEnd?.(r, t);
@@ -74,6 +86,14 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.result]);
   const [askShuffle, setAskShuffle] = useState(false);
+  // sitting on a decision too long: the table is waiting (your circle pulses)
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    setWaiting(false);
+    if (g.phase !== 'yourTurn') return;
+    const id = setTimeout(() => setWaiting(true), Math.max(0, 8000 - (Date.now() - g.turnStarted.current)));
+    return () => clearTimeout(id);
+  }, [g.phase, g.tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
   useEffect(() => {
@@ -90,7 +110,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
 
   const betting = g.phase === 'betting';
   /** Between hands: nothing dealt on the felt (betting, or the dealer shuffling up). */
-  const idle = betting || g.phase === 'shuffling';
+  const idle = betting || g.phase === 'shuffling' || g.phase === 'endOfShoe';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
   const canDeal = betting && !hooks.hold && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
@@ -132,6 +152,23 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   // every card out of the shoe that isn't on the felt is in the tray (burn cards included)
   const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
+  // what José says right now (never the count: the feedback card does the teaching)
+  const myHand = t ? t.seats.find((x) => x.human)?.hands[0] : undefined;
+  const joseMoment: JoseMoment =
+    g.phase === 'shuffling'
+      ? { kind: 'shuffling' }
+      : betting
+        ? { kind: 'betting', first: !t || t.round === 0, seed: t?.round ?? 0 }
+        : g.phase === 'insurance'
+          ? { kind: 'insurance' }
+          : g.phase === 'yourTurn'
+            ? { kind: 'yourTurn', waiting }
+            : (g.phase === 'results' || g.phase === 'sweeping') && g.result
+              ? { kind: 'result', net: g.result.net, blackjack: !!myHand && myHand.cards.length === 2 && isBlackjack(myHand.cards.map(valueOf)) && g.result.net > 0, seed: t?.round ?? 0 }
+              : t?.phase === 'dealer'
+                ? { kind: 'dealer' }
+                : { kind: 'quiet' };
+
   return (
     <div className="frame table-frame">
       <header className="hud">
@@ -156,6 +193,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       </header>
 
       <div className="felt-stage">
+        <JoseZone line={joseLine(joseMoment)} />
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
@@ -184,7 +222,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                 <div key={sp}>
                   <button
                     type="button"
-                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '')}
+                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '') + (t?.phase === 'play' && g.activeSpot === sp ? ' turn' : '') + (mine && waiting && g.activeSpot === sp ? ' waiting' : '')}
                     style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied ? 1 : 0.35 }}
                     aria-label={mine ? `Your spot ${sp}` : `Spot ${sp}`}
                     onClick={(e) => {
@@ -207,22 +245,37 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             {g.cards.map((p) => (
               <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
             ))}
-            {/* which hand you're playing (splits, two spots): the dealer points at it */}
+            {/* whose turn it is: the dealer's pointer moves player to player, then to the dealer's own hand */}
             {t &&
-              g.phase === 'yourTurn' &&
-              g.activeSpot !== null &&
+              (t.phase === 'play' || t.phase === 'dealer') &&
               (() => {
-                const seat = t.seats[g.seatOfSpot.get(g.activeSpot) ?? -1];
-                if (!seat || (seat.hands.length < 2 && g.layout.mine.length < 2)) return null;
-                const h = seat.hands[g.activeHand];
-                const first = cardPos(g.activeSpot, g.activeHand, 0, true);
-                const last = cardPos(g.activeSpot, g.activeHand, Math.max(0, Math.min(3, h.cards.length - 1)), true);
-                return <span className="hand-pointer" style={{ left: `${(first.x + last.x + last.w) / 2}cqw`, top: `${first.y - 3.6}cqw` }} aria-hidden="true" />;
+                const spot = t.phase === 'dealer' ? 0 : g.activeSpot;
+                const hand = t.phase === 'dealer' ? -1 : g.activeHand;
+                const cards = g.cards.filter((p) => p.spot === spot && (spot === 0 || p.hand === hand));
+                if (!cards.length) return null;
+                const left = Math.min(...cards.map((p) => p.x));
+                const right = Math.max(...cards.map((p) => p.x + p.w));
+                const top = Math.min(...cards.map((p) => p.y));
+                const yours = spot !== 0 && g.layout.mine.includes(spot ?? -1);
+                return (
+                  <span
+                    key={`${spot}-${hand}`}
+                    className={'hand-pointer' + (yours ? ' yours' : '') + (spot === 0 ? ' dealer' : '')}
+                    style={spot === 0 ? { left: `${right + 2.4}cqw`, top: `${top + 4}cqw` } : { left: `${(left + right) / 2}cqw`, top: `${top - 3.4}cqw` }}
+                    aria-hidden="true"
+                  />
+                );
               })()}
             {hooks.feltExtra?.(t)}
             {g.phase === 'shuffling' && (
-              <div style={{ position: 'absolute', left: '50%', top: '22cqw', transform: 'translateX(-50%)' }} className="total-tag">
-                Shuffling up · count starts at 0
+              <div className="shuffle-show" role="status">
+                <div className="riffle" aria-hidden="true">
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <span key={i} style={{ animationDelay: `${i * 70}ms` }} />
+                  ))}
+                </div>
+                <div className="shuffle-title">Shuffling up</div>
+                <div className="shuffle-sub">fresh shoe · count back to zero</div>
               </div>
             )}
           </div>
@@ -284,6 +337,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           {(g.phase === 'results' || g.phase === 'sweeping') && g.result ? (g.result.net > 0 ? `You won ${money(g.result.net)}` : g.result.net < 0 ? `You lost ${money(-g.result.net)}` : 'Push') : ''}
         </p>
       </div>
+      {g.phase === 'endOfShoe' && t && hooks.endOfShoe?.(t, g.finishShoe)}
+      {g.phase === 'endOfShoe' && t && !hooks.endOfShoe && <AutoShuffle done={g.finishShoe} />}
       {askShuffle && (
         <div className="sheet-back" onClick={() => setAskShuffle(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle up">
