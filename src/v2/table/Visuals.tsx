@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { rankOf, suitOf, isRed, RANK_LABELS, SUIT_GLYPHS, cardName } from '../../engine/cards';
 import type { Rules } from '../../engine/rules';
-import { SHOE, CARD_H, CARD_W, FELT_H } from './layout';
+import { SHOE, CARD_H, CARD_W, FELT_H, FRONT, RAIL } from './layout';
 import type { PlacedCard } from './useTableGame';
 import { money } from '../bankroll';
 
@@ -180,6 +180,45 @@ export function FeltPrint({ rules }: { rules: Rules }) {
         {s17} · insurance pays 2 to 1
       </text>
       <image href={`${base}brand/el-primo-logo.png`} x="38.5" y="50.3" width="23" height="19.6" opacity="0.92" preserveAspectRatio="xMidYMid meet" />
+    </svg>
+  );
+}
+
+/**
+ * The padded rail along the front of the table: cognac leather, rolled, with a stitched seam. Drawn
+ * as concentric strokes of the table's front ellipse so it keeps an even thickness all the way round
+ * (the layout keeps every card inside it: `RAIL` in layout.ts).
+ */
+export function Rail() {
+  const R = RAIL;
+  // one stroke of the rail: `d` = distance in from the outer edge to the stroke's centre line
+  const ring = (d: number, w: number, color: string, extra: Record<string, string | number> = {}) => (
+    <ellipse cx={FRONT.cx} cy={FRONT.cy} rx={FRONT.rx - d} ry={FRONT.ry - d} fill="none" stroke={color} strokeWidth={w} {...extra} />
+  );
+  return (
+    <svg className="felt-rail" viewBox={`0 0 100 ${FELT_H}`} aria-hidden="true">
+      <defs>
+        <filter id="rail-soft" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="0.45" />
+        </filter>
+        <filter id="rail-softer" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="0.8" />
+        </filter>
+      </defs>
+      {/* the rail's shadow on the felt */}
+      {ring(R + 0.5, 1.6, 'rgba(70, 35, 12, 0.32)', { filter: 'url(#rail-softer)' })}
+      {/* the leather */}
+      {ring(R / 2, R, '#7c3f1b')}
+      {/* the underside rolls away from the light */}
+      {ring(R * 0.18, R * 0.36, '#4f260e', { filter: 'url(#rail-soft)' })}
+      {/* the crown catches it */}
+      {ring(R * 0.64, R * 0.3, '#b9713a', { filter: 'url(#rail-soft)', opacity: 0.9 })}
+      {ring(R * 0.68, 0.22, '#eab07a', { opacity: 0.45 })}
+      {/* stitched seam */}
+      {ring(R * 0.3, 0.16, '#e9c79c', { opacity: 0.6, strokeDasharray: '0.75 0.55' })}
+      {/* where the felt tucks under, and the outer edge */}
+      {ring(R - 0.14, 0.32, '#2b1407')}
+      {ring(0.1, 0.22, '#1d0d04')}
     </svg>
   );
 }

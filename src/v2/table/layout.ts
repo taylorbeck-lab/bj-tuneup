@@ -1,14 +1,15 @@
 /**
  * Table geometry in container units (cqw: 1 = 1% of the screen's width; the felt is FELT_H units tall).
  * The table is wider than the screen: the felt fills it edge to edge and runs off both sides, with a
- * gentle curve along the front and a black rail. Spots follow the rail on an arc and are numbered like
+ * gentle curve along the front and a padded cognac leather rail. Spots follow the rail on an arc and are numbered like
  * a real table: 1 = first base (dealer's left, right side of the screen) through 6 = third base.
  */
 export const MAX_SPOTS = 6;
 export const FELT_H = 95;
 /** The front of the table: an ellipse much wider than the screen, so only a soft curve shows. */
 export const FRONT = { cx: 50, cy: 36, rx: 75, ry: 59 };
-export const RAIL = 3.4;
+/** The padded leather rail along the front, in table units (drawn by `Rail` in Visuals.tsx). */
+export const RAIL = 5.2;
 export const CARD_RATIO = 1.4;
 /** Card widths: your cards are larger, other players' smaller, dealer in between. */
 export let W_MINE = 11;
@@ -28,7 +29,7 @@ export const TRAY = { x: 5, y: 2.5 };
  * second and fifth seats and the card sizes were tuned so the opening deal and a hit rarely nudge a
  * hand (measured over every table size and seat).
  */
-const ARC = { x: 50, y: 30, a: 44, b: 52 };
+const ARC = { x: 50, y: 30, a: 44, b: 50.5 };
 /** Angle of each spot on the arc (first base to third base). */
 let ANGLES = [24, 50, 76, 104, 130, 156];
 /** How far above its circle a hand's first card sits. */

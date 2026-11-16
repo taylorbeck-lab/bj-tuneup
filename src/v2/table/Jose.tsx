@@ -19,7 +19,7 @@ export type JoseMoment =
 export function joseLine(m: JoseMoment): string | null {
   switch (m.kind) {
     case 'betting':
-      return m.first ? 'Sit down, primo. Bets in the circle.' : pick(['Bets, primo.', 'Place your bets.', 'Let’s go again.', 'Chips in the circle.', 'Another one?'], m.seed);
+      return m.first ? 'Sit down, primo. Bets in the circle.' : pick(['Bets, primo.', 'Place your bets.', 'Place your bet, amigo.', 'Chips in the circle.', 'Another one?'], m.seed);
     case 'yourTurn':
       return m.waiting ? 'Table’s waiting, primo.' : 'Your action.';
     case 'insurance':

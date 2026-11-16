@@ -1,5 +1,3 @@
-import { useRef, useState, type PointerEvent } from 'react';
-
 export interface Card {
   id: number;
   ok: boolean;
@@ -9,79 +7,37 @@ export interface Card {
   hand?: string;
   /** Second line: the reason on a miss, or a next-level hint on a right play. */
   line?: string;
-  /** Green cards from an earlier hand fade back. */
-  stale?: boolean;
 }
 
 /**
- * The one feedback card. Green: glance and keep playing (it stays until the next card). Red: it
- * stays put, even into the next hand, until you swipe it away. Tap either for the full why.
+ * José's word on your last move, said in his speech bubble like the rest of his lines. Nothing to
+ * dismiss: it stays until your next move (bet, hit, stand, double, split, insurance), which brings
+ * the next one, so you always have time to read it. Tap it for the full why.
  */
-export function FeedbackCard({ card, onOpen, onDismiss }: { card: Card; onOpen: () => void; onDismiss: () => void }) {
-  const [dx, setDx] = useState(0);
-  const [gone, setGone] = useState(false);
-  const start = useRef<number | null>(null);
-  const moved = useRef(false);
-  const down = (e: PointerEvent) => {
-    start.current = e.clientX;
-    moved.current = false;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-  };
-  const move = (e: PointerEvent) => {
-    if (start.current === null || card.ok) return;
-    const d = e.clientX - start.current;
-    if (Math.abs(d) > 6) moved.current = true;
-    setDx(d);
-  };
-  const up = () => {
-    if (start.current === null) return;
-    start.current = null;
-    if (!card.ok && Math.abs(dx) > 70) {
-      setGone(true);
-      setDx(dx > 0 ? 500 : -500);
-      setTimeout(onDismiss, 180);
-      return;
-    }
-    setDx(0);
-    if (!moved.current) onOpen();
-  };
+/** The line as José says it after the play: no repeating the play ("Hit. Hit: …"), and "17–21" never split over two lines. */
+export function sayLine(title: string, line?: string): string | undefined {
+  if (!line) return line;
+  const lead = new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b[^:.]{0,24}:\\s*`, 'i');
+  let out = line.replace(lead, '');
+  out = out.charAt(0).toUpperCase() + out.slice(1);
+  return out.replace(/(\d)–(\d)/g, '$1\u2060–\u2060$2');
+}
+
+export function FeedbackCard({ card, onOpen }: { card: Card; onOpen: () => void }) {
+  const label = card.hand ?? (card.ok ? 'Good' : 'Not quite');
+  const line = sayLine(card.title, card.line);
   return (
-    <div
-      className={'fb ' + (card.ok ? 'ok' : 'no') + (card.stale ? ' stale' : '')}
-      style={{ transform: dx ? `translateX(${dx}px)` : undefined, opacity: gone ? 0 : dx ? Math.max(0.3, 1 - Math.abs(dx) / 300) : undefined, transition: start.current === null ? 'transform 180ms ease, opacity 180ms ease' : 'none' }}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={() => {
-        start.current = null;
-        setDx(0);
-      }}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="fb-top">
+    <button type="button" className={'jose-say fb ' + (card.ok ? 'ok' : 'no')} onClick={onOpen} aria-label={`${card.ok ? 'Right' : 'Miss'}: ${card.title}${card.hand ? ', ' + card.hand : ''}. ${card.line ?? ''} Tap for why.`}>
+      <small>
         <span className="fb-mark" aria-hidden="true">
           {card.ok ? '✓' : '✗'}
-        </span>
-        <span className="fb-title">{card.title}</span>
-        {card.hand && <span className="fb-hand">{card.hand}</span>}
-        {!card.ok && (
-          <button
-            type="button"
-            className="fb-x"
-            aria-label="Dismiss"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDismiss();
-            }}
-          >
-            swipe ✕
-          </button>
-        )}
-      </div>
-      {card.line && <div className="fb-line">{card.line}</div>}
-    </div>
+        </span>{' '}
+        {label}
+        <span className="fb-why">why ›</span>
+      </small>
+      <span className="fb-say">
+        <b className="fb-title">{card.title}.</b> {line}
+      </span>
+    </button>
   );
 }
