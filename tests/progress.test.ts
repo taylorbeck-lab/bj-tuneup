@@ -100,3 +100,18 @@ describe('settings saved before the course', () => {
     expect(mergeV2(undefined).progress.level).toBe(1);
   });
 });
+
+describe('the quiet-table offer', () => {
+  it('comes once, at Level 1, to a player who is getting the hands right at a table with others', async () => {
+    const { headsUpOffer } = await import('../src/v2/progress');
+    const s = base();
+    s.days = { d: { decisions: 0, right: 0, hands: 60 } };
+    s.log = log('h', 50);
+    expect(headsUpOffer(s, P(), 3)?.kind).toBe('headsUp');
+    expect(headsUpOffer(s, P(), 0)).toBeNull();
+    expect(headsUpOffer(s, P({ headsUpOffered: true }), 3)).toBeNull();
+    expect(headsUpOffer(s, P({ level: 2 }), 3)).toBeNull();
+    s.log = log('h', 50, 8);
+    expect(headsUpOffer(s, P(), 3)).toBeNull();
+  });
+});

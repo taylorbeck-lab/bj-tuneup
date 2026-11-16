@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useV2, type V2Settings } from '../settings';
 import { MODES } from '../modes';
 import { loadStats, handsPlayed } from '../stats';
-import { shouldOffer, newPlaysAt, describePlay, THRESHOLDS, LEVEL_NAME, type Level, type NextStep, type Progress, type Tier } from '../progress';
+import { shouldOffer, headsUpOffer, newPlaysAt, describePlay, THRESHOLDS, LEVEL_NAME, type Level, type NextStep, type Progress, type Tier } from '../progress';
 import { EndOfShoe } from '../count/EndOfShoe';
 import type { Table } from '../../engine/game';
 import type { IndexPlay } from '../../engine/indices';
@@ -29,11 +29,12 @@ export function ShoeEnd({ table, model, plays, onDone }: { table: Table; model?:
     finished.current = true;
     onDone();
   };
+  const othersAtTable = table.seats.filter((x) => !x.human).length;
   useEffect(() => {
     if (step !== 'offer') return;
     let live = true;
     // the shoe's own result is saved first, so it counts toward the offer
-    void loadStats().then((st) => live && setOffer(shouldOffer(st, s.progress)));
+    void loadStats().then((st) => live && setOffer(shouldOffer(st, s.progress) ?? headsUpOffer(st, s.progress, othersAtTable)));
     return () => {
       live = false;
     };
@@ -52,18 +53,23 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
   const { s, set } = useV2();
   const p = s.progress;
   const later = async () => {
+    if (step.kind === 'headsUp') {
+      set({ progress: { ...p, headsUpOffered: true } });
+      return onClose();
+    }
     const st = await loadStats();
     set({ progress: { ...p, askAfter: handsPlayed(st) + THRESHOLDS.snoozeHands } });
     onClose();
   };
   const accept = () => {
-    if (step.kind === 'count') set(levelSettings(s, 2));
+    if (step.kind === 'headsUp') set({ traffic: 'quiet', progress: { ...p, headsUpOffered: true } });
+    else if (step.kind === 'count') set(levelSettings(s, 2));
     else if (step.kind === 'plays') set(levelSettings(s, 3, { tier: 1 }));
     else set({ progress: { ...p, tier: Math.min(3, p.tier + 1) as Tier } });
     onClose();
   };
   const nextTier: Tier = step.kind === 'plays' ? 1 : (Math.min(3, p.tier + 1) as Tier);
-  const list = step.kind === 'count' ? [] : newPlaysAt(plays, nextTier).map(describePlay);
+  const list = step.kind === 'count' || step.kind === 'headsUp' ? [] : newPlaysAt(plays, nextTier).map(describePlay);
   const shown = list.slice(0, 8);
 
   return (
@@ -72,7 +78,7 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img className="jose-mini" src={`${import.meta.env.BASE_URL}brand/jose-avatar.jpg`} alt="" />
           <span className="display" style={{ fontSize: 28, lineHeight: 1 }}>
-            {step.kind === 'count' ? 'Ready to count, primo' : step.kind === 'plays' ? 'Time to bend the rules' : 'A few more, primo'}
+            {step.kind === 'headsUp' ? 'A table to yourself?' : step.kind === 'count' ? 'Ready to count, primo' : step.kind === 'plays' ? 'Time to bend the rules' : 'A few more, primo'}
           </span>
         </div>
         {step.kind === 'count' && (
@@ -98,7 +104,16 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
             </ul>
           </>
         )}
-        {step.kind !== 'count' && (
+        {step.kind === 'headsUp' && (
+          <>
+            <p className="levelup-say">You know your hands, primo. Now it’s speed, and heads up you see about twice the hands. There’s a quiet table right over here.</p>
+            <ul className="levelup-list">
+              <li>Mostly just you and me; now and then someone sits down for a while.</li>
+              <li>Settings → Table changes it any time (quiet, normal, busy, or a set number of players).</li>
+            </ul>
+          </>
+        )}
+        {step.kind !== 'count' && step.kind !== 'headsUp' && (
           <>
             <p className="levelup-say">
               {step.kind === 'plays'
@@ -115,10 +130,10 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
           </>
         )}
         <button className="act stand" onClick={accept}>
-          {step.kind === 'count' ? 'Let’s count' : step.kind === 'plays' ? 'Let’s go' : 'Add them'}
+          {step.kind === 'headsUp' ? 'Take the quiet table' : step.kind === 'count' ? 'Let’s count' : step.kind === 'plays' ? 'Let’s go' : 'Add them'}
         </button>
         <button className="act" onClick={() => void later()}>
-          Not yet
+          {step.kind === 'headsUp' ? 'I’ll stay here' : 'Not yet'}
         </button>
         <p className="levelup-note">
           Now: Level {p.level} · {LEVEL_NAME[p.level]}. You can change your level any time in Settings.

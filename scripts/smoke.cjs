@@ -95,6 +95,7 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   for (const m of ['Count & bet', 'Full AP', 'Basic strategy']) { await p.getByRole('button', { name: new RegExp(m) }).first().click(); await wait(100); }
   ok('mode buttons', (await p.locator('.act.stand', { hasText: 'Basic strategy' }).count()) === 1);
   // persistence of a setting across reload
+  await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Fixed', exact: true }).click(); await wait(200);
   await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
   await p.reload(); await wait(1200);
   ok('settings persist after reload', (await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '6', exact: true }).getAttribute('aria-pressed')) === 'true');
@@ -110,7 +111,9 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   await p.getByRole('group', { name: 'Decks' }).getByRole('button', { name: '2', exact: true }).click();
   await p.getByRole('group', { name: 'Hands' }).getByRole('button', { name: 'One' }).click();
   await p.getByRole('group', { name: 'Your seat' }).getByRole('button', { name: '3', exact: true }).click();
-  await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '4', exact: true }).click(); await wait(300);
+  await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '4', exact: true }).click(); await wait(200);
+  await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Normal', exact: true }).click(); await wait(300);
+  ok('table traffic setting', (await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Normal', exact: true }).getAttribute('aria-pressed')) === 'true' && (await p.getByRole('group', { name: 'Players' }).count()) === 0);
 
   // D. resets via our own sheet
   await toTable(); await playHand(); const before = await bankroll();

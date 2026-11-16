@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Table } from '../../engine/game';
 import type { EdgeModel } from '../../engine/edge';
+import { headsUpRounds } from '../table/traffic';
 import { Pad } from './CountSheet';
 import { countWords } from './words';
 import { summariseShoe, shoeLine } from './shoe';
@@ -14,6 +15,8 @@ const pctEdge = (x: number) => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixe
  * ultimate check: did you stay accurate the whole way?), then sums up how good the shoe was.
  */
 export function EndOfShoe({ table, model, onDone }: { table: Table; model?: EdgeModel; onDone: () => void }) {
+  /** Hands dealt per round at this table (you, your second spot, and the other players). */
+  const seated = table.seats.length;
   const rc = table.rc;
   const [answer, setAnswer] = useState<number | 'pass' | null>(null);
   const summary = useMemo(() => summariseShoe(table.shoeRounds(), model), [table, model]);
@@ -93,6 +96,18 @@ export function EndOfShoe({ table, model, onDone }: { table: Table; model?: Edge
                     Your average bet: <b>{money(Math.round(summary.betUp))}</b> when the shoe favoured you, <b>{money(Math.round(summary.betFlat))}</b> otherwise.
                   </p>
                 )}
+                <p className="shoe-bets">
+                  {/* the table-size lesson: more players, fewer rounds per shoe (and fewer of the hot ones) */}
+                  {seated > 1 ? (
+                    <>
+                      <b>{summary.hands} rounds</b> at a table of {seated}. Heads up, the same cards would have dealt about <b>{headsUpRounds(summary.hands, seated)}</b>.
+                    </>
+                  ) : (
+                    <>
+                      <b>{summary.hands} rounds</b> heads up: as many as a shoe gives.
+                    </>
+                  )}
+                </p>
                 <p className="shoe-line">“{shoeLine(summary)}”</p>
               </div>
             )}

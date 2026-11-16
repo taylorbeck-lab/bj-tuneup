@@ -138,9 +138,35 @@ export function SettingsPage() {
               ))}
             </select>
           </Row>
-          <Row label="Players" hint="Including you">
-            <Seg label="Players" value={s.players} onChange={(v) => set({ players: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
+          <Row
+            label="Table"
+            hint={
+              s.traffic === 'off'
+                ? 'A set number of players, nobody comes or goes'
+                : s.traffic === 'quiet'
+                  ? 'Often heads up: one or two players, more hands per shoe'
+                  : s.traffic === 'normal'
+                    ? 'Two to five players, coming and going like a real table'
+                    : 'Four to six players: fewer hands per shoe, like a busy night'
+            }
+          >
+            <Seg
+              label="Table"
+              value={s.traffic}
+              onChange={(v) => set({ traffic: v })}
+              options={[
+                { v: 'quiet' as const, l: 'Quiet' },
+                { v: 'normal' as const, l: 'Normal' },
+                { v: 'busy' as const, l: 'Busy' },
+                { v: 'off' as const, l: 'Fixed' },
+              ]}
+            />
           </Row>
+          {s.traffic === 'off' && (
+            <Row label="Players" hint="Including you">
+              <Seg label="Players" value={s.players} onChange={(v) => set({ players: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
+            </Row>
+          )}
           <Row label="Your seat" hint="1 = first base (dealt first) · 6 = third base">
             <Seg label="Your seat" value={s.seat} onChange={(v) => set({ seat: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
           </Row>
