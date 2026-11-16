@@ -24,6 +24,8 @@ export interface Progress {
   tier: Tier;
   /** "Not yet": don't ask again until this many hands have been played. */
   askAfter: number;
+  /** José has offered you a table to yourself (once, at Level 1). */
+  headsUpOffered?: boolean;
 }
 export const DEFAULT_PROGRESS: Progress = { level: 1, auto: true, tier: 1, askAfter: 0 };
 
@@ -57,6 +59,8 @@ export const THRESHOLDS = {
   nextTier: { window: 20, accuracy: 0.8 },
   /** "Not yet" waits this many hands before José asks again. */
   snoozeHands: 100,
+  /** At Level 1, a sharp player at a busy table gets offered a quiet one (once): more hands an hour. */
+  headsUp: { minHands: 40, window: 50, accuracy: 0.9 },
 };
 
 /** The count plays, in the order they're taught: most valuable first, the ones that draw attention later. */
@@ -100,7 +104,7 @@ export interface Check {
   frac: number;
 }
 export interface NextStep {
-  kind: 'count' | 'plays' | 'tier';
+  kind: 'count' | 'plays' | 'tier' | 'headsUp';
   title: string;
   checks: Check[];
   ready: boolean;
@@ -171,4 +175,17 @@ export function shouldOffer(s: V2Stats, p: Progress): NextStep | null {
   if (handsPlayed(s) < p.askAfter) return null;
   const n = nextStep(s, p);
   return n && n.ready ? n : null;
+}
+
+/**
+ * At Level 1, once you're clearly playing the hands well at a table with other players, José offers a
+ * quiet table: heads up you see about twice the hands, and at this level it's all about speed.
+ */
+export function headsUpOffer(s: V2Stats, p: Progress, othersAtTable: number): NextStep | null {
+  if (p.level !== 1 || p.headsUpOffered || othersAtTable < 1) return null;
+  const t = THRESHOLDS.headsUp;
+  const hands = handsPlayed(s);
+  if (hands < t.minHands) return null;
+  const check = windowCheck('Every hand', fromLog(s.log ?? '', 'hsp'), t.window, t.accuracy);
+  return check.ok ? { kind: 'headsUp', title: 'A quiet table', checks: [check], ready: true } : null;
 }

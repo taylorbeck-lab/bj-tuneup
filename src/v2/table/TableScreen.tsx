@@ -163,6 +163,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const dealerVals = t ? t.dealer.map(valueOf) : [];
   const joseMoment: JoseMoment = (() => {
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
+    if (betting && g.trafficNote) return { kind: 'traffic', seed: round, joined: g.trafficNote.joined, left: g.trafficNote.left, alone: g.layout.spots.length === g.layout.mine.length };
     if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
     if (g.phase === 'dealing') return { kind: 'dealing', seed: round, bigBet };
     if (g.phase === 'insurance') return { kind: 'insurance', seed: round };

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { kvGet, kvSet } from '../store/db';
 import { normalizeRules, DEFAULT_RULES, type Rules } from '../engine/rules';
 import { DEFAULT_PROGRESS, type Progress } from './progress';
+import type { Traffic } from './table/traffic';
 import { MODES, modeMatches } from './modes';
 
 /** A dealer's hand cut: the cut card usually lands within about ±6% of the shoe from the mark. */
@@ -17,8 +18,10 @@ export const SPEEDS: { id: Speed; label: string; card: number; linger: number }[
 
 export interface V2Settings {
   rules: Rules;
-  /** Players at the table including you (1..6). */
+  /** Players at the table including you (1..6), when the table is fixed (traffic off). */
   players: number;
+  /** How busy the table runs: players come and go (quiet, normal, busy), or a fixed number (off). */
+  traffic: Traffic;
   /** Your spot, 1 = first base (dealer's left) .. 6 = third base. */
   seat: number;
   /** Spots you play: 1 or 2. */
@@ -65,6 +68,7 @@ export const DEFAULT_V2: V2Settings = {
   coach: { feedback: 'always', deviations: false, showCount: false, countQuiz: 'off', betCoach: false, practiceMisses: true },
   onboarded: false,
   progress: { ...DEFAULT_PROGRESS },
+  traffic: 'normal',
   defaultsVersion: 2,
 };
 
@@ -100,6 +104,8 @@ export function mergeV2(s?: Partial<V2Settings>): V2Settings {
     spots: s.spots === 2 ? 2 : 1,
     coach: { ...d.coach, ...(s.coach ?? {}) },
     progress: progressFrom(s, { ...d.coach, ...(s.coach ?? {}) }),
+    // settings saved before traffic: a player count someone chose on purpose stays fixed
+    traffic: s.traffic ?? (s.players !== undefined && s.players !== d.players ? 'off' : 'normal'),
   };
 }
 

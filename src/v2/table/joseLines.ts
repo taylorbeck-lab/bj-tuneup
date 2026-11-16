@@ -31,6 +31,8 @@ export type JoseMoment =
       streak: number;
     }
   | { kind: 'shuffling'; seed: number; cut: number; pen: number }
+  /** Someone sat down or got up (table traffic); `alone` = it's just you and José now. */
+  | { kind: 'traffic'; seed: number; joined: number; left: number; alone: boolean }
   | { kind: 'quiet' };
 
 /** A steady pick from a list: the same moment says the same thing, the next round something else. */
@@ -111,6 +113,11 @@ export function joseLine(m: JoseMoment): string | null {
       if (m.cut >= m.pen + 0.03) return pick(['Shuffling. Nice deep cut this time, primo.', 'Fresh shoe, count back to zero. Cut card’s deep, primo.'], m.seed, 16);
       if (m.cut <= m.pen - 0.03) return pick(['Shuffling. Shallow cut, primo. Sorry.', 'Fresh shoe, count back to zero. Cut’s a little shallow.'], m.seed, 17);
       return pick(['Shuffling. Count’s back to zero, primo.', 'Fresh shoe, primo. Count starts over.'], m.seed, 18);
+    case 'traffic':
+      if (m.left && m.alone) return pick(['Just us now, primo. Heads up.', 'Everybody left. Your table now, primo.'], m.seed, 22);
+      if (m.left && m.joined) return pick(['One out, one in. Bets, primo.', 'Musical chairs. Bets, primo.'], m.seed, 23);
+      if (m.left) return pick(['We lost one. More cards for you, primo.', 'Somebody’s done for the night.', 'One less at the table, primo.'], m.seed, 24);
+      return pick(['New player, primo. Bets in.', 'Somebody sat down. Table’s filling up.', 'Company, primo. Bets in.'], m.seed, 25);
     case 'quiet':
       return null;
   }

@@ -7,6 +7,10 @@ import { randomSeed } from '../../engine/rng';
 import { SPEEDS, tableMax, type V2Settings } from '../settings';
 import { thinkFactor, thinkMs, personality } from './pace';
 import { occupiedSpots, dealerCardPos, layoutTable, type TableLayout, type SpotShape } from './layout';
+import { initialBots, betweenHands, atShuffle, type TrafficChange } from './traffic';
+
+/** Who else is at the table right now (kept across screens, like the game itself). */
+let liveBots: { key: string; bots: number[] } | null = null;
 
 export interface PlacedCard {
   id: string;
@@ -48,7 +52,36 @@ export const PEEK_CLEAR_MS = 1100;
  * little longer, finished hands stay on the felt for a realistic beat, then the sweep.
  */
 export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number, ms: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void, paused = false) {
-  const layout = useMemo(() => occupiedSpots(s.players, s.seat, s.spots), [s.players, s.seat, s.spots]);
+  // your spots, and the other players: a fixed number, or people coming and going (table traffic)
+  const mine = useMemo(() => occupiedSpots(1, s.seat, s.spots).mine, [s.seat, s.spots]);
+  const trafficKey = JSON.stringify([s.traffic, mine]);
+  const [bots, setBots] = useState<number[]>(() => {
+    if (s.traffic === 'off') return [];
+    if (liveBots?.key === trafficKey) return liveBots.bots;
+    return initialBots(s.traffic, mine, Math.random);
+  });
+  useEffect(() => {
+    if (s.traffic === 'off') return;
+    if (liveBots?.key === trafficKey) return;
+    const b = initialBots(s.traffic, mine, Math.random);
+    liveBots = { key: trafficKey, bots: b };
+    setBots(b);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trafficKey]);
+  const layout = useMemo(
+    () => (s.traffic === 'off' ? occupiedSpots(s.players, s.seat, s.spots) : { spots: [...mine, ...bots.filter((b) => !mine.includes(b))].sort((a, b) => a - b), mine }),
+    [s.traffic, s.players, s.seat, s.spots, mine, bots],
+  );
+  /** Who just sat down or got up (José mentions it); cleared when the next hand is dealt. */
+  const [trafficNote, setTrafficNote] = useState<TrafficChange | null>(null);
+  const moveTraffic = (kind: 'hand' | 'shuffle') => {
+    if (s.traffic === 'off') return;
+    const ch = (kind === 'shuffle' ? atShuffle : betweenHands)(bots, s.traffic, mine, Math.random);
+    if (!ch.joined && !ch.left) return;
+    liveBots = { key: trafficKey, bots: ch.bots };
+    setBots(ch.bots);
+    setTrafficNote(ch);
+  };
   const speed = SPEEDS.find((x) => x.id === s.speed)!;
   const tableRef = useRef<Table | null>(null);
   const [tick, setTick] = useState(0);
@@ -64,6 +97,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
 
   // (re)create the table when the setup changes
   const setupKey = JSON.stringify([s.rules, layout, !!chart]);
+  /** The saved shoe belongs to the game (the rules), not to who's sitting at the table. */
+  const shoeKey = JSON.stringify([s.rules, !!chart]);
   const restoring = useRef(false);
   /** When your current decision started (for your pace and the table-is-waiting cue). */
   const turnStarted = useRef(Date.now());
@@ -84,6 +119,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     const humanSeats = layout.mine.map((sp) => seatOfSpot.get(sp)!);
     const min = s.tableMin;
     paces.current = {};
+    // someone sat down or got up between hands: same game, same shoe, same count
+    const prev = tableRef.current;
+    const carry = prev && JSON.stringify(prev.rules) === JSON.stringify(s.rules) && (prev.phase === 'bet' || prev.phase === 'settled') ? { shoe: prev.snapshotShoe(), logs: prev.logs } : null;
     tableRef.current = new Table({
       rules: s.rules,
       seats: layout.spots.length,
@@ -98,15 +136,22 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       peekPause: true,
     });
     placed.current = [];
-    setPhase('betting');
     setResult(null);
+    if (carry && tableRef.current.restoreShoe(carry.shoe)) {
+      tableRef.current.logs = carry.logs;
+      // between hands nothing is on the felt; the end of the shoe and the shuffle carry on as they were
+      setPhase((ph) => (ph === 'endOfShoe' || ph === 'shuffling' ? ph : 'betting'));
+      bump();
+      return;
+    }
+    setPhase('betting');
     bump();
     // a saved shoe for this same game picks up mid-shoe (count and all)
     const fresh = tableRef.current;
     restoring.current = true;
     kvGet<{ key: string; shoe: ShoeSnapshot }>(SHOE_KEY)
       .then((saved) => {
-        if (saved && saved.key === setupKey && tableRef.current === fresh && fresh.restoreShoe(saved.shoe)) bump();
+        if (saved && saved.key === shoeKey && tableRef.current === fresh && fresh.restoreShoe(saved.shoe)) bump();
       })
       .catch(() => {})
       .finally(() => (restoring.current = false));
@@ -117,7 +162,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   useEffect(() => {
     const tb = tableRef.current;
     if (phase !== 'betting' || !tb || restoring.current) return;
-    void kvSet(SHOE_KEY, { key: setupKey, shoe: tb.snapshotShoe() });
+    void kvSet(SHOE_KEY, { key: shoeKey, shoe: tb.snapshotShoe() });
   }, [phase, tick, setupKey]);
 
   const t = tableRef.current;
@@ -168,7 +213,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   }, [layout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // card placements are derived from the engine on every render (ids stay stable)
-  if (t) sync();
+  // (when someone has just sat down or got up, the seats change one render before the table is rebuilt:
+  // keep the felt as it was until they match)
+  if (t && t.seats.length === layout.spots.length) sync();
   if (t) live = { key: setupKey, table: t, phase, result, placed: placed.current, idSeq: idSeq.current };
 
   // the automatic dealer loop
@@ -237,13 +284,17 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
         placed.current = [];
         setResult(null);
         // the cut card is out: José stops for the end of the shoe before he shuffles
-        setPhase(tableRef.current?.needsShuffle ? 'endOfShoe' : 'betting');
+        const cut = !!tableRef.current?.needsShuffle;
+        if (!cut) moveTraffic('hand');
+        setPhase(cut ? 'endOfShoe' : 'betting');
       }, 450);
       return () => clearTimeout(id);
     }
     if (phase === 'shuffling') {
       // the shoe was shuffled and cut as this began (so the cut card can be shown going in)
       const id = setTimeout(() => {
+        // the shuffle is when people come and go
+        moveTraffic('shuffle');
         setPhase('betting');
         bump();
       }, SHUFFLE_MS);
@@ -259,6 +310,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       if (si !== undefined) bySeat[si] = Math.min(amt, tableMax(s.tableMin));
     }
     placed.current = [];
+    setTrafficNote(null);
     t.placeBet(bySeat);
     if (practice) t.stackPractice(practice.values, practice.up);
     setResult(null);
@@ -322,6 +374,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     speed,
     /** The dealer just checked and doesn't have blackjack. */
     peekClear,
+    /** Who just sat down or got up. */
+    trafficNote,
     spotOfSeat,
     seatOfSpot,
     /** Hand values of the active human hand. */
