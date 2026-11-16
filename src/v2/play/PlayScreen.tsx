@@ -10,7 +10,9 @@ import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
-import { EndOfShoe } from '../count/EndOfShoe';
+import { ShoeEnd } from '../course/LevelUp';
+import { playsForTier } from '../progress';
+import { handTotal } from '../../engine/cards';
 import { useEdgeModel } from '../../store/edge';
 import { countWords } from '../count/words';
 import { gradeBet, recommendedUnits } from '../count/bet';
@@ -39,6 +41,8 @@ export function PlayScreen() {
   const st = useStrategy(s.rules);
   const { plays } = useIndexPlays(s.rules, st.chart);
   const edgeModel = useEdgeModel(s.rules, st.chart);
+  /** The count plays you're held to: at Level 3 they come a few at a time (see progress.ts). */
+  const graded = s.progress.level === 3 ? playsForTier(plays, s.progress.tier) : plays;
   const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
   const setCard: typeof setCardState = (v) =>
     setCardState((cur) => {
@@ -102,7 +106,9 @@ export function PlayScreen() {
           onTray: () => tableRef.current && setCountMenu(true),
           // the end-of-shoe count check and shoe review are for counters (Count & bet, Full AP); in Basic
           // strategy José just shuffles up
-          endOfShoe: (t, done) => (s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations ? <EndOfShoe table={t} model={edgeModel} onDone={done} /> : null),
+          // the end of the shoe: José's count check and shoe review (when counting), then his offer to
+          // move you up when your stats say you're ready; otherwise he just shuffles
+          endOfShoe: (t, done) => <ShoeEnd table={t} model={edgeModel} plays={plays} onDone={done} />,
           feltExtra: (t) => {
             tableRef.current = t;
             if (!t || !s.coach.showCount) return null;
@@ -137,8 +143,9 @@ export function PlayScreen() {
             const order = t.seats.map((x, i) => (x.hands.length ? i : -1)).filter((i) => i >= 0);
             const me = order.findIndex((i) => t.seats[i].human);
             recordPace(order.length <= 1 ? 'solo' : me === 0 ? 'first' : me === order.length - 1 ? 'third' : 'middle', ms);
-            const v = gradeDecision(snap, st.chart, plays, s.coach.deviations, n.current++);
-            recordDecision(v.key, v.hand, v.right, !!v.countPlay);
+            const v = gradeDecision(snap, st.chart, graded, s.coach.deviations, n.current++);
+            const kind = snap.values.length === 2 && snap.values[0] === snap.values[1] ? 'pair' : handTotal(snap.values).soft ? 'soft' : 'hard';
+            recordDecision(v.key, v.hand, v.right, !!v.countPlay, kind);
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
             const practiced = practiceKey.current === v.key;
             let msg: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
@@ -164,7 +171,7 @@ export function PlayScreen() {
             });
           },
           onInsurance: (take, t) => {
-            const v = gradeInsurance(take, t.unseen(), t.tcPlayer(), plays, s.coach.deviations);
+            const v = gradeInsurance(take, t.unseen(), t.tcPlayer(), graded, s.coach.deviations);
             recordInsurance(v.right);
             pushEvent(`Insurance at true count ${t.tcPlayer()}: ${take ? 'took it' : 'declined'}, ${v.right ? 'right' : 'wrong'}.`);
             const f = insuranceFeedback(v.right, v.shouldTake, s.coach.deviations);

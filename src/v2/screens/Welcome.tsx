@@ -1,7 +1,9 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { useV2, tableMax } from '../settings';
+import { useV2, tableMax, type V2Settings } from '../settings';
+import { levelSettings } from '../course/LevelUp';
+import { LEVEL_NAME } from '../progress';
 import { BRAND } from '../brand';
-import { MODES, modeMatches } from '../modes';
+import { MODES } from '../modes';
 import { money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
 
@@ -17,8 +19,9 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
   const deck = s.rules.decks === 1 ? 'single deck' : s.rules.decks === 2 ? 'double deck' : `${s.rules.decks} decks`;
   const returning = s.onboarded;
   const [i, setI] = useState(0);
-  const enter = (coach?: Partial<typeof s.coach>) => {
-    set({ onboarded: true, ...(coach ? { coach: { ...s.coach, ...coach } } : {}) });
+  const [apOpen, setApOpen] = useState(false);
+  const enter = (patch: Partial<V2Settings> = {}) => {
+    set({ onboarded: true, ...patch });
     onEnter();
   };
 
@@ -119,22 +122,47 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
       key: 'start',
       body: (
         <>
-          <h1 className="intro-h">{returning ? 'Play in' : 'Where do you start?'}</h1>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {MODES.map((m, k) => {
-              const on = returning ? modeMatches(s.coach, m.coach) : k === 0;
-              return (
-                <button key={m.title} className={'act ' + (on ? 'stand' : 'quiet')} style={{ textAlign: 'left', padding: '9px 14px', minHeight: 0 }} onClick={() => enter(m.coach)}>
+          <h1 className="intro-h">{returning ? 'Back to the table' : 'Where everyone starts'}</h1>
+          {returning ? (
+            <button className="act stand intro-choice" onClick={() => enter()}>
+              <span className="display" style={{ fontSize: 19 }}>
+                Keep playing
+              </span>{' '}
+              <span className="serif" style={{ fontSize: 16, textTransform: 'none' }}>
+                Level {s.progress.level} · {LEVEL_NAME[s.progress.level]}
+              </span>
+            </button>
+          ) : (
+            <>
+              <Jose>Everybody starts with the hands, even people who say they know them. When your play shows you’re ready, I’ll move you up: counting, then the count plays.</Jose>
+              <button className="act stand intro-choice" onClick={() => enter(levelSettings(s, 1, { tier: 1, auto: true, askAfter: 0 }))}>
+                <span className="display" style={{ fontSize: 19 }}>
+                  Start at the beginning
+                </span>{' '}
+                <span className="serif" style={{ fontSize: 16, textTransform: 'none' }}>
+                  Level 1 · Basic strategy
+                </span>
+              </button>
+            </>
+          )}
+          {s.progress.level < 3 &&
+            (apOpen ? (
+              <div className="intro-ap">
+                <p className="intro-p">
+                  <b>Full AP from the first hand.</b> You already count Hi-Lo, size your bets by the true count and know the count plays. Every hand is graded against the
+                  count, every bet against your edge, and I’ll check your count at every shoe.
+                </p>
+                <button className="act hit intro-choice" onClick={() => enter(levelSettings(s, 3, { tier: 3, auto: true }))}>
                   <span className="display" style={{ fontSize: 19 }}>
-                    Level {k + 1} · {m.title}
-                  </span>{' '}
-                  <span className="serif" style={{ fontSize: 16, textTransform: 'none' }}>
-                    {m.sub}
+                    That’s me: unlock it all
                   </span>
                 </button>
-              );
-            })}
-          </div>
+              </div>
+            ) : (
+              <button className="intro-skip intro-ap-link" onClick={() => setApOpen(true)}>
+                I’m already an advantage player ›
+              </button>
+            ))}
           <ul className="muted tips">
             <li>
               <b>Tap the discard tray</b> to be tested on the count, or just ask José.
@@ -146,7 +174,7 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
               <b>Tap José’s note</b> for the full why on any move.
             </li>
             <li>
-              <b>Tap the logo</b> on the table to come back here. Down by your chips: <b>★</b> stats · <b>▦</b> charts · <b>⚙</b> settings.
+              <b>Tap the logo</b> on the table to come back here. Down by your chips: <b>★</b> stats and your progress · <b>▦</b> charts · <b>⚙</b> settings.
             </li>
           </ul>
           <p className="muted" style={{ fontSize: 11, lineHeight: 1.45, margin: 0 }}>

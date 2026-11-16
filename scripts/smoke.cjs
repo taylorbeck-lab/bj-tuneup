@@ -42,7 +42,8 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   await p.goto(URL); await wait(1200);
   let cards = 1; while (await p.getByRole('button', { name: 'Next ›' }).count()) { await p.getByRole('button', { name: 'Next ›' }).click(); cards++; await wait(150); }
   ok('intro: six cards with Next', cards === 6, `cards=${cards}`);
-  await p.getByRole('button', { name: /Level 1 · Basic strategy/ }).click(); await wait(1200);
+  ok('intro: everyone starts at the beginning, APs can unlock', (await p.getByRole('button', { name: /Start at the beginning/ }).count()) === 1 && (await p.getByRole('button', { name: /already an advantage player/ }).count()) === 1);
+  await p.getByRole('button', { name: /Start at the beginning/ }).click(); await wait(1200);
   ok('intro → table', (await p.locator('.felt').count()) === 1);
 
   // B. play hands
@@ -130,6 +131,7 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   ok('bankroll reset reaches the table', (await bankroll()) === '$1,000', await bankroll());
   await p.goto(URL + '#/stats'); await wait(800);
   ok('stats reset', /0 of 0 decisions/.test(await p.locator('.page').innerText()));
+  ok('stats show the course', /Your level/i.test(await p.locator('.course').innerText()));
   await p.reload(); await wait(1200);
   ok('stats reset survives reload', /0 of 0 decisions/.test(await p.locator('.page').innerText()));
 

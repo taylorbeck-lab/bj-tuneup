@@ -1,0 +1,129 @@
+import { useEffect, useRef, useState } from 'react';
+import { useV2, type V2Settings } from '../settings';
+import { MODES } from '../modes';
+import { loadStats, handsPlayed } from '../stats';
+import { shouldOffer, newPlaysAt, describePlay, THRESHOLDS, LEVEL_NAME, type Level, type NextStep, type Progress, type Tier } from '../progress';
+import { EndOfShoe } from '../count/EndOfShoe';
+import type { Table } from '../../engine/game';
+import type { IndexPlay } from '../../engine/indices';
+import type { EdgeModel } from '../../engine/edge';
+
+/** The settings for a level: the coach the mode uses, and where the course stands. */
+export function levelSettings(s: V2Settings, level: Level, extra: Partial<Progress> = {}): Partial<V2Settings> {
+  return { coach: { ...s.coach, ...MODES[level - 1].coach }, progress: { ...s.progress, level, ...extra } };
+}
+
+/**
+ * The end of the shoe, in order: José's count check and the shoe review (when you're counting),
+ * then, if your stats say you're ready, his offer to move you up. With nothing to show he just
+ * shuffles.
+ */
+export function ShoeEnd({ table, model, plays, onDone }: { table: Table; model?: EdgeModel; plays: IndexPlay[]; onDone: () => void }) {
+  const { s } = useV2();
+  const counting = s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations;
+  const [step, setStep] = useState<'count' | 'offer'>(counting ? 'count' : 'offer');
+  const [offer, setOffer] = useState<NextStep | null | undefined>(undefined);
+  const finished = useRef(false);
+  const done = () => {
+    if (finished.current) return;
+    finished.current = true;
+    onDone();
+  };
+  useEffect(() => {
+    if (step !== 'offer') return;
+    let live = true;
+    // the shoe's own result is saved first, so it counts toward the offer
+    void loadStats().then((st) => live && setOffer(shouldOffer(st, s.progress)));
+    return () => {
+      live = false;
+    };
+  }, [step, s.progress]);
+  useEffect(() => {
+    if (step === 'offer' && offer === null) done();
+  });
+
+  if (step === 'count') return <EndOfShoe table={table} model={model} onDone={() => setStep('offer')} />;
+  if (!offer) return null;
+  return <LevelUp step={offer} plays={plays} onClose={done} />;
+}
+
+/** José's offer to move you up, with what's coming in a few lines. */
+export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: IndexPlay[]; onClose: () => void }) {
+  const { s, set } = useV2();
+  const p = s.progress;
+  const later = async () => {
+    const st = await loadStats();
+    set({ progress: { ...p, askAfter: handsPlayed(st) + THRESHOLDS.snoozeHands } });
+    onClose();
+  };
+  const accept = () => {
+    if (step.kind === 'count') set(levelSettings(s, 2));
+    else if (step.kind === 'plays') set(levelSettings(s, 3, { tier: 1 }));
+    else set({ progress: { ...p, tier: Math.min(3, p.tier + 1) as Tier } });
+    onClose();
+  };
+  const nextTier: Tier = step.kind === 'plays' ? 1 : (Math.min(3, p.tier + 1) as Tier);
+  const list = step.kind === 'count' ? [] : newPlaysAt(plays, nextTier).map(describePlay);
+  const shown = list.slice(0, 8);
+
+  return (
+    <div className="sheet-back">
+      <div className="sheet" role="dialog" aria-label="José moves you up">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img className="jose-mini" src={`${import.meta.env.BASE_URL}brand/jose-avatar.jpg`} alt="" />
+          <span className="display" style={{ fontSize: 28, lineHeight: 1 }}>
+            {step.kind === 'count' ? 'Ready to count, primo' : step.kind === 'plays' ? 'Time to bend the rules' : 'A few more, primo'}
+          </span>
+        </div>
+        {step.kind === 'count' && (
+          <>
+            <p className="levelup-say">You’ve got the hands down, the rare ones too. Now the fun part: keep the count.</p>
+            <div className="hilo light" role="table" aria-label="The Hi-Lo count">
+              <div role="row" className="hilo-col up">
+                <b role="cell">Up 1</b>
+                <span role="cell">2 3 4 5 6</span>
+              </div>
+              <div role="row" className="hilo-col even">
+                <b role="cell">Nothing</b>
+                <span role="cell">7 8 9</span>
+              </div>
+              <div role="row" className="hilo-col down">
+                <b role="cell">Down 1</b>
+                <span role="cell">10 J Q K A</span>
+              </div>
+            </div>
+            <ul className="levelup-list">
+              <li>I’ll ask your count at the end of every shoe, and test you now and then (tap the discard tray to ask me any time).</li>
+              <li>Bet with it: more when the true count is up, the minimum when it isn’t. I’ll tell you how each bet was.</li>
+            </ul>
+          </>
+        )}
+        {step.kind !== 'count' && (
+          <>
+            <p className="levelup-say">
+              {step.kind === 'plays'
+                ? 'Your count’s good and your bets follow it. At the right count, a few plays change. Here are the ones that matter most:'
+                : 'You’ve got those down. Here are the next ones I’ll hold you to:'}
+            </p>
+            <ul className="levelup-list plays">
+              {shown.map((l) => (
+                <li key={l}>{l}</li>
+              ))}
+              {list.length > shown.length && <li className="muted">…and {list.length - shown.length} more (the chart’s Count plays view has them all)</li>}
+            </ul>
+            {step.kind === 'plays' && <p className="levelup-note">More come once these are second nature.</p>}
+          </>
+        )}
+        <button className="act stand" onClick={accept}>
+          {step.kind === 'count' ? 'Let’s count' : step.kind === 'plays' ? 'Let’s go' : 'Add them'}
+        </button>
+        <button className="act" onClick={() => void later()}>
+          Not yet
+        </button>
+        <p className="levelup-note">
+          Now: Level {p.level} · {LEVEL_NAME[p.level]}. You can change your level any time in Settings.
+        </p>
+      </div>
+    </div>
+  );
+}
