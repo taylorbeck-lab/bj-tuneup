@@ -19,23 +19,25 @@ export const CARD_W = W_MINE;
 export const CARD_H = W_MINE * CARD_RATIO;
 
 /** The printed logo on the felt (tap it for the intro). */
-export const LOGO_BOX = { x: 38.5, y: 50.3, w: 23, h: 19.6 };
+export const LOGO_BOX = { x: 37.35, y: 47.4, w: 25.3, h: 21.56 };
 
 export const SHOE = { x: 84, y: 2.5 };
 export const TRAY = { x: 5, y: 2.5 };
 
 /**
- * Spots sit on an arc following the front of the table, around the logo. The angles, the lift of the
- * second and fifth seats and the card sizes were tuned so the opening deal and a hit rarely nudge a
- * hand (measured over every table size and seat).
+ * Spots sit on an arc parallel to the rail: the table's front ellipse drawn 15.5 units in, so the
+ * circles follow the curve of the leather, evenly spaced along it. Each seat's cards sit above its
+ * circle; the outer seats' cards sit higher (they're the ones beside a neighbour on a flatter arc).
+ * Angles and lifts were chosen by sweeping geometries over every table size and seat
+ * (fewest hands nudged off their spot, zero overlaps).
  */
-const ARC = { x: 50, y: 30, a: 44, b: 50.5 };
-/** Angle of each spot on the arc (first base to third base). */
-let ANGLES = [24, 50, 76, 104, 130, 156];
+const ARC = { x: 50, y: FRONT.cy, a: FRONT.rx - 15.5, b: FRONT.ry - 15.5 };
+/** Angle of each spot on the arc (first base to third base), evenly spaced by arc length. */
+let ANGLES = [44, 63.2, 81.2, 98.8, 116.8, 136];
 /** How far above its circle a hand's first card sits. */
 let BASE_DY = 8.5;
-/** Extra lift for each spot's cards (outer seats sit a little higher so hands don't meet). */
-let LIFT = [0, 2, 0, 0, 2, 0];
+/** Extra lift for each spot's cards. */
+let LIFT = [12, 3, 0, 0, 3, 12];
 const angle = (spot: number) => (ANGLES[spot - 1] * Math.PI) / 180;
 
 /** For tuning the geometry in tests only. */

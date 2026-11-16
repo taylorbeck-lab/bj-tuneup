@@ -277,6 +277,9 @@ a {
     font-size: 16px;
     padding: 5px 10px 6px;
   }
+  .jose-say.fb {
+    font-size: 15px;
+  }
 }
 
 /* loading splash (never a blank page) */
@@ -965,7 +968,7 @@ a {
 }
 .fb-say {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
