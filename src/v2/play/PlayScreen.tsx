@@ -100,7 +100,9 @@ export function PlayScreen() {
           },
           // the count lives in the discard tray: tap it to be tested, or to ask
           onTray: () => tableRef.current && setCountMenu(true),
-          endOfShoe: (t, done) => <EndOfShoe table={t} model={edgeModel} counting={s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations} onDone={done} />,
+          // the end-of-shoe count check and shoe review are for counters (Count & bet, Full AP); in Basic
+          // strategy José just shuffles up
+          endOfShoe: (t, done) => (s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations ? <EndOfShoe table={t} model={edgeModel} onDone={done} /> : null),
           feltExtra: (t) => {
             tableRef.current = t;
             if (!t || !s.coach.showCount) return null;
@@ -149,7 +151,7 @@ export function PlayScreen() {
                 if (pv && shouldPreview(previews.current[pv.play.id] ?? 0, Math.random())) {
                   previews.current = { ...previews.current, [pv.play.id]: (previews.current[pv.play.id] ?? 0) + 1 };
                   kvSet('v2previews', previews.current);
-                  line = `Later: ${ACTION_LABEL[pv.action].toLowerCase()} here at ${pv.when}.`;
+                  line = `When counting: ${ACTION_LABEL[pv.action].toLowerCase()} here at ${pv.when}.`;
                   msg = { ...msg, text: `${v.why} Next level: this is a count play. Counters ${ACTION_LABEL[pv.action].toLowerCase()} ${v.hand} when the true count is ${pv.when}; you'll learn it with count plays.` };
                 }
               }
