@@ -85,3 +85,5 @@ Pushing to `main` runs `.github/workflows/deploy.yml`, which tests, builds and p
 **One setting:** repository *Settings → Pages → Build and deployment → Source: **GitHub Actions***.
 
 Version 1 (the full analysis suite) is preserved in git history at commit `3d979b7`.
+
+**Smoke test:** with the built app running (`npm run build && npm run preview`), `npm run smoke` drives the core flows in Chromium (Playwright) and fails on any broken button or console error.

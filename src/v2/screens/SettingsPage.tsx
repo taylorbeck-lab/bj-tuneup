@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { HAND_CUT, useV2, SPEEDS, tableMax, type V2Settings } from '../settings';
 import { MODES, modeMatches } from '../modes';
 import { resetStats } from '../stats';
@@ -46,6 +46,16 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 export function SettingsPage() {
   const { s, set } = useV2();
   const { br, reset } = useBankroll(s.startBankroll);
+  /**
+   * Resets ask first in a sheet of our own: the phone's built-in confirm box can fail to show in an
+   * app added to the home screen (and then the reset silently never happens).
+   */
+  const [ask, setAsk] = useState<{ title: string; body: string; yes: string; run: () => Promise<unknown> | void; danger?: boolean } | null>(null);
+  const [done, setDone] = useState<Record<string, string>>({});
+  const flash = (k: string, msg: string) => {
+    setDone((d) => ({ ...d, [k]: msg }));
+    setTimeout(() => setDone((d) => ({ ...d, [k]: '' })), 3500);
+  };
   const r = s.rules;
   const R = (p: Partial<Rules>) => set({ rules: normalizeRules({ ...r, ...p }) });
   const C = (p: Partial<V2Settings['coach']>) => set({ coach: { ...s.coach, ...p } });
@@ -170,18 +180,55 @@ export function SettingsPage() {
               Show me
             </a>
           </Row>
-          <Row label="Reset bankroll" hint={`Back to ${money(s.startBankroll)} of play money`}>
-            <button className="pill" onClick={() => confirm(`Reset your bankroll to ${money(s.startBankroll)}?`) && reset(s.startBankroll)}>
+          <Row label="Reset bankroll" hint={done.bankroll || `Back to ${money(s.startBankroll)} of play money`}>
+            <button
+              className="pill"
+              onClick={() =>
+                setAsk({
+                  title: 'Reset bankroll?',
+                  body: `Your bankroll goes back to ${money(s.startBankroll)} of play money.`,
+                  yes: 'Reset bankroll',
+                  run: async () => {
+                    await reset(s.startBankroll);
+                    flash('bankroll', `Done: ${money(s.startBankroll)}`);
+                  },
+                })
+              }
+            >
               Reset
             </button>
           </Row>
-          <Row label="Reset stats" hint="Your record and missed hands">
-            <button className="pill" onClick={() => confirm('Reset all your stats? This cannot be undone.') && resetStats()}>
+          <Row label="Reset stats" hint={done.stats || 'Your record and missed hands'}>
+            <button
+              className="pill"
+              onClick={() =>
+                setAsk({
+                  title: 'Reset stats?',
+                  body: 'Your record, count checks and missed hands are cleared. This can’t be undone.',
+                  yes: 'Reset stats',
+                  run: async () => {
+                    await resetStats();
+                    flash('stats', 'Done: stats cleared');
+                  },
+                })
+              }
+            >
               Reset
             </button>
           </Row>
           <Row label="Start fresh" hint="Like opening the link for the first time">
-            <button className="pill coral" onClick={() => confirm('Start completely fresh? Your settings, bankroll and stats on this device will be erased.') && void startFresh()}>
+            <button
+              className="pill coral"
+              onClick={() =>
+                setAsk({
+                  title: 'Start fresh?',
+                  body: 'Your settings, bankroll and stats on this device are erased, and the app opens like the first time.',
+                  yes: 'Start fresh',
+                  danger: true,
+                  run: () => startFresh(),
+                })
+              }
+            >
               Start fresh
             </button>
           </Row>
@@ -205,6 +252,29 @@ export function SettingsPage() {
           {BRAND.long} · practice only, play money. {LEGAL_LINE}
         </p>
       </div>
+      {ask && (
+        <div className="sheet-back" onClick={() => setAsk(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={ask.title}>
+            <span className="display" style={{ fontSize: 28 }}>
+              {ask.title}
+            </span>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.45 }}>{ask.body}</p>
+            <button
+              className={'act ' + (ask.danger ? 'hit' : 'stand')}
+              onClick={async () => {
+                const a = ask;
+                setAsk(null);
+                await a.run();
+              }}
+            >
+              {ask.yes}
+            </button>
+            <button className="act" onClick={() => setAsk(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

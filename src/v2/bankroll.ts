@@ -20,7 +20,7 @@ export function useBankroll(startDefault: number) {
   }, []);
   const save = (b: Bankroll) => {
     setBr(b);
-    kvSet('v2bankroll', b);
+    return kvSet('v2bankroll', b);
   };
   const settle = useCallback((net: number) => {
     setBr((prev) => {
