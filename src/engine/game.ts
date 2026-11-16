@@ -111,6 +111,18 @@ export interface TableOptions {
   botMistakeRate?: number;
 }
 
+export interface ShoeSnapshot {
+  cards: CardId[];
+  pos: number;
+  cutIndex: number;
+  burned: CardId[];
+  rc: number;
+  seenCount: number;
+  needsShuffle: boolean;
+  shoesPlayed: number;
+  round: number;
+}
+
 export class Table {
   readonly rules: Rules;
   readonly shoe: Shoe;
@@ -246,6 +258,49 @@ export class Table {
       placements.push({ offset: w.offset, card: this.shoe.cards[i] });
     }
     return this.shoe.stackAt(placements);
+  }
+
+  /**
+   * The shoe and the count, saved between hands so the game survives a reload: the card order,
+   * how far it's dealt, the burn card, the cut card, and the running count.
+   */
+  snapshotShoe(): ShoeSnapshot {
+    const sh = this.shoe;
+    return {
+      cards: sh.cards.slice(),
+      pos: sh.pos,
+      cutIndex: sh.cutIndex,
+      burned: sh.burned.slice(),
+      rc: this.rc,
+      seenCount: this.seenCount,
+      needsShuffle: this.needsShuffle,
+      shoesPlayed: this.shoesPlayed,
+      round: this.round,
+    };
+  }
+
+  /** Put a saved shoe back (between hands only). Returns false if it doesn't fit this table. */
+  restoreShoe(s: ShoeSnapshot): boolean {
+    const sh = this.shoe;
+    if ((this.phase !== 'bet' && this.phase !== 'settled') || s.cards.length !== sh.cards.length || s.pos < 0 || s.pos > s.cards.length) return false;
+    sh.cards = s.cards.slice();
+    sh.pos = s.pos;
+    sh.cutIndex = s.cutIndex;
+    sh.burned = s.burned.slice();
+    const byValue = new Array(11).fill(0);
+    const byCard = new Array(52).fill(0);
+    for (let i = s.pos; i < s.cards.length; i++) {
+      byValue[valueOf(s.cards[i])]++;
+      byCard[s.cards[i]]++;
+    }
+    sh.remainingByValue = byValue;
+    sh.remainingByCard = byCard;
+    this.rc = s.rc;
+    this.seenCount = s.seenCount;
+    this.needsShuffle = s.needsShuffle;
+    this.shoesPlayed = s.shoesPlayed;
+    this.round = s.round;
+    return true;
   }
 
   reshuffle(): void {

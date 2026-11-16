@@ -245,3 +245,48 @@ describe('practice stacking', () => {
     }
   });
 });
+
+describe('shoe snapshot (survives a reload)', () => {
+  it('restores the shoe, the position and the count exactly, and the next hand deals the same cards', async () => {
+    const { Table } = await import('../src/engine/game');
+    const { generateBasicStrategy } = await import('../src/engine/strategy/generate');
+    const { DEFAULT_V2 } = await import('../src/v2/settings');
+    const rules = DEFAULT_V2.rules;
+    const chart = generateBasicStrategy(rules).chart;
+    const mk = (seed: number) => new Table({ rules, seats: 3, humanSeat: 1, chart, seed, granularity: 0.5, rounding: 'floor' });
+    const a = mk(11);
+    for (let r = 0; r < 4; r++) {
+      a.placeBet(10);
+      let g = 0;
+      while (a.phase !== 'settled' && g++ < 400) {
+        if (a.waitingForHuman) {
+          if (a.phase === 'insurance') a.insure(false);
+          else a.act('stand');
+        } else a.step();
+      }
+    }
+    const snap = JSON.parse(JSON.stringify(a.snapshotShoe()));
+    const b = mk(999);
+    expect(b.restoreShoe(snap)).toBe(true);
+    expect(b.rc).toBe(a.rc);
+    expect(b.shoe.remaining).toBe(a.shoe.remaining);
+    expect(b.shoe.remainingByValue).toEqual(a.shoe.remainingByValue);
+    expect(b.tcPlayer()).toBe(a.tcPlayer());
+    a.placeBet(10);
+    b.placeBet(10);
+    while (a.phase === 'deal') a.step();
+    while (b.phase === 'deal') b.step();
+    expect(b.dealer[0]).toBe(a.dealer[0]);
+    expect(b.seats[1].hands[0].cards).toEqual(a.seats[1].hands[0].cards);
+  });
+  it('refuses a snapshot from a different shoe size', async () => {
+    const { Table } = await import('../src/engine/game');
+    const { generateBasicStrategy } = await import('../src/engine/strategy/generate');
+    const { DEFAULT_V2 } = await import('../src/v2/settings');
+    const two = DEFAULT_V2.rules;
+    const six = { ...two, decks: 6 as const };
+    const t2 = new Table({ rules: two, seats: 2, humanSeat: 0, chart: generateBasicStrategy(two).chart, seed: 1, granularity: 0.5, rounding: 'floor' });
+    const t6 = new Table({ rules: six, seats: 2, humanSeat: 0, chart: generateBasicStrategy(six).chart, seed: 1, granularity: 0.5, rounding: 'floor' });
+    expect(t6.restoreShoe(t2.snapshotShoe())).toBe(false);
+  });
+});

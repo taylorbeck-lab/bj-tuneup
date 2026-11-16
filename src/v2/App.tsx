@@ -8,6 +8,7 @@ import { Welcome } from './screens/Welcome';
 import { StatsPage } from './screens/StatsPage';
 import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
+import { applyUpdateIfReady } from './update';
 const CoachPage = lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage })));
 
 const SEEN = 'elPrimoHomeSeen';
@@ -44,6 +45,8 @@ export function App() {
         onEnter={() => {
           markSeen();
           if (path === '/home') navigate('/');
+          // no hand is in play at the front door: the safe moment to switch to a new version
+          applyUpdateIfReady();
         }}
       />
     );

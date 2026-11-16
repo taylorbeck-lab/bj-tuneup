@@ -35,6 +35,9 @@ export interface TableHooks {
 }
 
 
+/** Chips you've put out but not dealt yet (kept while you look at the chart). */
+let pendingBets: Record<number, number> = {};
+
 export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const { s } = useV2();
   const st = useStrategy(s.rules);
@@ -52,7 +55,11 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   );
   tRef.current = g.table;
   const t = g.table;
-  const [bets, setBets] = useState<Record<number, number>>({});
+  const [bets, setBetsState] = useState<Record<number, number>>(() => pendingBets);
+  const setBets = (b: Record<number, number>) => {
+    pendingBets = b;
+    setBetsState(b);
+  };
   const [lastBets, setLastBets] = useState<Record<number, number>>({});
   /** Like a real table: after a win or a push your bet stays in the circle; after a loss it's gone. */
   const carry = useRef<Record<number, number> | null>(null);
