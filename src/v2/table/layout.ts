@@ -1,16 +1,18 @@
 /**
- * Table geometry in container units (cqw: 1 = 1% of the felt width; the felt is FELT_H units tall).
- * The felt runs edge to edge with a black rail around the curved side. Spots follow the rail on an
- * arc and are numbered like a real table: 1 = first base (dealer's left, right side of the screen)
- * through 6 = third base. Every card has a fixed home; nothing reflows.
+ * Table geometry in container units (cqw: 1 = 1% of the screen's width; the felt is FELT_H units tall).
+ * The table is wider than the screen: the felt fills it edge to edge and runs off both sides, with a
+ * gentle curve along the front and a black rail. Spots follow the rail on an arc and are numbered like
+ * a real table: 1 = first base (dealer's left, right side of the screen) through 6 = third base.
  */
 export const MAX_SPOTS = 6;
-export const FELT_H = 122;
+export const FELT_H = 95;
+/** The front of the table: an ellipse much wider than the screen, so only a soft curve shows. */
+export const FRONT = { cx: 50, cy: 36, rx: 75, ry: 59 };
 export const RAIL = 3.4;
 export const CARD_RATIO = 1.4;
 /** Card widths: your cards are larger, other players' smaller, dealer in between. */
-export const W_MINE = 12.4;
-export const W_OTHER = 9.6;
+export let W_MINE = 11;
+export let W_OTHER = 8.6;
 export const W_DEALER = 11.4;
 export const CARD_W = W_MINE;
 export const CARD_H = W_MINE * CARD_RATIO;
@@ -18,9 +20,31 @@ export const CARD_H = W_MINE * CARD_RATIO;
 export const SHOE = { x: 84, y: 2.5 };
 export const TRAY = { x: 5, y: 2.5 };
 
-/** Spots sit on an arc parallel to the rail. */
-const ARC = { x: 50, y: 70, a: 37.5, b: 40 };
-const angle = (spot: number) => ((12 + ((spot - 1) * 156) / (MAX_SPOTS - 1)) * Math.PI) / 180;
+/**
+ * Spots sit on an arc following the front of the table, around the logo. The angles, the lift of the
+ * second and fifth seats and the card sizes were tuned so the opening deal and a hit rarely nudge a
+ * hand (measured over every table size and seat).
+ */
+const ARC = { x: 50, y: 30, a: 44, b: 52 };
+/** Angle of each spot on the arc (first base to third base). */
+let ANGLES = [24, 50, 76, 104, 130, 156];
+/** How far above its circle a hand's first card sits. */
+let BASE_DY = 8.5;
+/** Extra lift for each spot's cards (outer seats sit a little higher so hands don't meet). */
+let LIFT = [0, 2, 0, 0, 2, 0];
+const angle = (spot: number) => (ANGLES[spot - 1] * Math.PI) / 180;
+
+/** For tuning the geometry in tests only. */
+export function __setGeometry(g: { a?: number; b?: number; y?: number; angles?: number[]; wMine?: number; wOther?: number; baseDy?: number; lift?: number[] }) {
+  if (g.lift) LIFT = g.lift;
+  if (g.a !== undefined) ARC.a = g.a;
+  if (g.b !== undefined) ARC.b = g.b;
+  if (g.y !== undefined) ARC.y = g.y;
+  if (g.angles) ANGLES = g.angles;
+  if (g.wMine !== undefined) W_MINE = g.wMine;
+  if (g.wOther !== undefined) W_OTHER = g.wOther;
+  if (g.baseDy !== undefined) BASE_DY = g.baseDy;
+}
 
 /** Centre of the betting circle for a spot (1..6). */
 export function spotCenter(spot: number) {
@@ -31,7 +55,7 @@ export function spotCenter(spot: number) {
 /** Centre-bottom point where a spot's first card sits: just above the circle, toward the dealer. */
 function base(spot: number) {
   const c = spotCenter(spot);
-  return { x: c.x + (50 - c.x) * 0.16, y: c.y - 8.5 };
+  return { x: c.x + (50 - c.x) * 0.16, y: c.y - BASE_DY - LIFT[spot - 1] };
 }
 
 /** Top-left of card i of hand `hand` at a spot. */
@@ -182,23 +206,26 @@ export function placeSpot(shape: SpotShape, p: SpotPlacement): CardSpot[][] {
 
 /** The felt: inside the rail, below the dealer's area, inside the curved bottom. */
 function onFelt(bx: Box): boolean {
-  if (bx.x < 4 || bx.x + bx.w > 96 || bx.y < 33) return false;
+  if (bx.x < 1.5 || bx.x + bx.w > 98.5 || bx.y < 23) return false;
+  // inside the front rail
+  const inside = (x: number, y: number) => {
+    if (y <= FRONT.cy) return true;
+    const dx = (x - FRONT.cx) / (FRONT.rx - RAIL - 0.6);
+    const dy = (y - FRONT.cy) / (FRONT.ry - RAIL - 0.6);
+    return dx * dx + dy * dy <= 1;
+  };
   const bottom = bx.y + bx.h;
-  if (bottom <= 73) return true;
-  const rx = 46;
-  const ry = 45;
-  const dy = (bottom - 73.2) / ry;
-  if (dy >= 1) return false;
-  const half = rx * Math.sqrt(1 - dy * dy);
-  return bx.x >= 50 - half && bx.x + bx.w <= 50 + half;
+  return inside(bx.x, bottom) && inside(bx.x + bx.w, bottom);
 }
 
 /** Things on the felt that cards must stay off: tray, limits sign, shoe, every betting circle with its chips. */
 export function staticObstacles(spots: number[]): Box[] {
   const out: Box[] = [
-    { x: 4.5, y: 1.5, w: 11, h: 24 },
-    { x: 16.5, y: 1.5, w: 18, h: 10.5 },
-    { x: 83.5, y: 1.5, w: 12.5, h: 17.5 },
+    { x: 4.5, y: 1.5, w: 11, h: 24 }, // discard tray
+    { x: 16.5, y: 1.5, w: 18, h: 10.5 }, // limits sign
+    { x: 83.5, y: 1.5, w: 12.5, h: 17.5 }, // shoe
+    { x: 39.5, y: 2, w: 44.5, h: 20 }, // the dealer's hand
+    { x: 43, y: 14, w: 22, h: 18.5 }, // a long dealer hand's second row
   ];
   for (const sp of spots) {
     const c = spotCenter(sp);
@@ -224,9 +251,9 @@ function fits(cards: CardSpot[][], obstacles: Box[]): boolean {
   return true;
 }
 
-const SCALES = [1, 0.93, 0.86, 0.79, 0.72, 0.66, 0.6, 0.55, 0.5];
-const DXS = [0, 1.5, -1.5, 3, -3, 4.5, -4.5, 6, -6, 8, -8, 10, -10, 12, -12, 15, -15, 18, -18, 21, -21];
-const DYS = [0, -2, -4, -6, -9, -12, -15, -18, -22, -26, -30, -34, -38];
+const SCALES = [1, 0.93, 0.86, 0.79, 0.72, 0.66, 0.6, 0.55, 0.5, 0.45];
+const DXS = [0, 1.5, -1.5, 3, -3, 4.5, -4.5, 6, -6, 8, -8, 10, -10, 12, -12, 15, -15, 18, -18, 21, -21, 25, -25];
+const DYS = [0, -2, -4, -6, -9, -12, -15, -18, -22, -26, -30, -34, -38, -43];
 const ARR_COST: Record<Arrangement, number> = { in: 0, out: 1.5, up: 4, stack: 5 };
 
 /**
@@ -280,7 +307,7 @@ export function solveSpot(shape: SpotShape, obstacles: Box[], prefer?: SpotPlace
 }
 
 /** Placements that found no clean spot (tests watch this; normal play should never add to it). */
-export const layoutFallbacks: { spot: number; hands: number[]; others: number }[] = [];
+export const layoutFallbacks: { spot: number; hands: number[]; others: number; debug?: string }[] = [];
 
 export interface TableLayout {
   /** Per spot: its shape signature, placement and card positions. */
@@ -313,22 +340,40 @@ export function layoutTable(shapes: SpotShape[], dealerCards: number, allSpots: 
       next.spots.set(s.spot, { sig: sig(s), placement: r.placement, cards: r.cards });
       continue;
     }
-    // Boxed in: this spot goes first and the others re-seat around it, each keeping its place if it still fits.
-    const redo: TableLayout['spots'] = new Map();
-    const first = solveSpot(s, fixed, old?.placement);
-    redo.set(s.spot, { sig: sig(s), placement: first.placement, cards: first.cards });
-    let ok = first.clean;
-    for (const o of shapes) {
-      if (o.spot === s.spot || !next.spots.has(o.spot)) continue;
-      const was = next.spots.get(o.spot)!;
-      const ro = solveSpot(o, [...fixed, ...cardsOf(redo, o.spot)], was.placement);
-      ok = ok && ro.clean;
-      redo.set(o.spot, ro.placement === was.placement ? was : { sig: was.sig, placement: ro.placement, cards: ro.cards });
+    // Boxed in. Re-seat everyone currently on the felt: first with this spot going first and the
+    // others keeping their places where they can, then freshly in a few orders (biggest hands first,
+    // left to right, right to left) until one clears every hand.
+    let done = false;
+    const onFelt = shapes.filter((o) => o.spot === s.spot || next.spots.has(o.spot));
+    const size = (o: SpotShape) => o.hands.reduce((a, b) => a + b, 0) + (o.hands.length - 1) * 3;
+    const orders: { order: SpotShape[]; keepOld: boolean }[] = [
+      { order: [s, ...onFelt.filter((o) => o.spot !== s.spot)], keepOld: true },
+      { order: [s, ...onFelt.filter((o) => o.spot !== s.spot)], keepOld: false },
+      { order: [...onFelt].sort((a, b) => size(b) - size(a)), keepOld: false },
+      { order: [...onFelt].sort((a, b) => a.spot - b.spot), keepOld: false },
+      { order: [...onFelt].sort((a, b) => b.spot - a.spot), keepOld: false },
+    ];
+    for (const { order, keepOld } of orders) {
+      const redo: TableLayout['spots'] = new Map();
+      let ok = true;
+      for (const o of order) {
+        const was = next.spots.get(o.spot);
+        const prefer = o.spot === s.spot ? old?.placement : keepOld ? was?.placement : undefined;
+        const ro = solveSpot(o, [...fixed, ...cardsOf(redo, o.spot)], prefer);
+        if (!ro.clean) {
+          ok = false;
+          break;
+        }
+        redo.set(o.spot, was && ro.placement === was.placement ? was : { sig: sig(o), placement: ro.placement, cards: ro.cards });
+      }
+      if (ok) {
+        for (const [sp, v] of redo) next.spots.set(sp, v);
+        done = true;
+        break;
+      }
     }
-    if (ok) {
-      for (const [sp, v] of redo) next.spots.set(sp, v);
-    } else {
-      layoutFallbacks.push({ spot: s.spot, hands: s.hands.slice(), others: next.spots.size });
+    if (!done) {
+      layoutFallbacks.push({ spot: s.spot, hands: s.hands.slice(), others: next.spots.size, debug: JSON.stringify({ dealer: dealerCards, shapes, placements: [...next.spots].map(([sp, v]) => [sp, v.sig, v.placement]) }) });
       next.spots.set(s.spot, { sig: sig(s), placement: r.placement, cards: r.cards });
     }
   }

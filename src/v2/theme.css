@@ -179,6 +179,99 @@ a {
   font-weight: 600;
 }
 
+/* José, behind the table: a portrait when there's room, a face and a speech bubble when it's tight */
+.jose-zone {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  container-type: size;
+}
+.jose-zone .jose-portrait {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 40% 16%;
+  filter: saturate(0.95);
+}
+.jose-zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 23, 18, 0.25), transparent 30%, transparent 75%, rgba(11, 23, 18, 0.35));
+  pointer-events: none;
+}
+.jose-compact {
+  display: none;
+  height: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+.jose-compact img {
+  height: min(52px, 82cqh);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--orange);
+  object-fit: cover;
+  flex: none;
+}
+.jose-say {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  max-width: 54%;
+  z-index: 2;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid #000;
+  border-radius: 14px 14px 4px 14px;
+  padding: 6px 11px 7px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.15;
+  box-shadow: 2px 2px 0 #000;
+  animation: fb-in 220ms ease both;
+}
+.jose-say small {
+  display: block;
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange-deep);
+  margin-bottom: 1px;
+}
+@container (max-height: 130px) {
+  .jose-zone .jose-portrait,
+  .jose-say-wide {
+    display: none;
+  }
+  .jose-compact {
+    display: flex;
+  }
+  .jose-zone::after {
+    display: none;
+  }
+  .jose-say {
+    position: static;
+    max-width: none;
+    font-size: 16px;
+    padding: 5px 10px 6px;
+    border-radius: 14px 14px 14px 4px;
+  }
+}
+@container (max-height: 34px) {
+  .jose-compact {
+    display: none;
+  }
+}
+
 /* loading splash (never a blank page) */
 .splash {
   min-height: 100dvh;
@@ -225,11 +318,12 @@ a {
   min-height: 0;
   container-type: size;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
 }
+/* the table fills the width; José takes whatever height is left above it */
 .felt-stage > .felt-wrap {
-  width: min(100cqw, calc(100cqh * 100 / 122));
+  width: min(100cqw, calc(100cqh * 100 / 95));
   flex: none;
 }
 .coach-slot {
@@ -309,28 +403,47 @@ a {
 .felt {
   position: relative;
   width: 100%;
-  aspect-ratio: 100 / 122;
-  border-radius: 0 0 50% 50% / 0 0 40% 40%;
-  background: radial-gradient(120% 85% at 50% 22%, var(--felt-hi), var(--felt) 70%);
-  box-shadow:
-    inset 0 1.5cqw 3cqw rgba(60, 40, 15, 0.12),
-    0 2cqw 6cqw rgba(0, 0, 0, 0.55);
+  aspect-ratio: 100 / 95;
   overflow: hidden;
+  isolation: isolate;
 }
 /*
- * The padded rail is drawn over the felt (not as a border), so the table's coordinates run edge to
- * edge and everything placed on it is symmetric about the centre line.
+ * The table is wider than the screen: an ellipse 1.5 screens wide (layout.ts FRONT: centre 50,36,
+ * radii 75 x 59) so the felt runs off both sides and only a soft curve shows along the front. The
+ * padded rail is drawn over it, so the table's coordinates run edge to edge.
  */
+.felt::before,
 .felt::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border: 3.4cqw solid var(--rail);
-  border-top: 0;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 0.5cqw rgba(255, 255, 255, 0.06);
+  left: -25%;
+  width: 150%;
+  top: -24.21%;
+  height: 124.21%;
+  border-radius: 50%;
   pointer-events: none;
+}
+.felt::before {
+  background: radial-gradient(60% 55% at 50% 45%, var(--felt-hi), var(--felt) 75%);
+  box-shadow: inset 0 0 6cqw rgba(60, 40, 15, 0.1);
+  z-index: 0;
+}
+.felt::after {
+  border: 3.4cqw solid var(--rail);
+  box-shadow: inset 0 0 0 0.5cqw rgba(255, 255, 255, 0.06);
   z-index: 6;
+}
+/* the dealer's edge of the table, where José stands */
+.felt-wrap::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -0.6cqw;
+  height: 1.4cqw;
+  background: linear-gradient(#2a2622, #0d0d0c);
+  box-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.45);
+  z-index: 7;
 }
 .felt-print {
   position: absolute;
@@ -615,8 +728,8 @@ a {
 }
 .count-badge {
   position: absolute;
-  left: 5cqw;
-  top: 27cqw;
+  left: 17cqw;
+  top: 13cqw;
   font-family: var(--mono);
   font-size: 2.6cqw;
   color: var(--cream);
@@ -1317,5 +1430,29 @@ table.bs td.s .dev {
   .pc,
   .pc.sweep {
     animation-duration: 1ms !important;
+  }
+}
+
+/* short screens (iPhone SE, Safari with its bars): a tighter top bar and dock so the table keeps its full width */
+@media (max-height: 600px) {
+  .hud {
+    min-height: 46px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .dock {
+    height: 150px;
+    gap: 6px;
+    padding-top: 6px;
+  }
+  .coach-slot {
+    height: 60px;
+  }
+  .chip.lg {
+    width: 52px;
+    height: 52px;
+  }
+  .act {
+    min-height: 48px;
   }
 }

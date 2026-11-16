@@ -6,6 +6,8 @@ import { useTableGame, type RoundResult } from './useTableGame';
 import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { Emblem } from '../icons';
 import { spotCenter } from './layout';
+import { JoseZone, joseLine, type JoseMoment } from './Jose';
+import { isBlackjack, valueOf } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
 import type { DecisionSnapshot } from '../../engine/game';
@@ -140,6 +142,23 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   // every card out of the shoe that isn't on the felt is in the tray (burn cards included)
   const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
+  // what José says right now (never the count: the feedback card does the teaching)
+  const myHand = t ? t.seats.find((x) => x.human)?.hands[0] : undefined;
+  const joseMoment: JoseMoment =
+    g.phase === 'shuffling'
+      ? { kind: 'shuffling' }
+      : betting
+        ? { kind: 'betting', first: !t || t.round === 0, seed: t?.round ?? 0 }
+        : g.phase === 'insurance'
+          ? { kind: 'insurance' }
+          : g.phase === 'yourTurn'
+            ? { kind: 'yourTurn', waiting }
+            : (g.phase === 'results' || g.phase === 'sweeping') && g.result
+              ? { kind: 'result', net: g.result.net, blackjack: !!myHand && myHand.cards.length === 2 && isBlackjack(myHand.cards.map(valueOf)) && g.result.net > 0, seed: t?.round ?? 0 }
+              : t?.phase === 'dealer'
+                ? { kind: 'dealer' }
+                : { kind: 'quiet' };
+
   return (
     <div className="frame table-frame">
       <header className="hud">
@@ -164,6 +183,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       </header>
 
       <div className="felt-stage">
+        <JoseZone line={joseLine(joseMoment)} />
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />

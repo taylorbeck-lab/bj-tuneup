@@ -33,7 +33,7 @@ With the player's own Claude key, free text works too ("let's do a tough double-
 2. **Off-the-chart plays.** When the exact odds for the cards left differ from the chart plus count plays (e.g. split 4s v 4 at +15), the coach shows a bonus note with the gain per $100; not graded unless the player chooses "grade me on everything". Optional "extended" count-plays chart out to big counts.
 3. **Hand-shuffle realism.** Model the real thing: picked-up hands go to the tray in clumps; the dealer's shuffle (plugs, a few riffles, strip, cut) never fully mixes a 6-deck shoe, so shoes carry streaks and run hot or cold like a hand-shuffled game. Keep "machine shuffle" as an option. Measure the extra count swing before shipping. The owner sees this as a key differentiator, and somewhere AI can help (varied, natural-feeling shoes).
 4. **Hot-shoe dial** (Off / Sometimes / Often), clearly labelled as training: some shoes run hot late (practise the pounce: ramp, big-count plays, leave), some cold (practise sitting at the minimum). The engine already has a `skew` knob.
-5. **Settings live in the dealer.** A character dealer (a friendly, slightly shady AP friend teaching a friend) through whom most settings happen, instead of a separate settings page.
+5. **Settings live in the dealer.** (José is on the table now: first flat pass, short lines.) A character dealer (a friendly, slightly shady AP friend teaching a friend) through whom most settings happen, instead of a separate settings page.
 6. **Sound and haptics** (chip clicks, card snaps, shuffle riffle).
 7. **Visual polish.** Table shape and symmetry (done: rail over the felt, dealer hand centred, collision-free card layout).
 
