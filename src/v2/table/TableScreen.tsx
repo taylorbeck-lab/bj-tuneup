@@ -23,6 +23,8 @@ export interface TableHooks {
   feltExtra?: (t: Table | null) => React.ReactNode;
   /** What José says instead of his own line (feedback on your play, the count when asked). */
   jose?: React.ReactNode;
+  /** What's in José's bubble can give way to the dealer's own moments (the peek): nothing, or a right-play note. A miss never does. */
+  joseYields?: boolean;
   /** Called when the table opens for bets. */
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
@@ -164,6 +166,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
     if (g.phase === 'dealing') return { kind: 'dealing', seed: round, bigBet };
     if (g.phase === 'insurance') return { kind: 'insurance', seed: round };
+    if (g.phase === 'peeking') return { kind: 'peek', seed: round, ace: dealerVals[0] === 1 };
+    if (g.peekClear) return { kind: 'peekClear', seed: round };
     if (g.phase === 'yourTurn') return { kind: 'yourTurn', waiting, seed: round };
     if ((g.phase === 'results' || g.phase === 'sweeping') && g.result) {
       const mine = myHand ? myHand.cards.map(valueOf) : [];
@@ -187,7 +191,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   return (
     <div className="frame table-frame">
       <div className="felt-stage">
-        <JoseZone line={joseLine(joseMoment)} says={hooks.jose ?? undefined} />
+        <JoseZone line={joseLine(joseMoment)} says={(joseMoment.kind === 'peek' || joseMoment.kind === 'peekClear') && hooks.joseYields !== false ? undefined : (hooks.jose ?? undefined)} />
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
@@ -240,7 +244,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
             })}
             {/* cards */}
             {g.cards.map((p) => (
-              <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} />
+              <PlayingCard key={p.id} p={p} sweep={g.sweeping} dur={g.speed.card} peek={g.phase === 'peeking' && p.spot === 0 && p.hand === 1} />
             ))}
             {/* whose turn it is: the dealer's pointer moves player to player, then to the dealer's own hand */}
             {t &&

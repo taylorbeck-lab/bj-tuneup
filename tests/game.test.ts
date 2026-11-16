@@ -312,3 +312,34 @@ describe('hand-placed cut card', () => {
     expect(new Set(cuts.map((c) => c.toFixed(3))).size).toBeGreaterThan(5);
   });
 });
+
+describe('the dealer’s peek', () => {
+  it('pauses with an ace or ten up when asked, and is instant otherwise', () => {
+    const rules = { ...DEFAULT_RULES };
+    let paused = 0;
+    let instant = 0;
+    for (const peekPause of [true, false]) {
+      const t = new Table({ rules, seats: 2, humanSeat: 0, chart: chart2, seed: 11, granularity: 0.5, rounding: 'floor', peekPause });
+      for (let r = 0; r < 60; r++) {
+        if (t.needsShuffle) t.reshuffle();
+        t.placeBet(1);
+        while (t.phase === 'deal') t.step();
+        if (t.phase === 'insurance') t.insure(false);
+        const up = valueOf(t.dealer[0]);
+        if (t.phase === 'peek') {
+          paused++;
+          expect([1, 10]).toContain(up);
+          t.step();
+        } else if (!peekPause && (up === 1 || up === 10)) instant++;
+        let guard = 0;
+        while (t.phase !== 'settled' && guard++ < 50) {
+          if (t.waitingForHuman && t.phase === 'play') t.act('stand');
+          else t.step();
+        }
+        expect(t.phase).toBe('settled');
+      }
+    }
+    expect(paused).toBeGreaterThan(5);
+    expect(instant).toBeGreaterThan(5);
+  });
+});

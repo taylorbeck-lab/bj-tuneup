@@ -22,7 +22,7 @@ export interface PlacedCard {
   hand: number;
 }
 
-export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'endOfShoe' | 'shuffling';
+export type UiPhase = 'betting' | 'dealing' | 'insurance' | 'peeking' | 'yourTurn' | 'playing' | 'results' | 'sweeping' | 'endOfShoe' | 'shuffling';
 
 export interface RoundResult {
   net: number;
@@ -38,6 +38,10 @@ let live: { key: string; table: Table; phase: UiPhase; result: RoundResult | nul
 const SHOE_KEY = 'v2shoe';
 /** A real shuffle takes a moment: long enough to see it, and to reset your head. */
 export const SHUFFLE_MS = 4600;
+/** The dealer's peek with an ace or ten up: the hole card slides into the peeker, a beat, then the answer. */
+export const PEEK_MS = 1500;
+/** How long "No blackjack" stays before play goes on. */
+export const PEEK_CLEAR_MS = 1100;
 
 /**
  * Drives the engine at casino pace: one card per tick at the chosen dealer speed, bots think a
@@ -91,6 +95,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       rounding: 'floor',
       botBet: () => min * [1, 1, 1, 2, 2, 3, 4][Math.floor(Math.random() * 7)],
       botMistakeRate: 0.06,
+      peekPause: true,
     });
     placed.current = [];
     setPhase('betting');
@@ -117,6 +122,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
 
   const t = tableRef.current;
 
+  /** After a peek with no blackjack: José says so for a moment before play goes on. */
+  const peekClearUntil = useRef(0);
+  const [peekClear, setPeekClear] = useState(false);
   /** Where every hand sits this round (collision-free; re-placed only when a spot's hands change). */
   const tableLayout = useRef<{ round: number; layout?: TableLayout }>({ round: -1 });
 
@@ -188,9 +196,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       setPhase(ph === 'insurance' ? 'insurance' : 'yourTurn');
       return;
     }
-    setPhase(ph === 'deal' ? 'dealing' : 'playing');
+    setPhase(ph === 'deal' ? 'dealing' : ph === 'peek' ? 'peeking' : 'playing');
     // the dealer deals at an even pace; another player thinks as long as the decision deserves
-    let wait = speed.card;
+    let wait = ph === 'peek' ? PEEK_MS : speed.card;
+    // after a peek with no blackjack, José says so before anyone moves
+    wait = Math.max(wait, peekClearUntil.current - Date.now());
     if (ph === 'play') {
       const hand = t.seats[t.turn.seat]?.hands[t.turn.hand];
       if (hand) {
@@ -201,7 +211,15 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       }
     }
     const id = setTimeout(() => {
-      if (t.step()) bump();
+      const peeked = t.phase === 'peek';
+      if (t.step()) {
+        if (peeked && t.phase !== 'settled') {
+          peekClearUntil.current = Date.now() + PEEK_CLEAR_MS;
+          setPeekClear(true);
+          setTimeout(() => setPeekClear(false), PEEK_CLEAR_MS);
+        }
+        bump();
+      }
     }, wait);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -302,6 +320,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     },
     turnStarted,
     speed,
+    /** The dealer just checked and doesn't have blackjack. */
+    peekClear,
     spotOfSeat,
     seatOfSpot,
     /** Hand values of the active human hand. */
