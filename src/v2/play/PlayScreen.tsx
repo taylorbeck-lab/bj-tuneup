@@ -25,13 +25,14 @@ import type { Table } from '../../engine/game';
 const firstSentence = (t: string) => (t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t).trim();
 const BET_TITLE: Record<string, string> = { '↑ BET': 'Bet bigger', '↓ MIN': 'Bet the minimum', '↓ BET': 'Bet less' };
 
-/** The feedback card on screen (kept while you look at the chart, so a red card isn't lost). */
+/** José's last word on your play (kept while you look at the chart, so a miss isn't lost). */
 let lastCard: (Card & { msg: CoachMsg }) | null = null;
 
 /**
- * The table plus the teaching layers. One feedback card at a time, chosen by the mode you play in:
- * green for a right play (stays until the next card, nothing to dismiss), red for a miss (stays,
- * even into the next hand, until you swipe it away). Tap a card for the full why and the odds.
+ * The table plus the teaching layers. José answers each of your moves in his speech bubble, chosen
+ * by the mode you play in: a right play (✓) or a miss (✗, with the right play and why). Each one
+ * stays until your next move brings the next; a right play also gives way to his own lines once the
+ * hand is over. A miss stays through the deal until you act again. Tap it for the full why and odds.
  */
 export function PlayScreen() {
   const { s } = useV2();
@@ -65,16 +66,19 @@ export function PlayScreen() {
     return onStats((x) => (stats.current = x));
   }, []);
 
-  /** Show a card. A red card is never replaced by a green one: it waits to be swiped away. */
+  /** José's word on your latest move: it replaces whatever he said about the one before. */
   const show = (c: Omit<Card, 'id'> & { msg: CoachMsg }): number => {
     if (s.coach.feedback === 'off') return -1;
-    if (c.ok && s.coach.feedback === 'mistakes') return -1;
+    if (c.ok && s.coach.feedback === 'mistakes') {
+      // mistakes only: a right move quietly retires the last miss
+      setCard(null);
+      return -1;
+    }
     const id = ++cardId.current;
-    setCard((cur) => (cur && !cur.ok && c.ok ? cur : { ...c, id }));
+    setCard({ ...c, id });
     if (c.ok) navigator.vibrate?.(8);
     return id;
   };
-  const blocking = !!card && !card.ok;
   // José's whisper of the count fades on its own; the game doesn't stop for it
   useEffect(() => {
     if (!reveal) return;
@@ -87,7 +91,6 @@ export function PlayScreen() {
       <TableScreen
         hooks={{
           paused: !!countOpen,
-          hold: blocking,
           practiceHand: () => {
             practiceKey.current = null;
             if (!s.coach.practiceMisses || !stats.current || Math.random() > 0.35) return null;
@@ -114,8 +117,6 @@ export function PlayScreen() {
           },
           onBet: (bets, t) => {
             setDetailOpen(false);
-            // last hand's green card fades back once the next hand starts
-            setCard((cur) => (cur && cur.ok ? { ...cur, stale: true } : cur));
             if (!s.coach.betCoach) return;
             const tc = t.tcPlayer();
             const amounts = Object.values(bets).filter((b) => b > 0);
@@ -170,6 +171,8 @@ export function PlayScreen() {
           },
           onRoundEnd: () => {
             recordHand();
+            // a right play has been said; José moves on to the result. A miss stays until your next move.
+            setCard((cur) => (cur && cur.ok ? null : cur));
           },
           onBetting: (t) => {
             const p = s.coach.countQuiz === 'often' ? 0.45 : s.coach.countQuiz === 'sometimes' ? 0.18 : 0;
@@ -185,7 +188,7 @@ export function PlayScreen() {
               Running <b>{countWords(reveal.rc)}</b> · true <b>{countWords(reveal.tc)}</b>
             </button>
           ) : card && s.coach.feedback !== 'off' ? (
-            <FeedbackCard key={card.id} card={card} onOpen={() => setDetailOpen(true)} onDismiss={() => setCard(null)} />
+            <FeedbackCard key={card.id} card={card} onOpen={() => setDetailOpen(true)} />
           ) : undefined,
         }}
       />

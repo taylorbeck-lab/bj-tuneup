@@ -3,7 +3,7 @@ import { useV2, tableMax } from '../settings';
 import { useStrategy } from '../../store/strategy';
 import { useBankroll, money } from '../bankroll';
 import { useTableGame, type RoundResult } from './useTableGame';
-import { FeltPrint, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
+import { FeltPrint, Rail, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, LimitPlacard } from './Visuals';
 import { StatsIcon, ChartIcon, GearIcon } from '../icons';
 import { spotCenter, LOGO_BOX } from './layout';
 import { JoseZone, joseLine, type JoseMoment } from './Jose';
@@ -26,8 +26,6 @@ export interface TableHooks {
   onBetting?: (t: Table) => void;
   /** Pause the dealer (e.g. while a count check is open). */
   paused?: boolean;
-  /** A card the player must swipe away before the next deal (a miss they should read). */
-  hold?: boolean;
   /** The end of the shoe: what José shows before he shuffles (call `done` to shuffle). */
   endOfShoe?: (t: Table, done: () => void) => React.ReactNode;
   /** Tap on the discard tray (the count lives there). */
@@ -111,7 +109,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const idle = betting || g.phase === 'shuffling' || g.phase === 'endOfShoe';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
-  const canDeal = betting && !hooks.hold && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
+  const canDeal = betting && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
   const addChip = (d: number) => {
     const sp = activeBetSpot;
     const cur = bets[sp] ?? 0;
@@ -174,6 +172,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         <div className="felt-wrap">
           <div className="felt">
             <FeltPrint rules={s.rules} />
+            <Rail />
             {/* the logo on the felt takes you back to the intro */}
             <a className="logo-link" href="#/home" aria-label={`${BRAND.long}: how it works`} style={{ left: `${LOGO_BOX.x}cqw`, top: `${LOGO_BOX.y}cqw`, width: `${LOGO_BOX.w}cqw`, height: `${LOGO_BOX.h}cqw` }} />
             <ShoeAndTray discards={discards} decks={s.rules.decks} onTray={hooks.onTray} onShoe={() => setAskShuffle(true)} />
@@ -262,8 +261,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
       </div>
 
       <div className="dock">
-        {betting && hooks.hold && <p className="muted hold-hint">Swipe José’s note away to deal the next hand.</p>}
-        {betting && !hooks.hold && (
+        {betting && (
           <>
             {br.balance < s.tableMin ? (
               <button className="act primary" onClick={() => reset(s.startBankroll)}>

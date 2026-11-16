@@ -31,7 +31,7 @@ Install it from Safari's share menu or Chrome's menu with *Add to Home Screen*. 
 - **Other players** bet and play too, and once in a while they misplay, like real tables.
 
 ## The coach
-- **One feedback card after every decision.** Green for a right play: glance and keep playing (it stays until the next card). Red for a miss: the right play and a one-line why; it stays, even into the next hand, until you swipe it away. Tap either for the full card: each play's chance to win (exact for the cards left), the why, and what a mistake costs per $100.
+- **José answers every move.** In his speech bubble, right after you act: ✓ for a right play, ✗ for a miss with the right play and a one-line why. Each note stays until your next move brings the next one (a miss stays through the next deal), so nothing needs dismissing. Tap it for the full card: each play's chance to win (exact for the cards left), the why, and what a mistake costs per $100.
 - **The count lives in the discard tray:** tap it any time to be tested (enter the running count, then the true count, the way you say it in your head (tap **Up** or **Down**, then the number, or **Even**), using the discard tray to judge decks left. You get the arithmetic and what that count means; the dealer pauses while you think) or just to ask the dealer what the count is.
 - **Three modes** (Settings): *Basic strategy* (with a peek at the count plays to come), *Count & bet* (keep the count, bet with it, get tested now and then), *Full AP* (plus count plays).
   1. *Play every hand right*

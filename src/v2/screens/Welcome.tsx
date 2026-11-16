@@ -73,7 +73,7 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
             <b>Tap the shoe</b> to have him shuffle up (count back to zero).
           </li>
           <li>
-            <b>José turns red?</b> Read his note, then swipe it away. Tap it for the full why.
+            <b>José tells you</b> how each move went, right after you make it. Tap his note for the full why.
           </li>
           <li>
             <b>Tap the logo</b> on the table to come back here. Down by your chips: <b>★</b> your stats · <b>▦</b> charts · <b>⚙</b> decks, rules, seats, speed.
