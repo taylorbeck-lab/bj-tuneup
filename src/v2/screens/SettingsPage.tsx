@@ -120,7 +120,7 @@ export function SettingsPage() {
           <Row label="Count quizzes" hint="José asks “what's the count?”">
             <Seg label="Count quizzes" value={s.coach.countQuiz} onChange={(v) => C({ countQuiz: v })} options={[{ v: 'off', l: 'Off' }, { v: 'sometimes', l: 'Sometimes' }, { v: 'often', l: 'Often' }]} />
           </Row>
-          <Row label="Practice my misses" hint="Hands you get wrong come back more often">
+          <Row label="Practice my misses" hint="A hand you miss comes back a few hands later, then about 30, then about 100. Often at Level 1, now and then at Level 2, never at Level 3 (a fully random shoe).">
             <Tog on={s.coach.practiceMisses} set={(v) => C({ practiceMisses: v })} label="Practice my misses" />
           </Row>
           <Row label="Bet coach" hint="Raise and lower your bet with the count">
