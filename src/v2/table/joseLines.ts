@@ -8,7 +8,7 @@
  */
 
 export type JoseMoment =
-  | { kind: 'betting'; first: boolean; seed: number; streak: number }
+  | { kind: 'betting'; first: boolean; seed: number; streak: number; csm?: boolean }
   | { kind: 'dealing'; seed: number; bigBet: boolean }
   | { kind: 'yourTurn'; waiting: boolean; seed: number }
   | { kind: 'insurance'; seed: number }
@@ -71,7 +71,9 @@ export const resetStreak = () => {
 export function joseLine(m: JoseMoment): string | null {
   switch (m.kind) {
     case 'betting': {
-      if (m.first) return 'Welcome to El Primo. Bets in the circle, primo.';
+      if (m.first) return m.csm ? 'Continuous shuffler at this table, primo. Nothing to count here.' : 'Welcome to El Primo. Bets in the circle, primo.';
+      // a continuous shuffler: the cards go back in every hand, so there's no count and no roll
+      if (m.csm && m.seed % 5 === 2) return pick(['The machine eats the cards every hand, primo. No count here.', 'Continuous shuffler, primo. Every hand starts fresh.', 'No shoe to ride at this table, primo.'], m.seed, 26);
       if (m.streak >= 3 && m.seed % 2 === 0) return pick(['You’re running hot, primo. Stay humble.', 'Look at you go, primo.', 'Hot hand, primo. The math still decides.'], m.seed);
       if (m.streak <= -3 && m.seed % 2 === 0) return pick(['Cold run, primo. The math comes back around.', 'Rough stretch. Stick to the plan, primo.', 'Variance, primo. It’s not personal.'], m.seed);
       // now and then a dealer's nudge; it has nothing to do with the count

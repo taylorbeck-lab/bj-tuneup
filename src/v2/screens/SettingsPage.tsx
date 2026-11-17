@@ -203,6 +203,27 @@ export function SettingsPage() {
           <Row label="Penetration" hint={r.cutSpread ? `Cut card around ${Math.round(r.penetration * 100)}% of the shoe` : `Cut card at ${Math.round(r.penetration * 100)}% every shoe`}>
             <input type="range" min={50} max={90} step={5} value={Math.round(r.penetration * 100)} onChange={(e) => R({ penetration: Number(e.target.value) / 100 })} aria-label="Penetration" />
           </Row>
+          <Row
+            label="Shuffle"
+            hint={
+              s.shuffle === 'hand'
+                ? 'José shuffles by hand: the next shoe is built from where the last one ended'
+                : s.shuffle === 'machine'
+                  ? 'A shuffle machine between shoes: a perfect shuffle every time'
+                  : 'A continuous shuffler: the cards go back in after every hand. No cut card, nothing to count, no rolls'
+            }
+          >
+            <Seg
+              label="Shuffle"
+              value={s.shuffle}
+              onChange={(v) => set({ shuffle: v })}
+              options={[
+                { v: 'hand' as const, l: 'By hand' },
+                { v: 'machine' as const, l: 'Machine' },
+                { v: 'csm' as const, l: 'Continuous' },
+              ]}
+            />
+          </Row>
           <Row label="Cut card" hint={r.cutSpread ? 'Placed by hand: a little deeper or shallower each shoe' : 'Same spot every shoe, like a notched tray'}>
             <Seg label="Cut card" value={r.cutSpread ? 'hand' : 'fixed'} onChange={(v) => R({ cutSpread: v === 'hand' ? HAND_CUT : 0 })} options={[{ v: 'hand', l: 'By hand' }, { v: 'fixed', l: 'Fixed' }]} />
           </Row>

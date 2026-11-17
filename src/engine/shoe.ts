@@ -1,5 +1,6 @@
 import { type CardId, valueOf } from './cards';
 import { type Rng, mulberry32, randomSeed, shuffle } from './rng';
+import { dealerShuffle } from './handShuffle';
 
 /** Composition by blackjack value: index 1..10 (index 0 unused). */
 export type Comp = number[];
@@ -52,18 +53,35 @@ export class Shoe {
     this.shuffle();
   }
 
-  /** Shuffle all cards back in, place the cut card and burn. */
-  shuffle(): void {
+  /** Shuffle all cards back in (a perfect machine shuffle), place the cut card and burn. */
+  shuffle(burn = true): void {
     const cards: CardId[] = [];
     for (let d = 0; d < this.decks; d++) for (let id = 0; id < 52; id++) cards.push(id);
     this.cards = shuffle(cards, this.rng);
+    this.afterShuffle(burn);
+  }
+
+  /**
+   * A dealer's hand shuffle of the last shoe's discard pile (see handShuffle.ts): the same cards,
+   * riffled a few times, so the new shoe is built from where the last one ended.
+   */
+  shuffleFrom(pile: CardId[]): void {
+    // only ever a reordering of a full, real shoe
+    const counts = new Array(52).fill(0);
+    for (const c of pile) counts[c]++;
+    if (pile.length !== this.decks * 52 || counts.some((n) => n !== this.decks)) return this.shuffle();
+    this.cards = dealerShuffle(pile, this.decks, this.rng);
+    this.afterShuffle(true);
+  }
+
+  private afterShuffle(burn: boolean): void {
     if (this.skew > 0) this.applySkew();
     this.pos = 0;
     this.burned = [];
     this.remainingByValue = fullComp(this.decks);
     this.remainingByCard = new Array(52).fill(this.decks);
     this.cutIndex = Math.round(this.cards.length * this.cutAt());
-    for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
+    if (burn) for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
   }
 
   /**
