@@ -96,7 +96,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   const spotOfSeat = (i: number) => layout.spots[i];
 
   // (re)create the table when the setup changes
-  const setupKey = JSON.stringify([s.rules, layout, !!chart]);
+  const setupKey = JSON.stringify([s.rules, layout, !!chart, s.shuffle]);
   /** The saved shoe belongs to the game (the rules), not to who's sitting at the table. */
   const shoeKey = JSON.stringify([s.rules, !!chart]);
   const restoring = useRef(false);
@@ -134,6 +134,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       botBet: () => min * [1, 1, 1, 2, 2, 3, 4][Math.floor(Math.random() * 7)],
       botMistakeRate: 0.06,
       peekPause: true,
+      shuffleStyle: s.shuffle,
     });
     placed.current = [];
     setResult(null);

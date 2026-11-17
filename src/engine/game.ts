@@ -6,6 +6,7 @@
  * analyzer can score it afterwards (coach, results, Feel Lab, hand review).
  */
 import { type CardId, valueOf, handTotal, isBlackjack } from './cards';
+import { pickupPile } from './handShuffle';
 import { Shoe, type Comp } from './shoe';
 import type { Rules } from './rules';
 import { canDoubleTotal } from './rules';
@@ -114,6 +115,12 @@ export interface TableOptions {
    * next step(), so a screen can show the dealer checking for blackjack. Off: the peek is instant.
    */
   peekPause?: boolean;
+  /**
+   * How the cards are shuffled. 'machine' (default): a perfect shuffle when the cut card comes out.
+   * 'hand': a dealer's shuffle built from the last shoe's discards (handShuffle.ts). 'csm': a
+   * continuous shuffling machine, the cards go back in after every hand (no cut card, nothing to count).
+   */
+  shuffleStyle?: 'machine' | 'hand' | 'csm';
 }
 
 export interface ShoeSnapshot {
@@ -210,6 +217,13 @@ export class Table {
   placeBet(bets: number | Record<number, number>): void {
     if (this.phase !== 'bet' && this.phase !== 'settled') throw new Error('Not betting');
     if (this.needsShuffle) this.reshuffle();
+    // a continuous shuffler: last hand's cards went back in, so every hand comes from a full shoe
+    if (this.opts.shuffleStyle === 'csm' && this.shoe.pos > 0) {
+      this.shoe.shuffle(false);
+      this.rc = 0;
+      this.seenCount = 0;
+      this.shoeStartRound = this.round;
+    }
     const humanBet = (i: number) => (typeof bets === 'number' ? (i === this.humanSeats[0] ? bets : 0) : bets[i] ?? 0);
     const units = typeof bets === 'number' ? bets : Object.values(bets).reduce((a, b) => a + b, 0);
     this.round++;
@@ -319,7 +333,14 @@ export class Table {
   }
 
   reshuffle(): void {
-    this.shoe.shuffle();
+    const sh = this.shoe;
+    if (this.opts.shuffleStyle === 'hand' && sh.pos > 0) {
+      // the discard pile as the dealer picked it up, plus what was left behind the cut card
+      let pile = pickupPile(sh.burned, this.shoeRounds().map((r) => r.dealt), sh.cards.slice(sh.pos));
+      // (a shoe picked up after a reload has no hand-by-hand record: use the order it was dealt)
+      if (pile.length !== sh.cards.length) pile = sh.cards.slice(0, sh.pos).reverse().concat(sh.cards.slice(sh.pos));
+      sh.shuffleFrom(pile);
+    } else sh.shuffle();
     this.rc = 0;
     this.seenCount = 0;
     this.needsShuffle = false;
@@ -627,7 +648,7 @@ export class Table {
       this.logs.push(this.current);
     }
     this.phase = 'settled';
-    if (this.shoe.cutReached) this.needsShuffle = true;
+    if (this.shoe.cutReached && this.opts.shuffleStyle !== 'csm') this.needsShuffle = true;
   }
 
   /** Run automatic steps until the human must act or the round is settled. */
