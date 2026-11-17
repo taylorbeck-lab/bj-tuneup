@@ -149,8 +149,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const total = s.rules.decks * 52;
   const remaining = t ? t.shoe.remaining : total;
   // every card out of the shoe that isn't on the felt is in the tray (burn cards included)
-  // (a continuous shuffler takes each hand's cards straight back: nothing collects in the tray)
-  const discards = g.phase === 'shuffling' || s.shuffle === 'csm' ? 0 : Math.max(0, total - remaining - g.cards.length);
+  const discards = g.phase === 'shuffling' ? 0 : Math.max(0, total - remaining - g.cards.length);
 
   // where the cut card went in this shoe (shown as the shoe is cut)
   const cut = t ? t.shoe.cutFraction : s.rules.penetration;
@@ -165,7 +164,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const joseMoment: JoseMoment = (() => {
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
     if (betting && g.trafficNote) return { kind: 'traffic', seed: round, joined: g.trafficNote.joined, left: g.trafficNote.left, alone: g.layout.spots.length === g.layout.mine.length };
-    if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak(), csm: s.shuffle === 'csm' };
+    if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
     if (g.phase === 'dealing') return { kind: 'dealing', seed: round, bigBet };
     if (g.phase === 'insurance') return { kind: 'insurance', seed: round };
     if (g.phase === 'peeking') return { kind: 'peek', seed: round, ace: dealerVals[0] === 1 };
@@ -369,17 +368,13 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Shuffle">
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span className="display" style={{ fontSize: 28 }}>
-                {s.shuffle === 'csm' ? 'The shuffler' : 'Shuffle?'}
+                Shuffle?
               </span>
               <span className="serif" style={{ fontSize: 20 }}>
-                {s.shuffle === 'csm' ? 'it never stops' : 'fresh shoe, count back to 0'}
+                fresh shoe, count back to 0
               </span>
             </div>
-            {s.shuffle === 'csm' ? (
-              <p className="muted" style={{ margin: 0 }}>
-                This table has a continuous shuffler: the cards go back in after every hand, so every hand comes from a full shoe. Nothing to count, and no cut card.
-              </p>
-            ) : betting ? (
+            {betting ? (
               <button
                 className="act stand"
                 onClick={() => {

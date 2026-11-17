@@ -6,6 +6,8 @@ import { SettingsPage } from './screens/SettingsPage';
 import { ChartPage } from './screens/ChartPage';
 import { Welcome } from './screens/Welcome';
 import { StatsPage } from './screens/StatsPage';
+import { PlanPage } from './screens/PlanPage';
+import { RealPage } from './screens/RealPage';
 import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
 import { applyUpdateIfReady } from './update';
@@ -53,6 +55,8 @@ export function App() {
   if (path === '/settings') return <SettingsPage />;
   if (path === '/chart') return <ChartPage />;
   if (path === '/stats') return <StatsPage />;
+  if (path === '/plan') return <PlanPage />;
+  if (path === '/real') return <RealPage />;
   if (path.split('?')[0] === '/coach')
     return (
       <Suspense fallback={null}>

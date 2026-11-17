@@ -99,7 +99,10 @@ function Course({ stats }: { stats: V2Stats }) {
         </>
       ) : (
         <div className="row">
-          <span className="hint">The whole course is done: every count play is yours. From here it’s practice, a tune-up before the real thing.</span>
+          <span className="hint">
+            The whole course is done: every count play is yours. From here it’s practice, a tune-up before the real thing. <a href="#/real">Before you play for real</a> ·{' '}
+            <a href="#/plan">Plan a session</a>
+          </span>
         </div>
       )}
     </section>

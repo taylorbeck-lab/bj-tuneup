@@ -208,9 +208,7 @@ export function SettingsPage() {
             hint={
               s.shuffle === 'hand'
                 ? 'José shuffles by hand: the next shoe is built from where the last one ended'
-                : s.shuffle === 'machine'
-                  ? 'A shuffle machine between shoes: a perfect shuffle every time'
-                  : 'A continuous shuffler: the cards go back in after every hand. No cut card, nothing to count, no rolls'
+                : 'A shuffle machine between shoes (not a continuous shuffler): a perfect shuffle, then the shoe is dealt to the cut card'
             }
           >
             <Seg
@@ -220,7 +218,6 @@ export function SettingsPage() {
               options={[
                 { v: 'hand' as const, l: 'By hand' },
                 { v: 'machine' as const, l: 'Machine' },
-                { v: 'csm' as const, l: 'Continuous' },
               ]}
             />
           </Row>
@@ -237,6 +234,19 @@ export function SettingsPage() {
             <Seg label="Starting bankroll" value={s.startBankroll} onChange={(v) => set({ startBankroll: v })} options={[500, 1000, 5000, 10000].map((n) => ({ v: n, l: money(n) }))} />
           </Row>
           <Row label="Bankroll" hint={`${money(br.balance)} now · ${br.hands} hands played`} />
+        </Group>
+
+        <Group title="Before you play for real">
+          <Row label="Plan a session" hint="Tell José the game and how you’ll play it: what it’s worth and how a session goes">
+            <a className="pill" href="#/plan">
+              Plan
+            </a>
+          </Row>
+          <Row label="Do’s and don’ts" hint="Never 6 to 5, never a continuous shuffler, read the cut, strike and go">
+            <a className="pill" href="#/real">
+              Read
+            </a>
+          </Row>
         </Group>
 
         <Group title="Start over">

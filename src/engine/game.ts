@@ -116,11 +116,11 @@ export interface TableOptions {
    */
   peekPause?: boolean;
   /**
-   * How the cards are shuffled. 'machine' (default): a perfect shuffle when the cut card comes out.
-   * 'hand': a dealer's shuffle built from the last shoe's discards (handShuffle.ts). 'csm': a
-   * continuous shuffling machine, the cards go back in after every hand (no cut card, nothing to count).
+   * How the cards are shuffled when the cut card comes out. 'machine' (default): a shuffle machine
+   * between shoes, a perfect shuffle. 'hand': a dealer's shuffle built from the last shoe's discards
+   * (handShuffle.ts). (No continuous shuffler: counting means nothing there, and nobody should play one.)
    */
-  shuffleStyle?: 'machine' | 'hand' | 'csm';
+  shuffleStyle?: 'machine' | 'hand';
 }
 
 export interface ShoeSnapshot {
@@ -217,13 +217,6 @@ export class Table {
   placeBet(bets: number | Record<number, number>): void {
     if (this.phase !== 'bet' && this.phase !== 'settled') throw new Error('Not betting');
     if (this.needsShuffle) this.reshuffle();
-    // a continuous shuffler: last hand's cards went back in, so every hand comes from a full shoe
-    if (this.opts.shuffleStyle === 'csm' && this.shoe.pos > 0) {
-      this.shoe.shuffle(false);
-      this.rc = 0;
-      this.seenCount = 0;
-      this.shoeStartRound = this.round;
-    }
     const humanBet = (i: number) => (typeof bets === 'number' ? (i === this.humanSeats[0] ? bets : 0) : bets[i] ?? 0);
     const units = typeof bets === 'number' ? bets : Object.values(bets).reduce((a, b) => a + b, 0);
     this.round++;
@@ -648,7 +641,7 @@ export class Table {
       this.logs.push(this.current);
     }
     this.phase = 'settled';
-    if (this.shoe.cutReached && this.opts.shuffleStyle !== 'csm') this.needsShuffle = true;
+    if (this.shoe.cutReached) this.needsShuffle = true;
   }
 
   /** Run automatic steps until the human must act or the round is settled. */

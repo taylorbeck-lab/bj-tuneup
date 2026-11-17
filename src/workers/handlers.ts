@@ -12,6 +12,7 @@ import { dealerProbs } from '../engine/ev/dealer';
 import { computeEdgeModel, type EdgeModel } from '../engine/edge';
 import { GoalSolver, roundOutcomeDist, goalDP, goalUtility, mean, expect as expectU, type Dist } from '../engine/goal';
 import { engineFor } from '../engine/ev/analyze';
+import { planSession, type PlanInput, type Plan } from '../engine/plan';
 
 export interface StrategyResult {
   chart: Chart;
@@ -39,6 +40,10 @@ export interface ActionOdds {
 }
 
 export const handlers = {
+  /** Plan a session: what this game is worth at each spread, and how a session of this length goes. */
+  planSession(input: PlanInput, spreads: number[]): Plan {
+    return planSession(input, spreads);
+  },
   /** Win / push / lose chances of every legal action (rest of the hand played max-EV). */
   coachOdds(unseen: Comp, values: number[], up: number, rules: Rules, avail: Avail): ActionOdds[] {
     const base = unseen.slice();
