@@ -23,10 +23,10 @@ export interface V2Settings {
   /** How busy the table runs: players come and go (quiet, normal, busy), or a fixed number (off). */
   traffic: Traffic;
   /**
-   * How the cards are shuffled: a dealer's hand shuffle built from the last shoe ('hand'), a shuffle
-   * machine between shoes ('machine'), or a continuous shuffler that takes the cards back every hand ('csm').
+   * How the cards are shuffled between shoes: by hand, built from the last shoe ('hand'), or by a
+   * shuffle machine ('machine'). Never a continuous shuffler: counting means nothing there.
    */
-  shuffle: 'hand' | 'machine' | 'csm';
+  shuffle: 'hand' | 'machine';
   /** Your spot, 1 = first base (dealer's left) .. 6 = third base. */
   seat: number;
   /** Spots you play: 1 or 2. */
@@ -112,7 +112,7 @@ export function mergeV2(s?: Partial<V2Settings>): V2Settings {
     progress: progressFrom(s, { ...d.coach, ...(s.coach ?? {}) }),
     // settings saved before traffic: a player count someone chose on purpose stays fixed
     traffic: s.traffic ?? (s.players !== undefined && s.players !== d.players ? 'off' : 'normal'),
-    shuffle: s.shuffle === 'machine' || s.shuffle === 'csm' ? s.shuffle : 'hand',
+    shuffle: s.shuffle === 'machine' ? 'machine' : 'hand',
   };
 }
 

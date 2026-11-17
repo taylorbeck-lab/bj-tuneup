@@ -53,30 +53,12 @@ describe("a dealer's hand shuffle", () => {
   });
 });
 
-describe('a continuous shuffler', () => {
-  it('takes the cards back every hand: no cut card, no count, every hand from a full shoe', () => {
-    const t = new Table({ rules: { ...DEFAULT_RULES }, seats: 4, humanSeat: 1, chart, seed: 3, granularity: 0.5, rounding: 'floor', shuffleStyle: 'csm' });
-    for (let r = 0; r < 300; r++) {
-      play(t);
-      expect(t.needsShuffle).toBe(false);
-      // the next hand is dealt from a full shoe with the count back to zero
-      t.placeBet(1);
-      expect(t.shoe.remaining + t.shoe.dealt).toBe(104);
-      expect(t.shoe.dealt).toBeLessThanOrEqual(12);
-      let g = 0;
-      while (t.phase !== 'settled' && g++ < 100) {
-        if (t.phase === 'insurance') t.insure(false);
-        else if (t.waitingForHuman && t.phase === 'play') t.act('stand');
-        else t.step();
-      }
-    }
-  });
-});
-
 describe('settings', () => {
   it('shuffle by hand unless chosen otherwise', () => {
     expect(mergeV2(undefined).shuffle).toBe('hand');
     expect(mergeV2({ onboarded: true }).shuffle).toBe('hand');
-    expect(mergeV2({ shuffle: 'csm' }).shuffle).toBe('csm');
+    expect(mergeV2({ shuffle: 'machine' }).shuffle).toBe('machine');
+    // an old saved continuous shuffler (removed) goes back to the hand shuffle
+    expect(mergeV2({ shuffle: 'csm' as never }).shuffle).toBe('hand');
   });
 });

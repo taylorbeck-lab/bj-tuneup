@@ -54,11 +54,11 @@ export class Shoe {
   }
 
   /** Shuffle all cards back in (a perfect machine shuffle), place the cut card and burn. */
-  shuffle(burn = true): void {
+  shuffle(): void {
     const cards: CardId[] = [];
     for (let d = 0; d < this.decks; d++) for (let id = 0; id < 52; id++) cards.push(id);
     this.cards = shuffle(cards, this.rng);
-    this.afterShuffle(burn);
+    this.afterShuffle();
   }
 
   /**
@@ -71,17 +71,17 @@ export class Shoe {
     for (const c of pile) counts[c]++;
     if (pile.length !== this.decks * 52 || counts.some((n) => n !== this.decks)) return this.shuffle();
     this.cards = dealerShuffle(pile, this.decks, this.rng);
-    this.afterShuffle(true);
+    this.afterShuffle();
   }
 
-  private afterShuffle(burn: boolean): void {
+  private afterShuffle(): void {
     if (this.skew > 0) this.applySkew();
     this.pos = 0;
     this.burned = [];
     this.remainingByValue = fullComp(this.decks);
     this.remainingByCard = new Array(52).fill(this.decks);
     this.cutIndex = Math.round(this.cards.length * this.cutAt());
-    if (burn) for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
+    for (let i = 0; i < this.burnCount; i++) this.burned.push(this.take());
   }
 
   /**
