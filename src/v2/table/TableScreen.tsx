@@ -72,7 +72,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     setBetsState(b);
   };
   const [lastBets, setLastBets] = useState<Record<number, number>>({});
-  /** Like a real table: after a win or a push your bet stays in the circle; after a loss it's gone. */
+  /**
+   * Like a real table: after a win or a push your bet stays in the circle; after a loss it's gone.
+   * At the end of the shoe the circle is cleared for the shuffle, whatever the last hand did.
+   */
   const carry = useRef<Record<number, number> | null>(null);
   useEffect(() => {
     if (!g.result) return;
@@ -96,6 +99,12 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
   useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
   useEffect(() => {
+    // the end of the shoe: everything comes down before the shuffle, whatever the last hand did
+    if (g.phase === 'endOfShoe' || g.phase === 'shuffling') {
+      carry.current = null;
+      if (Object.keys(pendingBets).length) setBets({});
+      return;
+    }
     if (g.phase !== 'betting') return;
     if (carry.current) {
       const keep = carry.current;
