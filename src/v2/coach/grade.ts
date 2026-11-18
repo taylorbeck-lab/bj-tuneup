@@ -39,7 +39,13 @@ export function situationKey(values: readonly number[], up: number): string {
 const RIGHT = ['textbook', 'nicely played', 'that’s the one', 'sharp', 'clean'];
 const pickPraise = (n: number) => RIGHT[n % RIGHT.length];
 
-export function gradeDecision(snap: DecisionSnapshot, chart: Chart, plays: IndexPlay[], deviations: boolean, n = 0): CoachVerdict {
+/**
+ * Grade a decision. `plays` are the count plays you're held to (none unless `deviations`). `accept`
+ * are count plays that also count as right when you make them at the right count, even though you're
+ * not held to them yet: someone who's counting (Level 2, or a play not yet given at Level 3) and knows
+ * a count play shouldn't be marked wrong for making it.
+ */
+export function gradeDecision(snap: DecisionSnapshot, chart: Chart, plays: IndexPlay[], deviations: boolean, n = 0, accept?: IndexPlay[]): CoachVerdict {
   const chartPlay = chartAction(chart, snap.values, snap.up, snap.avail);
   let correct = chartPlay;
   let countPlay: IndexPlay | undefined;
@@ -50,7 +56,17 @@ export function gradeDecision(snap: DecisionSnapshot, chart: Chart, plays: Index
     countSpot = ix.play;
     if (ix.play && ix.action !== chartPlay) countPlay = ix.play;
   }
-  const right = snap.chosen === correct;
+  let right = snap.chosen === correct;
+  if (!right && accept?.length) {
+    const ax = indexAction(accept, chart, snap.values, snap.up, snap.tc, snap.avail);
+    if (ax.play && ax.action !== chartPlay && snap.chosen === ax.action) {
+      // the count play, made at the right count: right, and credited as a count play
+      right = true;
+      correct = ax.action;
+      countPlay = ax.play;
+      countSpot = ax.play;
+    }
+  }
   const why = countPlay ? whyIndex(countPlay, snap.tc, correct) : whyBasic(snap.values, snap.up, correct);
   return {
     right,
@@ -75,9 +91,17 @@ export interface InsuranceVerdict {
   why: string;
 }
 
-export function gradeInsurance(take: boolean, unseen: number[], tc: number, plays: IndexPlay[], deviations: boolean): InsuranceVerdict {
+/**
+ * Grade insurance. Held to the count (`deviations`): take it at the insurance index. Otherwise the
+ * play is to skip it, except that someone who's counting (`accept`) and takes it at the right count is
+ * right too (a count play).
+ */
+export function gradeInsurance(take: boolean, unseen: number[], tc: number, plays: IndexPlay[], deviations: boolean, accept?: IndexPlay[]): InsuranceVerdict {
   const n = unseen.reduce((a, b) => a + b, 0);
   const tenShare = unseen[10] / n;
   const shouldTake = deviations ? insuranceDecision(plays, tc).take : false;
-  return { right: take === shouldTake, take, shouldTake, tenShare, why: whyInsurance(take, tenShare, deviations, tc) };
+  const countSaysTake = insuranceDecision(deviations ? plays : (accept ?? plays), tc).take;
+  const accepted = !deviations && !!accept?.length && take && countSaysTake;
+  const right = take === shouldTake || accepted;
+  return { right, take, shouldTake, tenShare, why: whyInsurance({ take, right, tenShare, tc, countSaysTake, heldToCount: deviations, counting: deviations || !!accept?.length }) };
 }

@@ -78,8 +78,25 @@ export function whyIndex(p: IndexPlay, tc: number, play: Action | 'insure' | 'no
   return '';
 }
 
-export function whyInsurance(take: boolean, tenShare: number, countPlay: boolean, tc: number): string {
-  const pct = Math.round(tenShare * 100);
-  if (countPlay && tc >= 3) return `True count ${tc > 0 ? '+' : ''}${tc}: ${pct}% of the unseen cards are 10s (it pays above 33%). ${take ? 'Good insurance.' : 'Insurance was worth taking here.'}`;
-  return `Insurance wins only if the hidden card is a 10. Right now ${pct}% of the cards left are 10s; it needs over 33% to pay.${take ? ' Skip it.' : ''}`;
+/**
+ * Why insurance was right or wrong, in words that never contradict the verdict. Insurance pays when
+ * more than a third of the cards left are 10s; the count is how a player knows. The share of 10s right
+ * now is quoted only when it agrees with what the count says.
+ */
+export function whyInsurance(o: { take: boolean; right: boolean; tenShare: number; tc: number; countSaysTake: boolean; heldToCount: boolean; counting: boolean }): string {
+  const pct = Math.round(o.tenShare * 100);
+  const tc = o.tc === 0 ? 'even' : `${o.tc > 0 ? 'up' : 'down'} ${Math.abs(o.tc)}`;
+  // the share of 10s right now, only when it agrees with what the count says
+  const tens = o.tenShare > 1 / 3 === o.countSaysTake ? ` Right now ${pct}% of the cards left are 10s.` : '';
+  if (o.take && o.right) return `Insurance pays when more than a third of the cards left are 10s, and at a true count of ${tc} they are.${tens} ${o.heldToCount ? 'Good insurance.' : 'A count play: good insurance.'}`;
+  if (!o.take && o.right) {
+    if (o.countSaysTake && !o.counting) return `At this level you never take insurance. The count did favour it here (true count ${tc}).${tens} Taking it is a count play you’ll learn later.`;
+    if (o.countSaysTake) return `No insurance is the basic play, so that’s fine. The count did favour it here (true count ${tc}).${tens} Taking it is a count play worth knowing.`;
+    return `Insurance wins only if the hidden card is a 10, and it needs more than a third of the cards left to be 10s. At a true count of ${tc} they aren’t.${tens} Skip it.`;
+  }
+  if (o.take && !o.right) {
+    if (o.countSaysTake) return `The count did favour it (true count ${tc}).${tens} But taking insurance is a count play you’ll learn later; at this level, no insurance.`;
+    return `Insurance needs more than a third of the cards left to be 10s, and at a true count of ${tc} they aren’t.${tens} Skip it.`;
+  }
+  return `At a true count of ${tc} more than a third of the cards left are 10s: that’s when insurance pays.${tens} Take it.`;
 }
