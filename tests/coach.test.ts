@@ -44,3 +44,46 @@ describe('V2 coach', () => {
     expect(gradeBet(150, 25, 4).right).toBe(true);
   });
 });
+
+describe('feedback that matches the level you play at', () => {
+  // 34% of the cards left are 10s: a shoe where insurance pays
+  const rich = [0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 102];
+  const poor = [0, 20, 20, 20, 20, 20, 20, 20, 20, 20, 60];
+  const contradicts = (why: string) => /skip it/i.test(why) && /(34|35|36)% of the cards left are 10s/.test(why);
+
+  it('counting (Level 2): a count play made at the right count is right, and the why agrees', () => {
+    const ins = gradeInsurance(true, rich, 3, REFERENCE_INDICES, false, REFERENCE_INDICES);
+    expect(ins.right).toBe(true);
+    expect(ins.why).toMatch(/count play/i);
+    expect(contradicts(ins.why)).toBe(false);
+    // skipping is still fine at Level 2 (the basic play)
+    expect(gradeInsurance(false, rich, 3, REFERENCE_INDICES, false, REFERENCE_INDICES).right).toBe(true);
+    // taking it at a low count is still wrong
+    expect(gradeInsurance(true, poor, 0, REFERENCE_INDICES, false, REFERENCE_INDICES).right).toBe(false);
+    // a count play on a hand: standing on 16 vs 10 at +2 while counting
+    const v = gradeDecision(snap([10, 6], 10, 'stand', 2), chart, REFERENCE_INDICES, false, 0, REFERENCE_INDICES);
+    expect(v.right).toBe(true);
+    expect(v.countPlay?.id).toBe('16v10');
+    // ...but not below the count that calls for it
+    expect(gradeDecision(snap([10, 6], 10, 'stand', -2), chart, REFERENCE_INDICES, false, 0, REFERENCE_INDICES).right).toBe(false);
+  });
+
+  it('not counting yet (Level 1): the chart play is right, and the why is honest about the count', () => {
+    const ins = gradeInsurance(true, rich, 3, REFERENCE_INDICES, false);
+    expect(ins.right).toBe(false);
+    expect(ins.why).toMatch(/count play/i);
+    expect(contradicts(ins.why)).toBe(false);
+    expect(gradeDecision(snap([10, 6], 10, 'stand', 2), chart, REFERENCE_INDICES, false).right).toBe(false);
+  });
+
+  it('insurance whys never say skip it while saying the 10s are over a third', () => {
+    for (const unseen of [rich, poor])
+      for (const tc of [-2, 0, 1, 2, 3, 4, 6])
+        for (const take of [true, false])
+          for (const [dev, acc] of [[false, undefined], [false, REFERENCE_INDICES], [true, REFERENCE_INDICES]] as const) {
+            const g = gradeInsurance(take, unseen, tc, REFERENCE_INDICES, dev, acc as never);
+            expect(contradicts(g.why)).toBe(false);
+            if (/skip it\.$/i.test(g.why)) expect(g.why).not.toMatch(/are 10s\)?\. .*Take it/);
+          }
+  });
+});

@@ -46,6 +46,13 @@ export function PlayScreen() {
   const edgeModel = useEdgeModel(s.rules, st.chart);
   /** The count plays you're held to: at Level 3 they come a few at a time (see progress.ts). */
   const graded = s.progress.level === 3 ? playsForTier(plays, s.progress.tier) : plays;
+  /**
+   * Count plays that also count as right when made at the right count, once you're counting: at
+   * Level 2 (not held to them yet) and for the ones not yet given at Level 3. At Level 1 the play is
+   * the chart's.
+   */
+  const counting = s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations;
+  const accept = counting ? plays : undefined;
   const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
   const setCard: typeof setCardState = (v) =>
     setCardState((cur) => {
@@ -152,7 +159,7 @@ export function PlayScreen() {
             const order = t.seats.map((x, i) => (x.hands.length ? i : -1)).filter((i) => i >= 0);
             const me = order.findIndex((i) => t.seats[i].human);
             recordPace(order.length <= 1 ? 'solo' : me === 0 ? 'first' : me === order.length - 1 ? 'third' : 'middle', ms);
-            const v = gradeDecision(snap, st.chart, graded, s.coach.deviations, n.current++);
+            const v = gradeDecision(snap, st.chart, graded, s.coach.deviations, n.current++, accept);
             const kind = snap.values.length === 2 && snap.values[0] === snap.values[1] ? 'pair' : handTotal(snap.values).soft ? 'soft' : 'hard';
             recordDecision(v.key, v.hand, v.right, !!v.countPlay, kind);
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
@@ -167,7 +174,8 @@ export function PlayScreen() {
                 if (pv && shouldPreview(previews.current[pv.play.id] ?? 0, Math.random())) {
                   previews.current = { ...previews.current, [pv.play.id]: (previews.current[pv.play.id] ?? 0) + 1 };
                   kvSet('v2previews', previews.current);
-                  line = `When counting: ${ACTION_LABEL[pv.action].toLowerCase()} here at ${pv.when}.`;
+                  // not counting yet: what counting will change; counting already: the count play itself
+                  line = counting ? `Count play: ${ACTION_LABEL[pv.action].toLowerCase()} here at ${pv.when}.` : `When counting: ${ACTION_LABEL[pv.action].toLowerCase()} here at ${pv.when}.`;
                   msg = { ...msg, text: `${v.why} Next level: this is a count play. Counters ${ACTION_LABEL[pv.action].toLowerCase()} ${v.hand} when the true count is ${pv.when}; you'll learn it with count plays.` };
                 }
               }
@@ -180,12 +188,14 @@ export function PlayScreen() {
             });
           },
           onInsurance: (take, t) => {
-            const v = gradeInsurance(take, t.unseen(), t.tcPlayer(), graded, s.coach.deviations);
+            const v = gradeInsurance(take, t.unseen(), t.tcPlayer(), graded, s.coach.deviations, accept);
             recordInsurance(v.right);
             pushEvent(`Insurance at true count ${t.tcPlayer()}: ${take ? 'took it' : 'declined'}, ${v.right ? 'right' : 'wrong'}.`);
             const f = insuranceFeedback(v.right, v.shouldTake, s.coach.deviations);
-            const msg: CoachMsg = { kind: 'insurance', ok: v.right, title: v.right ? 'Right call' : 'Not quite', accent: v.shouldTake ? 'take insurance here' : 'skip insurance', text: v.why };
-            show({ ok: v.right, title: v.shouldTake ? 'Take insurance' : 'No insurance', line: v.right ? undefined : f.line, msg });
+            const msg: CoachMsg = { kind: 'insurance', ok: v.right, title: v.right ? 'Right call' : 'Not quite', accent: v.right ? (v.take ? 'good insurance' : 'skip insurance') : v.shouldTake ? 'take insurance here' : 'skip insurance', text: v.why };
+            // (a count play taken at the right count while counting: right, and said so)
+            const countTake = v.right && v.take && !v.shouldTake;
+            show({ ok: v.right, title: v.right ? (v.take ? 'Insurance' : 'No insurance') : v.shouldTake ? 'Take insurance' : 'No insurance', line: countTake ? 'Count play: right at this count.' : v.right ? undefined : f.line, msg });
           },
           onRoundEnd: () => {
             recordHand();
