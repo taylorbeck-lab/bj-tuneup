@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Table } from '../../engine/game';
 import { recordCount } from '../stats';
+import { trueCountCheck } from './trueCount';
 import { countWords, padPress, padValue, padText, EMPTY_PAD, type PadState } from './words';
 
 /**
@@ -69,15 +70,14 @@ const decksWord = (n: number) => `${n} ${n === 1 ? 'deck' : 'decks'}`;
 export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; onClose: () => void; quiz?: boolean; onResult?: (runningRight: boolean, trueRight: boolean) => void }) {
   const rc = table.rc;
   const unseen = table.unseenCount();
-  const decksLeft = Math.max(0.5, Math.round((unseen / 52) * 2) / 2);
-  const tcExact = rc / (unseen / 52);
+  // graded the way the sheet teaches it (tray estimate, round down), or within one of the exact value
+  const { decksLeft, raw: tcRaw, shown: tcShown } = trueCountCheck(rc, unseen);
+  const tcIsRight = (n: number) => trueCountCheck(rc, unseen, n).right;
   const [step, setStep] = useState<'rc' | 'tc' | 'done'>('rc');
   const [rcAns, setRcAns] = useState<number | null>(null);
   const [tcAns, setTcAns] = useState<number | null>(null);
   const rcRight = rcAns === rc;
-  const tcRight = tcAns !== null && Math.abs(tcAns - tcExact) <= 1;
-  const tcRaw = rc / decksLeft;
-  const tcShown = Math.floor(tcRaw);
+  const tcRight = tcAns !== null && tcIsRight(tcAns);
   const decksPlayed = Math.round(((table.rules.decks * 52 - unseen) / 52) * 2) / 2;
 
   return (
@@ -137,8 +137,8 @@ export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; o
               onSubmit={(n) => {
                 setTcAns(n);
                 setStep('done');
-                recordCount(rcAns === rc, Math.abs(n - tcExact) <= 1);
-                onResult?.(rcAns === rc, Math.abs(n - tcExact) <= 1);
+                recordCount(rcAns === rc, tcIsRight(n));
+                onResult?.(rcAns === rc, tcIsRight(n));
               }}
             />
           </>
