@@ -88,6 +88,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.result]);
   const [askShuffle, setAskShuffle] = useState(false);
+  /** This round's deal was set up: a hand you missed earlier, dealt again for practice. */
+  const [practiceDeal, setPracticeDeal] = useState(false);
   // sitting on a decision too long: the table is waiting (your circle pulses)
   const [waiting, setWaiting] = useState(false);
   useEffect(() => {
@@ -132,7 +134,10 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (!t) return;
     setLastBets(b);
     hooks.onBet?.(b, t);
-    g.deal(b, hooks.practiceHand?.());
+    const practice = hooks.practiceHand?.() ?? null;
+    // a practice hand is never dealt in secret: José says so
+    setPracticeDeal(!!practice);
+    g.deal(b, practice);
     setBets({});
   };
 
@@ -174,6 +179,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
     if (betting && g.trafficNote) return { kind: 'traffic', seed: round, joined: g.trafficNote.joined, left: g.trafficNote.left, alone: g.layout.spots.length === g.layout.mine.length };
     if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
+    if (practiceDeal && (g.phase === 'dealing' || g.phase === 'yourTurn')) return { kind: 'practice', seed: round };
     if (g.phase === 'dealing') return { kind: 'dealing', seed: round, bigBet };
     if (g.phase === 'insurance') return { kind: 'insurance', seed: round };
     if (g.phase === 'peeking') return { kind: 'peek', seed: round, ace: dealerVals[0] === 1 };

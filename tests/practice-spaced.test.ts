@@ -37,6 +37,17 @@ describe('spaced practice', () => {
     expect(pickPractice(st, rng, { hands: 10_000, lastPractice: -Infinity, level: 3 })).toBeNull();
   });
 
+  it('never on a count in your favour, and at most one a shoe', () => {
+    const st = stats({ s18v7: sit({ step: 0, due: 60 }) });
+    const at = { hands: 100, lastPractice: -Infinity, level: 1 as const };
+    expect(pickPractice(st, rng, { ...at, trueCount: 2 })).toBeNull();
+    expect(pickPractice(st, rng, { ...at, trueCount: 1 })).toBeNull();
+    expect(pickPractice(st, rng, { ...at, trueCount: 0 })).not.toBeNull();
+    expect(pickPractice(st, rng, { ...at, trueCount: -3 })).not.toBeNull();
+    expect(pickPractice(st, rng, { ...at, shoe: 7, lastPracticeShoe: 7 })).toBeNull();
+    expect(pickPractice(st, rng, { ...at, shoe: 8, lastPracticeShoe: 7 })).not.toBeNull();
+  });
+
   it('picks the most overdue first, and a miss saved before the schedule counts as due', () => {
     const st = stats({ h12v3: sit({ step: 1, due: 90 }), s18v7: sit({ step: 0, due: 70 }), p8v10: sit(undefined, [1, 0, 1]) });
     expect(pickPractice(st, rng, { hands: 100, lastPractice: -Infinity, level: 1 })!.key).toBe('p8v10');
