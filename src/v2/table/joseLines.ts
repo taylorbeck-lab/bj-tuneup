@@ -10,6 +10,8 @@
 export type JoseMoment =
   | { kind: 'betting'; first: boolean; seed: number; streak: number }
   | { kind: 'dealing'; seed: number; bigBet: boolean }
+  /** This deal was set up: a hand you missed earlier, for practice. */
+  | { kind: 'practice'; seed: number }
   | { kind: 'yourTurn'; waiting: boolean; seed: number }
   | { kind: 'insurance'; seed: number }
   /** Ace or ten up: the dealer checks the hole card for blackjack. */
@@ -82,6 +84,8 @@ export function joseLine(m: JoseMoment): string | null {
     case 'dealing':
       if (m.bigBet) return pick(['Big bet. Pit boss just looked over, primo.', 'Órale, big money out, primo.', 'Careful, primo. The eye in the sky likes big bets.', 'Somebody’s feeling it. Good luck, primo.'], m.seed);
       return pick(['Here they come, primo.', 'Good luck, primo.', 'Cards out.', 'Here we go.'], m.seed, 1);
+    case 'practice':
+      return pick(['Here’s one you missed earlier, primo.', 'Practice hand, primo: you missed this one before.', 'This one again, primo. Take your time.'], m.seed, 27);
     case 'yourTurn':
       if (m.waiting) return pick(['Table’s waiting, primo.', 'Anytime now, primo.', 'Clock’s ticking, amigo.', 'Take your time… but not all of it, primo.'], m.seed, 2);
       return pick(['Your action, primo.', 'What’ll it be, primo?', 'Up to you, primo.', 'Your call, primo.'], m.seed, 3);

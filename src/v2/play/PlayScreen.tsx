@@ -28,7 +28,7 @@ const firstSentence = (t: string) => (t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t).tr
 const BET_TITLE: Record<string, string> = { '↑ BET': 'Bet bigger', '↓ MIN': 'Bet the minimum', '↓ BET': 'Bet less' };
 
 /** Hand count at the last practice hand (kept across screens: never two close together). */
-const lastPractice = { current: -Infinity };
+const lastPractice = { current: -Infinity, shoe: -1 };
 
 /** José's last word on your play (kept while you look at the chart, so a miss isn't lost). */
 let lastCard: (Card & { msg: CoachMsg }) | null = null;
@@ -111,10 +111,12 @@ export function PlayScreen() {
             practiceKey.current = null;
             if (!s.coach.practiceMisses || !stats.current) return null;
             const hands = handsPlayed(stats.current);
-            const p = pickPractice(stats.current, Math.random, { hands, lastPractice: lastPractice.current, level: s.progress.level });
+            const t = tableRef.current;
+            const p = pickPractice(stats.current, Math.random, { hands, lastPractice: lastPractice.current, level: s.progress.level, trueCount: t?.tcPlayer(), shoe: t?.shoesPlayed, lastPracticeShoe: lastPractice.shoe });
             if (p) {
               practiceKey.current = p.key;
               lastPractice.current = hands;
+              lastPractice.shoe = t?.shoesPlayed ?? -1;
             }
             return p;
           },

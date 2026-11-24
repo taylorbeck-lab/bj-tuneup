@@ -3,6 +3,9 @@
  * hands after that, then about 100; get it right each time and it graduates. Miss it again and it
  * starts over. Never two practice hands in a row: seeing the same hand right after missing it tests
  * whether you remember the last hand, not whether you know the play; spacing is what makes it stick.
+ * And it's rare and never on a good count: a practice hand is always a decision you missed (a stiff or
+ * a soft hand, never a 20 or a blackjack), so too many of them make the deal feel stale and forced.
+ * At most one a shoe, none when the count is in your favour, and José says when he's dealt one.
  *
  * Practice hands move real cards from the part of the shoe you haven't seen, so the count stays
  * honest, but the order isn't random any more. So it tapers with the course: often at Level 1 (learning
@@ -30,7 +33,7 @@ export function leaks(stats: V2Stats) {
 export const INTERVALS = [30, 100];
 export const FIRST_GAP: [number, number] = [5, 10];
 /** Fewest hands between two practice hands, by level (Level 3: never). */
-export const PRACTICE_GAP: Record<1 | 2 | 3, number> = { 1: 4, 2: 12, 3: Infinity };
+export const PRACTICE_GAP: Record<1 | 2 | 3, number> = { 1: 8, 2: 25, 3: Infinity };
 
 export interface Schedule {
   /** 0 = waiting for the first check after a miss; each right answer at or after `due` moves it on. */
@@ -61,9 +64,17 @@ function handFor(key: string, rng: Rng): { values: [number, number]; up: number 
  * The practice hand to deal now, if any: the most overdue hand you've missed, when enough hands
  * have gone by since the last practice hand for your level.
  */
-export function pickPractice(stats: V2Stats, rng: Rng, o: { hands: number; lastPractice: number; level: 1 | 2 | 3 }): { values: [number, number]; up: number; key: string } | null {
+export function pickPractice(
+  stats: V2Stats,
+  rng: Rng,
+  o: { hands: number; lastPractice: number; level: 1 | 2 | 3; trueCount?: number; shoe?: number; lastPracticeShoe?: number },
+): { values: [number, number]; up: number; key: string } | null {
   const gap = PRACTICE_GAP[o.level];
   if (!Number.isFinite(gap) || o.hands - o.lastPractice < gap) return null;
+  // never when the cards left favour you (the stretch a counter waits for stays exactly as dealt),
+  // and never more than one in a shoe
+  if ((o.trueCount ?? 0) >= 1) return null;
+  if (o.shoe !== undefined && o.shoe === o.lastPracticeShoe) return null;
   // (a miss saved before the schedule existed counts as due now)
   const dueAt = (s: V2Stats['sits'][string]) => (s.sched ? s.sched.due : s.recent.slice(-3).includes(0) ? 0 : Infinity);
   const due = Object.entries(stats.sits)
