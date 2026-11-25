@@ -115,3 +115,20 @@ describe('the quiet-table offer', () => {
     expect(headsUpOffer(s, P(), 3)).toBeNull();
   });
 });
+
+describe('progress lines read one way only', () => {
+  it('says how many there have been when there are not enough yet, never "7 of 10"', () => {
+    const s = base();
+    s.tcRecent = [1, 1, 1, 1, 1, 0, 1];
+    s.shoeEnd = { n: 16, right: 11, passed: 1, recent: [1, 1, 0, 1, 1, 1, 0, 1, 0, 1] };
+    s.betRecent = Array(100).fill(1);
+    s.log = 'H'.repeat(150);
+    const n = nextStep(s, P({ level: 2 }))!;
+    const tc = n.checks.find((c) => c.label === 'True count within one')!;
+    expect(tc.have).toBe('only 7 true counts answered so far');
+    expect(tc.ok).toBe(false);
+    const cut = n.checks.find((c) => c.label === 'Count exact at the cut card')!;
+    expect(cut.have).toBe('7 right');
+    for (const c of n.checks) expect(c.have).not.toMatch(/^\d+ of \d+/);
+  });
+});

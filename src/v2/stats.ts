@@ -31,6 +31,12 @@ export interface V2Stats {
    * pair hand, h/s/p for a miss. The level checks read these windows.
    */
   log?: string;
+  /**
+   * True-count answers only (a count check where you gave the true count, graded the way the sheet
+   * teaches it). `count.tcRight` above also counted checks where you skipped the true count, and older
+   * ones graded against the exact decks left, so it isn't used for display.
+   */
+  tc?: { n: number; right: number };
   /** Latest true-count checks (1 = within one), latest bets (1 = right), latest count-play spots (1 = right). */
   tcRecent?: number[];
   betRecent?: number[];
@@ -122,7 +128,12 @@ export function recordCount(rcRight: boolean, tcRight: boolean | null) {
     if (rcRight) s.count.rcRight++;
     if (tcRight) s.count.tcRight++;
     s.count.recent = [...s.count.recent, rcRight ? 1 : 0].slice(-20);
-    if (tcRight !== null) s.tcRecent = [...(s.tcRecent ?? []), tcRight ? 1 : 0].slice(-20);
+    if (tcRight !== null) {
+      s.tcRecent = [...(s.tcRecent ?? []), tcRight ? 1 : 0].slice(-20);
+      const t = (s.tc ??= { n: 0, right: 0 });
+      t.n++;
+      if (tcRight) t.right++;
+    }
   });
 }
 export function recordInsurance(right: boolean) {

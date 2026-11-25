@@ -111,14 +111,15 @@ export interface NextStep {
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-/** Share right in the last `n` results (fewer than `n` counts as not enough yet). */
-function windowCheck(label: string, results: number[], n: number, need: number): Check {
+/** Share right in the last `n` results (fewer than `n` counts as not enough yet). `unit` names what's counted. */
+function windowCheck(label: string, results: number[], n: number, need: number, unit = 'so far'): Check {
   const w = results.slice(-n);
   const acc = w.length ? w.reduce((a, b) => a + b, 0) / w.length : 0;
   const enough = w.length >= n;
   return {
     label,
-    have: enough ? pct(acc) : `${w.length} of ${n} so far`,
+    // (not "7 of 10": that reads as 7 right; say how many there have been)
+    have: enough ? pct(acc) : `only ${w.length} ${unit}`,
     need: `${pct(need)} of the last ${n}`,
     ok: enough && acc >= need - 1e-9,
     frac: enough ? Math.min(1, acc / need) : Math.min(0.99, (w.length / n) * Math.min(1, acc / need || 0.5)),
@@ -135,9 +136,9 @@ export function nextStep(s: V2Stats, p: Progress): NextStep | null {
     const hands = handsPlayed(s);
     const checks: Check[] = [
       { label: 'Hands played', have: `${hands}`, need: `${t.minHands}`, ok: hands >= t.minHands, frac: Math.min(1, hands / t.minHands) },
-      windowCheck('Every hand', all, t.window, t.accuracy),
-      windowCheck('Soft hands', fromLog(log, 's'), t.softWindow, t.softAccuracy),
-      windowCheck('Pairs', fromLog(log, 'p'), t.pairWindow, t.pairAccuracy),
+      windowCheck('Every hand', all, t.window, t.accuracy, 'decisions so far'),
+      windowCheck('Soft hands', fromLog(log, 's'), t.softWindow, t.softAccuracy, 'soft hands so far'),
+      windowCheck('Pairs', fromLog(log, 'p'), t.pairWindow, t.pairAccuracy, 'pairs so far'),
     ];
     return { kind: 'count', title: 'Next: counting', checks, ready: checks.every((c) => c.ok) };
   }
@@ -150,20 +151,20 @@ export function nextStep(s: V2Stats, p: Progress): NextStep | null {
       { label: 'Shoes counted to the cut card', have: `${shoes}`, need: `${t.minShoes}`, ok: shoes >= t.minShoes, frac: Math.min(1, shoes / t.minShoes) },
       {
         label: 'Count exact at the cut card',
-        have: recent.length >= t.shoeWindow ? `${exact} of ${t.shoeWindow}` : `${recent.length} of ${t.shoeWindow} so far`,
+        have: recent.length >= t.shoeWindow ? `${exact} right` : `only ${recent.length} shoes so far`,
         need: `${t.shoeRight} of the last ${t.shoeWindow}`,
         ok: recent.length >= t.shoeWindow && exact >= t.shoeRight,
         frac: Math.min(1, exact / t.shoeRight),
       },
-      windowCheck('True count within one', s.tcRecent ?? [], t.tcWindow, t.tcAccuracy),
-      windowCheck('Bets with the count', s.betRecent ?? [], t.betWindow, t.betAccuracy),
-      windowCheck('Every hand, still', all, t.basicWindow, t.basicAccuracy),
+      windowCheck('True count within one', s.tcRecent ?? [], t.tcWindow, t.tcAccuracy, 'true counts answered so far'),
+      windowCheck('Bets with the count', s.betRecent ?? [], t.betWindow, t.betAccuracy, 'bets so far'),
+      windowCheck('Every hand, still', all, t.basicWindow, t.basicAccuracy, 'decisions so far'),
     ];
     return { kind: 'plays', title: 'Next: count plays', checks, ready: checks.every((c) => c.ok) };
   }
   if (p.tier < 3) {
     const t = THRESHOLDS.nextTier;
-    const checks = [windowCheck('Count plays right', s.devRecent ?? [], t.window, t.accuracy)];
+    const checks = [windowCheck('Count plays right', s.devRecent ?? [], t.window, t.accuracy, 'count-play spots so far')];
     return { kind: 'tier', title: p.tier === 1 ? 'Next: the rest of the main count plays' : 'Next: every count play', checks, ready: checks.every((c) => c.ok) };
   }
   return null;
@@ -186,6 +187,6 @@ export function headsUpOffer(s: V2Stats, p: Progress, othersAtTable: number): Ne
   const t = THRESHOLDS.headsUp;
   const hands = handsPlayed(s);
   if (hands < t.minHands) return null;
-  const check = windowCheck('Every hand', fromLog(s.log ?? '', 'hsp'), t.window, t.accuracy);
+  const check = windowCheck('Every hand', fromLog(s.log ?? '', 'hsp'), t.window, t.accuracy, 'decisions so far');
   return check.ok ? { kind: 'headsUp', title: 'A quiet table', checks: [check], ready: true } : null;
 }
