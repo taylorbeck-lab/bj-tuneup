@@ -15,7 +15,11 @@ export interface SitStat {
 export interface V2Stats {
   decisions: number;
   right: number;
-  deviations: { n: number; right: number };
+  /**
+   * Count plays you're held to (Level 3): the times one applied, and how often you made it. `own`:
+   * count plays you made right before being held to them (Level 2, or not yet given at Level 3).
+   */
+  deviations: { n: number; right: number; own?: number };
   sits: Record<string, SitStat>;
   count: { n: number; rcRight: number; tcRight: number; recent: number[] };
   insurance: { n: number; right: number };
@@ -93,12 +97,13 @@ export function onStats(l: (s: V2Stats) => void) {
 }
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean, kind: HandKind = 'hard') {
+export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean, kind: HandKind = 'hard', own = false) {
   return mutate((s) => {
     s.decisions++;
     if (right) s.right++;
     const ch = KIND_CH[kind];
     s.log = ((s.log ?? '') + (right ? ch.toUpperCase() : ch)).slice(-LOG_MAX);
+    if (own) s.deviations.own = (s.deviations.own ?? 0) + 1;
     if (countPlay) {
       s.deviations.n++;
       if (right) s.deviations.right++;

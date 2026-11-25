@@ -64,6 +64,9 @@ describe('feedback that matches the level you play at', () => {
     const v = gradeDecision(snap([10, 6], 10, 'stand', 2), chart, REFERENCE_INDICES, false, 0, REFERENCE_INDICES);
     expect(v.right).toBe(true);
     expect(v.countPlay?.id).toBe('16v10');
+    // made on your own, not held to it: it can't count toward a count-play grade that can only go up
+    expect(v.accepted).toBe(true);
+    expect(gradeDecision(snap([10, 6], 10, 'stand', 2), chart, REFERENCE_INDICES, true, 0, REFERENCE_INDICES).accepted).toBe(false);
     // ...but not below the count that calls for it
     expect(gradeDecision(snap([10, 6], 10, 'stand', -2), chart, REFERENCE_INDICES, false, 0, REFERENCE_INDICES).right).toBe(false);
   });
