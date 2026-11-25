@@ -109,6 +109,13 @@ function Course({ stats }: { stats: V2Stats }) {
   );
 }
 
+/** True count within one, out of the times you actually gave a true count. */
+function trueCountLine(s: V2Stats): string {
+  const t = s.tc?.n ? s.tc : s.tcRecent?.length ? { n: s.tcRecent.length, right: s.tcRecent.reduce((a, b) => a + b, 0) } : null;
+  if (!t) return 'true count: no answers yet';
+  return `true count within one ${Math.round((100 * t.right) / t.n)}% (${t.n} answered)`;
+}
+
 export function StatsPage() {
   const { s } = useV2();
   const { br } = useBankroll(s.startBankroll);
@@ -149,9 +156,13 @@ export function StatsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Tile label="Right calls" value={pct(stats.right, stats.decisions)} sub={`${stats.right} of ${stats.decisions} decisions`} color="var(--mustard)" />
           <Tile label="Today" value={today ? pct(today.right, today.decisions) : '—'} sub={today ? `${today.hands} hands` : 'no hands yet'} />
-          <Tile label="Count checks" value={pct(stats.count.rcRight, stats.count.n)} sub={`running count exact · true ${pct(stats.count.tcRight, stats.count.n)}`} color="var(--pool)" />
-          <Tile label="Count plays" value={pct(stats.deviations.right, stats.deviations.n)} sub={`${stats.deviations.n} times the count changed the play`} />
-          <Tile label="End of shoe" value={pct(stats.shoeEnd?.right ?? 0, stats.shoeEnd?.n ?? 0)} sub={`count exact at the cut card · ${stats.shoeEnd?.n ?? 0} tried, ${stats.shoeEnd?.passed ?? 0} passed`} color="var(--sage)" />
+          <Tile label="Count checks" value={pct(stats.count.rcRight, stats.count.n)} sub={`running count exact (mid-shoe) · ${trueCountLine(stats)}`} color="var(--pool)" />
+          {s.progress.level === 3 ? (
+            <Tile label="Count plays" value={pct(stats.deviations.right, stats.deviations.n)} sub={`${stats.deviations.right} of ${stats.deviations.n} times the count changed the play${stats.deviations.own ? ` · ${stats.deviations.own} more on your own` : ''}`} />
+          ) : (
+            <Tile label="Count plays" value="—" sub={`graded from Level 3${stats.deviations.own ? ` · ${stats.deviations.own} made right on your own` : ''}`} />
+          )}
+          <Tile label="End of shoe" value={pct(stats.shoeEnd?.right ?? 0, stats.shoeEnd?.n ?? 0)} sub={`count exact at the cut card · ${stats.shoeEnd?.n ?? 0} answered${stats.shoeEnd?.passed ? `, ${stats.shoeEnd.passed} skipped` : ''}`} color="var(--sage)" />
           <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} decisions`} />
           <Tile label="Bets" value={pct(stats.bets.right, stats.bets.n)} sub="with the bet coach on" color="var(--lilac)" />
         </div>

@@ -163,7 +163,8 @@ export function PlayScreen() {
             recordPace(order.length <= 1 ? 'solo' : me === 0 ? 'first' : me === order.length - 1 ? 'third' : 'middle', ms);
             const v = gradeDecision(snap, st.chart, graded, s.coach.deviations, n.current++, accept);
             const kind = snap.values.length === 2 && snap.values[0] === snap.values[1] ? 'pair' : handTotal(snap.values).soft ? 'soft' : 'hard';
-            recordDecision(v.key, v.hand, v.right, !!v.countPlay, kind);
+            // a count play counts toward the count-play grade only when you're held to it
+            recordDecision(v.key, v.hand, v.right, !!v.countPlay && !v.accepted, kind, !!v.accepted);
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
             const practiced = practiceKey.current === v.key;
             let msg: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };

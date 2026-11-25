@@ -15,7 +15,11 @@ export interface SitStat {
 export interface V2Stats {
   decisions: number;
   right: number;
-  deviations: { n: number; right: number };
+  /**
+   * Count plays you're held to (Level 3): the times one applied, and how often you made it. `own`:
+   * count plays you made right before being held to them (Level 2, or not yet given at Level 3).
+   */
+  deviations: { n: number; right: number; own?: number };
   sits: Record<string, SitStat>;
   count: { n: number; rcRight: number; tcRight: number; recent: number[] };
   insurance: { n: number; right: number };
@@ -31,6 +35,12 @@ export interface V2Stats {
    * pair hand, h/s/p for a miss. The level checks read these windows.
    */
   log?: string;
+  /**
+   * True-count answers only (a count check where you gave the true count, graded the way the sheet
+   * teaches it). `count.tcRight` above also counted checks where you skipped the true count, and older
+   * ones graded against the exact decks left, so it isn't used for display.
+   */
+  tc?: { n: number; right: number };
   /** Latest true-count checks (1 = within one), latest bets (1 = right), latest count-play spots (1 = right). */
   tcRecent?: number[];
   betRecent?: number[];
@@ -87,12 +97,13 @@ export function onStats(l: (s: V2Stats) => void) {
 }
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean, kind: HandKind = 'hard') {
+export function recordDecision(key: string, label: string, right: boolean, countPlay: boolean, kind: HandKind = 'hard', own = false) {
   return mutate((s) => {
     s.decisions++;
     if (right) s.right++;
     const ch = KIND_CH[kind];
     s.log = ((s.log ?? '') + (right ? ch.toUpperCase() : ch)).slice(-LOG_MAX);
+    if (own) s.deviations.own = (s.deviations.own ?? 0) + 1;
     if (countPlay) {
       s.deviations.n++;
       if (right) s.deviations.right++;
@@ -122,7 +133,12 @@ export function recordCount(rcRight: boolean, tcRight: boolean | null) {
     if (rcRight) s.count.rcRight++;
     if (tcRight) s.count.tcRight++;
     s.count.recent = [...s.count.recent, rcRight ? 1 : 0].slice(-20);
-    if (tcRight !== null) s.tcRecent = [...(s.tcRecent ?? []), tcRight ? 1 : 0].slice(-20);
+    if (tcRight !== null) {
+      s.tcRecent = [...(s.tcRecent ?? []), tcRight ? 1 : 0].slice(-20);
+      const t = (s.tc ??= { n: 0, right: 0 });
+      t.n++;
+      if (tcRight) t.right++;
+    }
   });
 }
 export function recordInsurance(right: boolean) {
