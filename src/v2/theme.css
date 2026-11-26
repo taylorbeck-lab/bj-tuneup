@@ -598,41 +598,62 @@ a {
   position: absolute;
   overflow: visible;
 }
-.shoe {
-  filter: drop-shadow(0.4cqw 0.6cqw 0.6cqw rgba(40, 25, 10, 0.35));
-}
-/* the posted table-limits sign at the dealer's edge */
+
+/* the posted table-limits sign: a printed card in a tinted acrylic stand, coloured by the minimum */
 .placard {
+  --pl: var(--orange);
   position: absolute;
-  left: 17cqw;
-  top: 2.2cqw;
-  width: 17cqw;
-  padding: 0.9cqw 0.4cqw 1cqw;
+  left: 19.5cqw;
+  top: 2cqw;
+  width: 16.5cqw;
+  padding: 0 0 1.1cqw;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2cqw;
-  background: linear-gradient(180deg, #1f1e1b, #0f0f0e);
-  border: 0.35cqw solid var(--orange);
-  border-radius: 1cqw;
-  box-shadow: 0 0.6cqw 1cqw rgba(40, 25, 10, 0.35);
-  color: var(--on-dark);
+  gap: 0.25cqw;
+  background: linear-gradient(180deg, #fffaf0, #f3e8d2);
+  /* the acrylic around the card: a tinted edge with the light on its top and left */
+  border: 0.55cqw solid rgba(214, 104, 44, 0.62);
+  border-radius: 1.3cqw;
+  box-shadow:
+    inset 0 0 0 0.16cqw rgba(60, 30, 10, 0.55),
+    0 0 0 0.14cqw rgba(110, 45, 14, 0.75),
+    -0.12cqw -0.12cqw 0 0.14cqw rgba(255, 226, 190, 0.7),
+    0 1.2cqw 0 -0.2cqw #6f2b0b,
+    0.3cqw 1.9cqw 1.4cqw rgba(40, 25, 10, 0.35);
+  color: var(--ink);
   text-align: center;
   line-height: 1;
+  overflow: hidden;
+}
+.placard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 30%);
+  pointer-events: none;
 }
 .placard .pl-k {
   font-family: var(--font);
   font-size: 1.5cqw;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.85;
+  color: var(--ink-soft);
   white-space: nowrap;
+}
+.placard .pl-band {
+  align-self: stretch;
+  padding: 0.75cqw 0 0.7cqw;
+  margin-bottom: 0.35cqw;
+  background: var(--pl);
+  color: #fff6e6;
 }
 .placard .pl-v {
   font-family: var(--display);
-  font-size: 4.6cqw;
-  letter-spacing: 0.04em;
-  color: var(--mustard);
+  font-size: 5cqw;
+  letter-spacing: 0.03em;
+  color: var(--ink);
 }
 .dock-foot {
   display: flex;
