@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { rankOf, suitOf, isRed, RANK_LABELS, SUIT_GLYPHS, cardName } from '../../engine/cards';
 import type { Rules } from '../../engine/rules';
-import { SHOE, CARD_H, CARD_W, FELT_H, FRONT, RAIL, LOGO_BOX } from './layout';
+import { SHOE, TRAY, CARD_H, CARD_W, FELT_H, FRONT, RAIL, LOGO_BOX } from './layout';
 import type { PlacedCard } from './useTableGame';
 import { money } from '../bankroll';
 
@@ -30,8 +30,9 @@ export function PlayingCard({ p, sweep, dur, dim, peek }: { p: PlacedCard; sweep
     zIndex: p.mine ? 3 : p.spot === 0 ? 2 : 1,
     '--tx': `${p.x}cqw`,
     '--ty': `${p.y}cqw`,
-    '--sx': `${SHOE.x + 2}cqw`,
-    '--sy': `${SHOE.y + 2}cqw`,
+    // cards leave from the mouth of the shoe (the front, facing you)
+    '--sx': `${SHOE.x + 2.5}cqw`,
+    '--sy': `${SHOE.y + 12}cqw`,
     '--dur': `${sweep ? 420 : Math.max(180, Math.min(360, dur * 0.45))}ms`,
   } as CSSProperties;
   if (p.faceDown)
@@ -228,37 +229,51 @@ export function Rail() {
 }
 
 /** The posted limits sign at the dealer's edge of the table, where you look for the minimum. */
+/** Casinos colour their limit signs by the minimum (a red table, a green table…), like the chips. */
+const PLACARD_COLOUR: Record<number, string> = { 5: '#b3432b', 10: '#c4561f', 25: '#3c6a4b', 50: '#5e3b5b', 100: '#1d1c1a' };
+
+/** The posted table-limits sign: a printed card in a tinted acrylic stand at the dealer's edge. */
 export function LimitPlacard({ min, max }: { min: number; max: number }) {
   return (
-    <div className="placard" role="note" aria-label={`Table minimum ${money(min)}, maximum ${money(max)}`}>
-      <span className="pl-k">Table minimum</span>
+    <div className="placard" role="note" aria-label={`Table minimum ${money(min)}, maximum ${money(max)}`} style={{ '--pl': PLACARD_COLOUR[min] ?? 'var(--orange)' } as CSSProperties}>
+      <span className="pl-k pl-band">Table minimum</span>
       <span className="pl-v">{money(min)}</span>
       <span className="pl-k">Max {money(max)}</span>
     </div>
   );
 }
 
+/** Size of the tray and shoe drawings (cqw). */
+const TRAY_SIZE = { w: 16.5, h: 25.3 };
+const SHOE_SIZE = { w: 16, h: 22 };
+
 /**
- * The shoe (closed: you can't see how many cards are left, just like at a real table) and the
- * discard tray, a clear acrylic box where played cards stack on their side. The stack height is
- * exact: a full shoe of discards fills the tray, so you can read decks played off the tray the way
- * counters do.
+ * The discard tray and the shoe, in orange-tinted acrylic.
+ *
+ * The tray is the counter's ruler: played cards lie flat in it and the pile's height is exact (a
+ * full shoe of discards fills it), with a line etched on the acrylic for each deck, so you read decks
+ * played off it the way you would at a table. The shoe is smoked: you can't see how many cards are
+ * left in it, just like a real one. Tap the tray for the count, the shoe to ask for a shuffle.
  */
 export function ShoeAndTray({ discards, decks, onTray, onShoe }: { discards: number; decks: number; onTray?: () => void; onShoe?: () => void }) {
-  const TH = 23; // tray height (cqw)
-  const TW = 10; // tray width (cqw)
-  const vb = { w: 100, h: (TH / TW) * 100 };
-  const floor = vb.h - 9;
-  const inner = floor - 12; // room for a full shoe
-  const stack = Math.min(inner, (discards / (decks * 52)) * inner);
-  const deckH = inner / decks;
+  // --- tray, drawn in a 150 x 230 box: front edge along the bottom, depth going up and to the right
+  const FLOOR = 204; // where the pile sits (front bottom edge)
+  const FULL = 166; // pile height for a whole shoe
+  const X0 = 30; // pile front, left and right
+  const X1 = 96;
+  const D = { x: 26, y: -14 }; // the pile's depth on the page
+  const h = Math.min(FULL, (discards / (decks * 52)) * FULL);
+  const deckH = FULL / decks;
   const decksIn = discards / 52;
+  const top = FLOOR - h;
+  // numbers on the deck lines: every deck up to six decks, every other one in an eight-deck game
+  const labelled = (k: number) => decks <= 6 || k % 2 === 0;
   return (
     <>
       <svg
         className="tray"
-        viewBox={`0 0 ${vb.w} ${vb.h}`}
-        style={{ left: '5cqw', top: '2cqw', width: `${TW}cqw`, height: `${TH}cqw`, cursor: onTray ? 'pointer' : undefined }}
+        viewBox="0 0 150 230"
+        style={{ left: `${TRAY.x}cqw`, top: `${TRAY.y}cqw`, width: `${TRAY_SIZE.w}cqw`, height: `${TRAY_SIZE.h}cqw`, cursor: onTray ? 'pointer' : undefined }}
         role={onTray ? 'button' : 'img'}
         tabIndex={onTray ? 0 : undefined}
         onClick={onTray}
@@ -266,51 +281,127 @@ export function ShoeAndTray({ discards, decks, onTray, onShoe }: { discards: num
         aria-label={`Discard tray: ${discards} cards, about ${(Math.round(decksIn * 2) / 2).toFixed(1)} decks played${onTray ? '. Tap for the count.' : ''}`}
       >
         <defs>
-          <pattern id="cardEdges" width="100" height="2.6" patternUnits="userSpaceOnUse">
-            <rect width="100" height="2.6" fill="#fbf7ee" />
-            <rect y="1.9" width="100" height="0.7" fill="#a99a7f" />
+          <pattern id="trayEdges" width="100" height="2.4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.4" fill="#fbf7ee" />
+            <rect y="1.7" width="100" height="0.7" fill="#b7a88c" />
           </pattern>
-          <linearGradient id="acrylic" x1="0" x2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.32" />
-            <stop offset="0.18" stopColor="#fff" stopOpacity="0.08" />
-            <stop offset="0.8" stopColor="#fff" stopOpacity="0.04" />
-            <stop offset="1" stopColor="#fff" stopOpacity="0.22" />
+          <pattern id="trayEdgesSide" width="100" height="2.4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="2.4" fill="#e9dfca" />
+            <rect y="1.7" width="100" height="0.7" fill="#9d8f76" />
+          </pattern>
+          <linearGradient id="trayWall" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#e9772f" stopOpacity="0.5" />
+            <stop offset="0.5" stopColor="#c4561f" stopOpacity="0.34" />
+            <stop offset="1" stopColor="#9a3f12" stopOpacity="0.5" />
+          </linearGradient>
+          <linearGradient id="traySide" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#f08a45" stopOpacity="0.62" />
+            <stop offset="1" stopColor="#b84c18" stopOpacity="0.42" />
+          </linearGradient>
+          <linearGradient id="trayGloss" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.5" />
+            <stop offset="0.35" stopColor="#fff" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* smoked acrylic back wall */}
-        <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="rgba(28,22,16,0.72)" stroke="#0d0d0c" strokeWidth="1.4" />
-        {/* the stack of played cards, edge on, with the top card's orange back showing */}
-        {stack > 0.3 && (
+        {/* where it sits on the felt */}
+        <ellipse cx="78" cy="212" rx="62" ry="12" fill="rgba(60,30,10,0.22)" />
+        {/* base plate */}
+        <path d={`M20 ${FLOOR + 2} H106 L${106 + D.x + 4} ${FLOOR + 2 + D.y - 2} H${20 + D.x + 4} Z`} fill="#8a3710" />
+        <path d={`M20 ${FLOOR + 2} H106 V${FLOOR + 10} H20 Z`} fill="#6f2b0b" />
+        <path d={`M106 ${FLOOR + 2} L${106 + D.x + 4} ${FLOOR + D.y} V${FLOOR + D.y + 8} L106 ${FLOOR + 10} Z`} fill="#5c2308" />
+        {/* back wall and the wall on the left: tinted acrylic you see the felt through */}
+        <path d={`M${20 + D.x + 4} ${FLOOR + D.y} H${106 + D.x + 4} V${14} a4 4 0 0 0 -4 -4 H${24 + D.x + 4} a4 4 0 0 0 -4 4 Z`} fill="url(#trayWall)" stroke="#8a3710" strokeWidth="1.6" />
+        <path d={`M20 ${FLOOR + 2} L${20 + D.x + 4} ${FLOOR + D.y} V12 L20 ${12 - D.y + 2} Z`} fill="url(#traySide)" stroke="#8a3710" strokeWidth="1.6" strokeLinejoin="round" />
+        {/* the pile of played cards, lying flat: edges on the front and side, the top card's back on top */}
+        {h > 0.4 && (
           <>
-            <rect x="12" y={floor - stack} width="76" height={stack} fill="url(#cardEdges)" />
-            <rect x="12" y={floor - stack} width="76" height={stack} fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="0.8" />
-            <rect x="11" y={floor - stack - 2.4} width="78" height="2.8" rx="0.8" fill="var(--orange)" stroke="rgba(0,0,0,0.5)" strokeWidth="0.6" />
+            <rect x={X0} y={top} width={X1 - X0} height={h} fill="url(#trayEdges)" />
+            <path d={`M${X1} ${top} L${X1 + D.x} ${top + D.y} V${FLOOR + D.y} L${X1} ${FLOOR} Z`} fill="url(#trayEdgesSide)" />
+            <path d={`M${X0} ${top} H${X1} L${X1 + D.x} ${top + D.y} H${X0 + D.x} Z`} fill="var(--orange)" />
+            <path d={`M${X0 + 7} ${top - 2.2} H${X1 - 3} L${X1 + D.x - 7} ${top + D.y + 2.2} H${X0 + D.x + 3} Z`} fill="none" stroke="#f6ead3" strokeOpacity="0.75" strokeWidth="1.2" />
+            <path d={`M${X0} ${top} H${X1} L${X1 + D.x} ${top + D.y} V${FLOOR + D.y} L${X1} ${FLOOR} H${X0} Z M${X1} ${top} V${FLOOR}`} fill="none" stroke="rgba(40,25,10,0.55)" strokeWidth="1" strokeLinejoin="round" />
           </>
         )}
-        {/* one faint tick per deck on the side, like the etched lines on a real tray */}
-        {Array.from({ length: decks - 1 }, (_, i) => (
-          <line key={i} x1="89" x2="94" y1={floor - deckH * (i + 1)} y2={floor - deckH * (i + 1)} stroke="rgba(246,234,211,0.55)" strokeWidth="1.1" />
-        ))}
-        {/* clear front panel and black base */}
-        <rect x="6" y="2" width="88" height={floor - 2} rx="3" fill="url(#acrylic)" />
-        <rect x="2" y={floor} width="96" height="8" rx="2.5" fill="#121211" />
+        {/* a line etched for each deck, numbered: decks played */}
+        {Array.from({ length: decks - 1 }, (_, i) => {
+          const y = FLOOR - deckH * (i + 1);
+          return (
+            <g key={i}>
+              <path d={`M20 ${y + 2} L${20 + D.x + 4} ${y + D.y}`} stroke="#fff3df" strokeOpacity="0.9" strokeWidth="1.6" />
+              <path d={`M12 ${y + 2} H22`} stroke="#5c2308" strokeWidth="1.8" strokeLinecap="round" />
+              {labelled(i + 1) && (
+                <text x="7" y={y + 10} textAnchor="middle" fontFamily="var(--mono)" fontWeight="700" fontSize="22" fill="#5c2308">
+                  {i + 1}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        {/* the low lip along the front, and the light catching the acrylic */}
+        <path d={`M20 ${FLOOR - 12} H106 V${FLOOR + 2} H20 Z`} fill="#e9772f" fillOpacity="0.38" stroke="#8a3710" strokeWidth="1.4" />
+        <path d={`M106 ${FLOOR - 12} L${106 + D.x + 4} ${FLOOR + D.y - 14} V${FLOOR + D.y} L106 ${FLOOR + 2} Z`} fill="#b84c18" fillOpacity="0.4" stroke="#8a3710" strokeWidth="1.4" />
+        <path d={`M${20 + D.x + 4} ${FLOOR + D.y} H${106 + D.x + 4} V${14} a4 4 0 0 0 -4 -4 H${24 + D.x + 4} a4 4 0 0 0 -4 4 Z`} fill="url(#trayGloss)" pointerEvents="none" />
+        <path d={`M22 ${14 - D.y + 2} L${20 + D.x + 2} 14`} stroke="#fff" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+        <path d={`M${26 + D.x + 4} 11.5 H${100 + D.x + 4}`} stroke="#fff" strokeOpacity="0.55" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
       <svg
         className="shoe"
-        viewBox="0 0 100 150"
-        style={{ right: '5cqw', top: '2cqw', width: '11cqw', height: '16.5cqw', cursor: onShoe ? 'pointer' : undefined }}
+        viewBox="0 0 160 220"
+        style={{ left: `${SHOE.x}cqw`, top: `${SHOE.y}cqw`, width: `${SHOE_SIZE.w}cqw`, height: `${SHOE_SIZE.h}cqw`, cursor: onShoe ? 'pointer' : undefined }}
         role={onShoe ? 'button' : 'img'}
         tabIndex={onShoe ? 0 : undefined}
         onClick={onShoe}
         onKeyDown={(e) => onShoe && (e.key === 'Enter' || e.key === ' ') && onShoe()}
         aria-label={onShoe ? 'Shoe. Tap to ask José to shuffle.' : 'Shoe'}
       >
-        <path d="M18 8 H92 a6 6 0 0 1 6 6 V140 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 V60 Z" fill="#1b1a18" stroke="#000" strokeWidth="2" />
-        <path d="M22 16 H88 V96 H12 V60 Z" fill="#0e0e0d" />
-        <rect x="14" y="62" width="70" height="30" rx="2" fill="var(--orange)" stroke="#000" strokeWidth="1.2" />
-        <rect x="18" y="66" width="62" height="22" rx="1.5" fill="none" stroke="#f6ead3" strokeOpacity="0.6" strokeWidth="1" />
-        <path d="M2 100 H98" stroke="#2d2b28" strokeWidth="2" />
-        <ellipse cx="50" cy="122" rx="24" ry="9" fill="#0e0e0d" />
+        <defs>
+          <linearGradient id="shoeLid" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#f08a45" stopOpacity="0.74" />
+            <stop offset="0.5" stopColor="#c4561f" stopOpacity="0.7" />
+            <stop offset="1" stopColor="#9a3f12" stopOpacity="0.8" />
+          </linearGradient>
+          <linearGradient id="shoeFace" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#a2441a" />
+            <stop offset="1" stopColor="#6f2b0b" />
+          </linearGradient>
+          <linearGradient id="shoeGloss" x1="0" y1="0" x2="1" y2="0.6">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
+            <stop offset="0.3" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+          <pattern id="shoeCards" width="100" height="3.4" patternUnits="userSpaceOnUse">
+            <rect width="100" height="3.4" fill="#fbf3e1" />
+            <rect y="2.3" width="100" height="1.1" fill="#b39c7c" />
+          </pattern>
+          <clipPath id="shoeSlot">
+            <path d="M46 196 V166 a34 34 0 0 1 68 0 V196 Z" />
+          </clipPath>
+        </defs>
+        {/* where it sits on the felt */}
+        <ellipse cx="84" cy="203" rx="76" ry="13" fill="rgba(60,30,10,0.24)" />
+        {/* the body runs away from you: the cards stand on edge under a smoked orange lid */}
+        <path d="M36 14 H124 L150 130 H10 Z" fill="#5c2308" />
+        <path d="M44 44 H116 L140 126 H20 Z" fill="url(#shoeCards)" />
+        {/* the weight that pushes the cards toward the mouth */}
+        <path d="M42 30 H118 L121 44 H39 Z" fill="#2a1a0f" />
+        <path d="M36 14 H124 L150 130 H10 Z" fill="url(#shoeLid)" stroke="#5c2308" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M36 14 H124 L150 130 H10 Z" fill="url(#shoeGloss)" />
+        <path d="M39 18 L15 126" stroke="#fff" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round" />
+        <path d="M42 16.5 H118" stroke="#fff" strokeOpacity="0.5" strokeWidth="1.6" strokeLinecap="round" />
+        {/* the faceplate, with the next card's back showing in the finger slot */}
+        <path d="M10 130 H150 V192 a6 6 0 0 1 -6 6 H16 a6 6 0 0 1 -6 -6 Z" fill="url(#shoeFace)" stroke="#4a1c06" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M12 132 H148" stroke="#ffd9b0" strokeOpacity="0.6" strokeWidth="1.8" />
+        <g clipPath="url(#shoeSlot)">
+          <rect x="46" y="130" width="68" height="68" fill="var(--orange)" />
+          <rect x="46" y="130" width="68" height="68" fill="#e9772f" fillOpacity="0.35" />
+          <path d="M52 198 V166 a28 28 0 0 1 56 0 V198" fill="none" stroke="#f6ead3" strokeOpacity="0.85" strokeWidth="1.6" />
+          {/* the sunburst on the card back */}
+          {[-70, -42, -14, 14, 42, 70].map((a) => (
+            <line key={a} x1={80 + Math.sin((a * Math.PI) / 180) * 7} y1={190 - Math.cos((a * Math.PI) / 180) * 7} x2={80 + Math.sin((a * Math.PI) / 180) * 19} y2={190 - Math.cos((a * Math.PI) / 180) * 19} stroke="#f6ead3" strokeWidth="2.2" strokeLinecap="round" />
+          ))}
+        </g>
+        <path d="M46 196 V166 a34 34 0 0 1 68 0 V196" fill="none" stroke="#3a1505" strokeWidth="2.2" />
+        {/* the card waiting at the mouth, and the base */}
+        <path d="M30 196 H130 L134 205 H26 Z" fill="#fbf7ee" stroke="#4a1c06" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
     </>
   );

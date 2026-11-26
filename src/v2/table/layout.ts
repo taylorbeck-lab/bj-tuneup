@@ -21,8 +21,9 @@ export const CARD_H = W_MINE * CARD_RATIO;
 /** The printed logo on the felt (tap it for the intro). */
 export const LOGO_BOX = { x: 37.35, y: 47.4, w: 25.3, h: 21.56 };
 
-export const SHOE = { x: 84, y: 2.5 };
-export const TRAY = { x: 5, y: 2.5 };
+/** Top-left of the shoe and the discard tray drawings (sizes in Visuals.tsx). */
+export const SHOE = { x: 83, y: 1.2 };
+export const TRAY = { x: 1.5, y: 1.2 };
 
 /**
  * Spots sit on an arc parallel to the rail: the table's front ellipse drawn 15.5 units in, so the
