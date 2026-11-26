@@ -787,14 +787,28 @@ a {
   box-shadow: 2px 2px 0 #000;
 }
 .icon-btn {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+  min-width: 58px;
+  height: 42px;
+  padding: 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 12px;
   color: var(--on-dark);
   border: 2px solid rgba(239, 228, 204, 0.35);
   background: rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
 }
 .icon-btn:active {
   background: rgba(255, 255, 255, 0.12);
@@ -2118,4 +2132,295 @@ table.bs td.s .dev {
 }
 .real-list.no .lbl {
   color: #c43f22;
+}
+
+/* ---------- settings: level cards and the folded house rules ---------- */
+.level-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 9px 12px 10px;
+  border-radius: 12px;
+  border: 2px solid rgba(27, 26, 23, 0.3);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.level-pick .display {
+  font-size: 18px;
+}
+.level-pick .serif {
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--ink-soft);
+}
+.level-pick.on {
+  border-color: #000;
+  background: var(--mustard);
+  box-shadow: 2px 2px 0 #000;
+}
+.level-pick.on .serif {
+  color: var(--ink);
+}
+.rules-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 10px 14px 12px;
+}
+.rules-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.rules-fold .gh-in {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.rules-fold .rules-now {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.rules-fold .rules-change {
+  font-size: 13px;
+  font-weight: 600;
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  padding: 4px 12px;
+}
+.rules-fold[open] .rules-change {
+  background: var(--mustard);
+}
+.rules-fold[open] > summary {
+  border-bottom: 2px solid var(--ink);
+}
+.rules-fold[open] > summary + .row {
+  border-top: 0;
+}
+
+/* stats: two tiles a row; a lone last tile takes the row */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tiles > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* ---------- the front door: José up front ---------- */
+.intro-jose {
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 150px;
+  max-height: 46dvh;
+  object-fit: cover;
+  object-position: 40% 14%;
+  border-radius: 16px;
+  border: 2.5px solid #000;
+  box-shadow: 3px 3px 0 #000;
+}
+.intro-logo.small {
+  width: 42%;
+  max-width: 190px;
+  margin: 0;
+}
+.intro-levels {
+  list-style: none;
+  counter-reset: lv;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.intro-levels li {
+  counter-increment: lv;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+.intro-levels li::before {
+  content: counter(lv);
+  grid-row: span 2;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mustard);
+  color: var(--ink);
+  border: 2px solid #000;
+  font-family: var(--display);
+  font-size: 19px;
+}
+.intro-levels b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  line-height: 1.1;
+}
+.intro-levels span {
+  font-size: 14.5px;
+  line-height: 1.42;
+  color: var(--on-dark-soft);
+}
+.intro-install {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--on-dark-soft);
+  padding: 9px 12px;
+  border: 1px solid rgba(233, 220, 198, 0.25);
+  border-radius: 12px;
+}
+.intro-install b {
+  color: var(--on-dark);
+}
+.intro-install-btn {
+  background: var(--mustard);
+  color: var(--ink);
+  border: 2px solid #000;
+  border-radius: 99px;
+  padding: 3px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.page.intro.door {
+  align-items: stretch;
+  gap: 12px;
+}
+.page.intro.door .intro-logo {
+  align-self: center;
+}
+.door-gap {
+  flex: 0 1 8px;
+}
+.door-how {
+  align-self: center;
+  padding: 4px 12px;
+}
+@media (max-height: 640px) {
+  .intro-jose {
+    min-height: 120px;
+  }
+  .intro-logo.small {
+    width: 34%;
+  }
+  .intro-levels b {
+    font-size: 18px;
+  }
+  .intro-levels span {
+    font-size: 13.5px;
+    line-height: 1.36;
+  }
+}
+
+/* moving up: the level you're stepping into, and what got you here */
+.levelup-kicker {
+  align-self: flex-start;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--mustard);
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+.levelup-earned {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.levelup-earned span {
+  background: rgba(47, 125, 79, 0.14);
+  border: 1.5px solid rgba(47, 125, 79, 0.5);
+  border-radius: 99px;
+  padding: 2px 9px;
+}
+
+/* ---------- every device ---------- */
+/* taps act at once (no double-tap zoom), and holding a finger on the table never selects text or pops a menu */
+button,
+a,
+.spot,
+.chip {
+  touch-action: manipulation;
+}
+.table-frame {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+/* a tablet held upright: a bigger table, and José as a wide portrait instead of a tall crop */
+@media (min-width: 700px) and (min-height: 1000px) {
+  .table-frame {
+    max-width: 640px;
+  }
+  .table-frame .dock {
+    width: 100%;
+    max-width: 520px;
+    align-self: center;
+  }
+}
+/* wider than a phone: the app sits in the room like a table under a lamp, not in a void */
+@media (min-width: 700px) {
+  .frame {
+    box-shadow: 0 0 0 1px rgba(233, 220, 198, 0.07), 0 0 90px 30px rgba(0, 0, 0, 0.45);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.12));
+  }
+}
+/* a phone on its side: there's no room for a table */
+.rotate-note {
+  display: none;
+}
+@media (orientation: landscape) and (max-height: 460px) {
+  .rotate-note {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    background: var(--room);
+    color: var(--on-dark);
+  }
+  .rotate-note img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2.5px solid var(--orange);
+    object-fit: cover;
+  }
+  .rotate-note p {
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+  }
+}
+/* the start buttons: the name on one line, the level under it */
+.intro-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

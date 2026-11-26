@@ -119,7 +119,7 @@ function windowCheck(label: string, results: number[], n: number, need: number, 
   return {
     label,
     // (not "7 of 10": that reads as 7 right; say how many there have been)
-    have: enough ? pct(acc) : `only ${w.length} ${unit}`,
+    have: enough ? pct(acc) : w.length ? `only ${w.length} ${unit}` : 'none yet',
     need: `${pct(need)} of the last ${n}`,
     ok: enough && acc >= need - 1e-9,
     frac: enough ? Math.min(1, acc / need) : Math.min(0.99, (w.length / n) * Math.min(1, acc / need || 0.5)),
@@ -151,7 +151,7 @@ export function nextStep(s: V2Stats, p: Progress): NextStep | null {
       { label: 'Shoes counted to the cut card', have: `${shoes}`, need: `${t.minShoes}`, ok: shoes >= t.minShoes, frac: Math.min(1, shoes / t.minShoes) },
       {
         label: 'Count exact at the cut card',
-        have: recent.length >= t.shoeWindow ? `${exact} right` : `only ${recent.length} shoes so far`,
+        have: recent.length >= t.shoeWindow ? `${exact} right` : recent.length ? `only ${recent.length} ${recent.length === 1 ? 'shoe' : 'shoes'} so far` : 'none yet',
         need: `${t.shoeRight} of the last ${t.shoeWindow}`,
         ok: recent.length >= t.shoeWindow && exact >= t.shoeRight,
         frac: Math.min(1, exact / t.shoeRight),

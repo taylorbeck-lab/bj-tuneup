@@ -40,5 +40,5 @@ export function padText(s: PadState): string {
   if (s.dir === 'even') return 'EVEN';
   const n = s.digits === '' ? '?' : String(Number(s.digits));
   if (n === '0') return 'EVEN';
-  return s.dir ? `${s.dir.toUpperCase()} ${n}` : n === '?' ? '?' : `${n} — up or down?`;
+  return s.dir ? `${s.dir.toUpperCase()} ${n}` : n === '?' ? '?' : `${n}: up or down?`;
 }

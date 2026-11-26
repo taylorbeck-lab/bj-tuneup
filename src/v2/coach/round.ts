@@ -36,7 +36,7 @@ export function decisionFeedback(v: CoachVerdict, practicedFixed = false): Feedb
   const countSituation = !!v.countSpot;
   if (v.right) {
     if (v.countPlay) return { layer: 'deviate', ok: true, tick: '✓ count play' };
-    if (practicedFixed) return { layer: 'play', ok: true, tick: '✓ leak fixed' };
+    if (practicedFixed) return { layer: 'play', ok: true, tick: '✓ fixed' };
     return { layer: countSituation ? 'deviate' : 'play', ok: true, tick: '✓ ' + lower(v.chosen) };
   }
   if (v.countPlay) return { layer: 'deviate', ok: false, word: word(v.correct), line: `Count says ${lower(v.correct)} on ${v.hand}.` };
@@ -55,5 +55,5 @@ export function betFeedback(right: boolean, bet: number, rec: number, units: num
 export function insuranceFeedback(right: boolean, shouldTake: boolean, deviations: boolean): Feedback {
   const layer: Layer = deviations ? 'deviate' : 'play';
   if (right) return { layer, ok: true, tick: shouldTake ? '✓ insurance' : '✓ no insurance' };
-  return shouldTake ? { layer, ok: false, word: 'INSURE', line: 'Count says take insurance.' } : { layer, ok: false, word: 'SKIP', line: 'Skip insurance.' };
+  return shouldTake ? { layer, ok: false, word: 'INSURE', line: 'Count says take insurance.' } : { layer, ok: false, word: 'SKIP', line: 'It only pays if the hidden card is a ten.' };
 }

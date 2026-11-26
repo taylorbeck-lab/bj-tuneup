@@ -7,6 +7,7 @@ import { EndOfShoe } from '../count/EndOfShoe';
 import type { Table } from '../../engine/game';
 import type { IndexPlay } from '../../engine/indices';
 import type { EdgeModel } from '../../engine/edge';
+import { noteLevelUp } from '../table/joseLines';
 
 /** The settings for a level: the coach the mode uses, and where the course stands. */
 export function levelSettings(s: V2Settings, level: Level, extra: Partial<Progress> = {}): Partial<V2Settings> {
@@ -20,7 +21,7 @@ export function levelSettings(s: V2Settings, level: Level, extra: Partial<Progre
  */
 export function ShoeEnd({ table, model, plays, onDone }: { table: Table; model?: EdgeModel; plays: IndexPlay[]; onDone: () => void }) {
   const { s } = useV2();
-  const counting = s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations;
+  const counting = s.progress.level >= 2;
   const [step, setStep] = useState<'count' | 'offer'>(counting ? 'count' : 'offer');
   const [offer, setOffer] = useState<NextStep | null | undefined>(undefined);
   const finished = useRef(false);
@@ -66,15 +67,23 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
     else if (step.kind === 'count') set(levelSettings(s, 2));
     else if (step.kind === 'plays') set(levelSettings(s, 3, { tier: 1 }));
     else set({ progress: { ...p, tier: Math.min(3, p.tier + 1) as Tier } });
+    noteLevelUp(step.kind);
     onClose();
   };
   const nextTier: Tier = step.kind === 'plays' ? 1 : (Math.min(3, p.tier + 1) as Tier);
   const list = step.kind === 'count' || step.kind === 'headsUp' ? [] : newPlaysAt(plays, nextTier).map(describePlay);
   const shown = list.slice(0, 8);
+  /** What got you here, from your own record. */
+  const earned = step.kind === 'headsUp' ? [] : step.checks.filter((c) => c.ok).map((c) => `${c.label.replace(/, still$/, '')}: ${c.have}`);
 
   return (
     <div className="sheet-back">
       <div className="sheet" role="dialog" aria-label="José moves you up">
+        {step.kind !== 'headsUp' && (
+          <span className="levelup-kicker">
+            {step.kind === 'count' ? `Level 2 · ${LEVEL_NAME[2]}` : step.kind === 'plays' ? `Level 3 · ${LEVEL_NAME[3]}` : `Level 3 · count plays, set ${nextTier} of 3`}
+          </span>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img className="jose-mini" src={`${import.meta.env.BASE_URL}brand/jose-avatar.jpg`} alt="" />
           <span className="display" style={{ fontSize: 28, lineHeight: 1 }}>
@@ -128,6 +137,13 @@ export function LevelUp({ step, plays, onClose }: { step: NextStep; plays: Index
             </ul>
             {step.kind === 'plays' && <p className="levelup-note">More come once these are second nature.</p>}
           </>
+        )}
+        {earned.length > 0 && (
+          <div className="levelup-earned" aria-label="What got you here">
+            {earned.map((e) => (
+              <span key={e}>✓ {e}</span>
+            ))}
+          </div>
         )}
         <button className="act stand" onClick={accept}>
           {step.kind === 'headsUp' ? 'Take the quiet table' : step.kind === 'count' ? 'Let’s count' : step.kind === 'plays' ? 'Let’s go' : 'Add them'}

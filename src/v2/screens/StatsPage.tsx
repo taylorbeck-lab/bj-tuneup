@@ -7,6 +7,7 @@ import { leaks, parseKey } from '../practice';
 import { useStrategy } from '../../store/strategy';
 import { chartAction, ACTION_LABEL } from '../../engine/strategy/chart';
 import { Starburst } from '../icons';
+import { AI_COACH } from '../features';
 
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) + '%' : '—');
 
@@ -70,7 +71,7 @@ function Course({ stats }: { stats: V2Stats }) {
   return (
     <section className="group course">
       <div className="gh">
-        Your level · {p.level}. {LEVEL_NAME[p.level]}
+        Level {p.level} · {LEVEL_NAME[p.level]}
         {p.level === 3 && p.tier < 3 ? ` · count plays ${p.tier === 1 ? 'set 1 of 3' : 'set 2 of 3'}` : ''}
       </div>
       {step ? (
@@ -127,9 +128,12 @@ export function StatsPage() {
   }, []);
   const todayKey = new Date().toISOString().slice(0, 10);
   const leaky = useMemo(() => (stats ? leaks(stats).sort((a, b) => b.recentMisses - a.recentMisses || a.right / a.n - b.right / b.n) : []), [stats]);
-  const mastered = stats ? Object.values(stats.sits).filter((x) => x.recent.length >= 3 && x.recent.slice(-3).every((r) => r === 1)).length : 0;
+  const mastered = stats ? Object.values(stats.sits).filter((x) => x.right < x.n && x.recent.length >= 3 && x.recent.slice(-3).every((r) => r === 1)).length : 0;
   if (!stats) return null;
   const today = stats.days[todayKey];
+  const level = s.progress.level;
+  const shoeN = stats.shoeEnd?.n ?? 0;
+  const paced = !!stats.pace && Object.values(stats.pace).some((p) => p.n);
   const rightPlay = (key: string) => {
     const k = parseKey(key);
     if (!k || !st.chart) return null;
@@ -143,9 +147,11 @@ export function StatsPage() {
           ← Table
         </a>
         <span className="spacer" />
-        <a className="pill coral" href="#/coach">
-          ✦ Ask the coach
-        </a>
+        {AI_COACH && (
+          <a className="pill coral" href="#/coach">
+            ✦ Ask the coach
+          </a>
+        )}
         <Starburst color="var(--coral)" />
       </header>
       <div className="page">
@@ -153,83 +159,96 @@ export function StatsPage() {
           Your game <span className="serif" style={{ fontSize: 34 }}>so far</span>
         </h1>
         <Course stats={stats} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Tile label="Right calls" value={pct(stats.right, stats.decisions)} sub={`${stats.right} of ${stats.decisions} decisions`} color="var(--mustard)" />
-          <Tile label="Today" value={today ? pct(today.right, today.decisions) : '—'} sub={today ? `${today.hands} hands` : 'no hands yet'} />
-          <Tile label="Count checks" value={pct(stats.count.rcRight, stats.count.n)} sub={`running count exact (mid-shoe) · ${trueCountLine(stats)}`} color="var(--pool)" />
-          {s.progress.level === 3 ? (
-            <Tile label="Count plays" value={pct(stats.deviations.right, stats.deviations.n)} sub={`${stats.deviations.right} of ${stats.deviations.n} times the count changed the play${stats.deviations.own ? ` · ${stats.deviations.own} more on your own` : ''}`} />
-          ) : (
-            <Tile label="Count plays" value="—" sub={`graded from Level 3${stats.deviations.own ? ` · ${stats.deviations.own} made right on your own` : ''}`} />
-          )}
-          <Tile label="End of shoe" value={pct(stats.shoeEnd?.right ?? 0, stats.shoeEnd?.n ?? 0)} sub={`count exact at the cut card · ${stats.shoeEnd?.n ?? 0} answered${stats.shoeEnd?.passed ? `, ${stats.shoeEnd.passed} skipped` : ''}`} color="var(--sage)" />
-          <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} decisions`} />
-          <Tile label="Bets" value={pct(stats.bets.right, stats.bets.n)} sub="with the bet coach on" color="var(--lilac)" />
-        </div>
-
-        <section className="group">
-          <div className="gh">Your pace · seconds per decision</div>
-          {(['first', 'middle', 'third', 'solo'] as SeatPos[]).map((k) => {
-            const p = stats.pace?.[k];
-            if (!p?.n) return null;
-            return (
-              <div className="row" key={k}>
-                <div>
-                  <div className="lbl">{SEAT_POS_LABEL[k]}</div>
-                  <div className="hint">{p.n} decisions</div>
-                </div>
-                <span className="display" style={{ fontSize: 26 }}>
-                  {(p.ms / p.n / 1000).toFixed(1)}s
-                </span>
-              </div>
-            );
-          })}
-          <div className="row">
-            <span className="hint">
-              {stats.pace && Object.values(stats.pace).some((p) => p.n)
-                ? 'Aim for about 2 seconds a decision. At first base the whole table waits on you; at third base you see everyone’s cards first.'
-                : 'Play a few hands: your speed shows up here, by where you sit.'}
-            </span>
+        {!stats.decisions ? (
+          <div className="jose">
+            <span className="jose-name">José · your dealer</span>
+            <p>Nothing on the board yet, primo. Play a shoe and I’ll show you where you stand.</p>
           </div>
-        </section>
-
-        <section className="group">
-          <div className="gh">Bankroll</div>
-          <div style={{ padding: 12 }}>
-            <BankrollChart points={br.history} start={br.start} />
-          </div>
-        </section>
-
-        <section className="group">
-          <div className="gh">
-            Hands to work on · {leaky.length} · mastered {mastered}
-          </div>
-          {leaky.length === 0 ? (
-            <div className="row">
-              <span>No leaks right now. Keep playing.</span>
+        ) : (
+          <>
+            {/* only what you're graded on at your level (or have a record of already) */}
+            <div className="tiles">
+              <Tile label="Right plays" value={pct(stats.right, stats.decisions)} sub={`${stats.right} of ${stats.decisions} decisions`} color="var(--mustard)" />
+              <Tile label="Today" value={today ? pct(today.right, today.decisions) : '—'} sub={today ? `${today.hands} ${today.hands === 1 ? 'hand' : 'hands'}` : 'no hands yet'} />
+              {(level >= 2 || stats.count.n > 0) && <Tile label="Count checks" value={pct(stats.count.rcRight, stats.count.n)} sub={`running count exact, mid-shoe · ${trueCountLine(stats)}`} color="var(--pool)" />}
+              {(level >= 2 || shoeN > 0) && <Tile label="End of shoe" value={pct(stats.shoeEnd?.right ?? 0, shoeN)} sub={`count exact at the cut card · ${shoeN} answered${stats.shoeEnd?.passed ? `, ${stats.shoeEnd.passed} skipped` : ''}`} color="var(--sage)" />}
+              {(level >= 2 || stats.bets.n > 0) && <Tile label="Bets" value={pct(stats.bets.right, stats.bets.n)} sub={`sized right for the count · ${stats.bets.n} bets`} color="var(--lilac)" />}
+              {level === 3 || stats.deviations.n > 0 ? (
+                <Tile label="Count plays" value={pct(stats.deviations.right, stats.deviations.n)} sub={`${stats.deviations.right} of ${stats.deviations.n} times the count changed the play${stats.deviations.own ? ` · ${stats.deviations.own} more on your own` : ''}`} />
+              ) : stats.deviations.own ? (
+                <Tile label="Count plays" value="—" sub={`graded from Level 3 · ${stats.deviations.own} made right on your own`} />
+              ) : null}
+              {stats.insurance.n > 0 && <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} ${stats.insurance.n === 1 ? 'decision' : 'decisions'}`} />}
             </div>
-          ) : (
-            leaky.slice(0, 12).map((x) => (
-              <div className="row" key={x.key}>
-                <div>
-                  <div className="lbl">{x.label}</div>
-                  <div className="hint">
-                    {x.right} of {x.n} right · the play: <b>{rightPlay(x.key) ?? '—'}</b>
-                  </div>
+
+            {paced && (
+              <section className="group">
+                <div className="gh">Your pace · seconds a decision</div>
+                {(['first', 'middle', 'third', 'solo'] as SeatPos[]).map((k) => {
+                  const p = stats.pace?.[k];
+                  if (!p?.n) return null;
+                  return (
+                    <div className="row" key={k}>
+                      <div>
+                        <div className="lbl">{SEAT_POS_LABEL[k]}</div>
+                        <div className="hint">{p.n} decisions</div>
+                      </div>
+                      <span className="display" style={{ fontSize: 26 }}>
+                        {(p.ms / p.n / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="row">
+                  <span className="hint">Aim for about 2 seconds a decision. At first base the whole table waits on you; at third base you see everyone’s cards first.</span>
                 </div>
-                <span className="mono" style={{ fontSize: 13 }}>
-                  {x.recent.slice(-5).map((r) => (r ? '●' : '○')).join('')}
-                </span>
-              </div>
-            ))
-          )}
-          <div className="row">
-            <span className="hint">With “Practice my misses” on, these come back more often until you get them right three times in a row.</span>
-          </div>
-        </section>
+              </section>
+            )}
+
+            {br.history.length >= 2 && (
+              <section className="group">
+                <div className="gh">Bankroll · play money</div>
+                <div style={{ padding: 12 }}>
+                  <BankrollChart points={br.history} start={br.start} />
+                </div>
+              </section>
+            )}
+
+            <section className="group">
+              <div className="gh">Hands to work on{leaky.length ? ` · ${leaky.length}` : ''}</div>
+              {leaky.length === 0 ? (
+                <div className="row">
+                  <span>Nothing to work on right now.</span>
+                </div>
+              ) : (
+                leaky.slice(0, 12).map((x) => (
+                  <div className="row" key={x.key}>
+                    <div>
+                      <div className="lbl">{x.label}</div>
+                      <div className="hint">
+                        {x.right} of {x.n} right · the play: <b>{rightPlay(x.key) ?? '—'}</b>
+                      </div>
+                    </div>
+                    <span className="mono" style={{ fontSize: 13 }} aria-label={`last ${Math.min(5, x.recent.length)}: ${x.recent.slice(-5).map((r) => (r ? 'right' : 'miss')).join(', ')}`}>
+                      {x.recent.slice(-5).map((r) => (r ? '●' : '○')).join('')}
+                    </span>
+                  </div>
+                ))
+              )}
+              {(mastered > 0 || (leaky.length > 0 && level < 3 && s.coach.practiceMisses)) && (
+                <div className="row">
+                  <span className="hint">
+                    {leaky.length > 0 && level < 3 && s.coach.practiceMisses ? 'José deals these again now and then until you get each one right three times in a row. ' : ''}
+                    {mastered > 0 ? `Fixed so far: ${mastered}.` : ''}
+                  </span>
+                </div>
+              )}
+            </section>
+          </>
+        )}
 
         <p className="muted" style={{ fontSize: 12, margin: 0 }}>
-          To reset your stats or start over, see Settings → Start over.
+          To clear your stats, see Settings → Start over.
         </p>
       </div>
     </div>

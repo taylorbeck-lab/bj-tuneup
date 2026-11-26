@@ -8,7 +8,11 @@ const base = process.env.BASE_PATH ?? '/bj-tuneup/';
 
 export default defineConfig({
   base,
-  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0') },
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+    // "Ask the coach" (a chat that needs the player's own API key) is only built in when asked for
+    __AI_COACH__: JSON.stringify(process.env.VITE_AI_COACH === '1'),
+  },
   plugins: [
     react(),
     VitePWA({

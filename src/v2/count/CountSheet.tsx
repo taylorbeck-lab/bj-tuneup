@@ -175,9 +175,9 @@ export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; o
 }
 
 export function meaning(tc: number): string {
-  if (tc >= 4) return 'Hot shoe. Lots of 10s and aces left: blackjacks, doubles and dealer busts all come more often. This is when counters bet big and start using count plays (like standing on 16 vs 10, taking insurance at +3).';
-  if (tc >= 2) return 'The shoe favours you now. Each +1 of true count is worth about half a percent to the player: time to raise your bet.';
+  if (tc >= 4) return 'Hot shoe. Lots of 10s and aces left: blackjacks, doubles and dealer busts all come more often. This is when counters bet big, and when count plays come in (standing on 16 against a 10, taking insurance at up 3).';
+  if (tc >= 2) return 'The shoe favours you now. Each point of true count is worth about half a percent to you: time to raise your bet.';
   if (tc >= 1) return 'Slightly in your favour, about break-even. Keep your bet small.';
   if (tc > -1) return 'Neutral shoe. The house has its usual small edge: minimum bet.';
-  return 'Negative count: the small cards are still in the shoe and the dealer busts less. Bet the minimum (or take a break).';
+  return 'The count is down: the small cards are still in the shoe and the dealer busts less. Bet the minimum.';
 }
