@@ -44,6 +44,10 @@ const SHOE_KEY = 'v2shoe';
 export const SHUFFLE_MS = 4600;
 /** The dealer's peek with an ace or ten up: the hole card slides into the peeker, a beat, then the answer. */
 export const PEEK_MS = 1500;
+/** A double's card waits for the chips to go down (in dealer cards; 1 = one ordinary card). */
+export const DOUBLE_BEAT = 1.35;
+/** A split hand's second card, after the hand before it is finished. */
+export const SPLIT_BEAT = 1.1;
 /** How long "No blackjack" stays before play goes on. */
 export const PEEK_CLEAR_MS = 1100;
 
@@ -134,6 +138,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       botBet: () => min * [1, 1, 1, 2, 2, 3, 4][Math.floor(Math.random() * 7)],
       botMistakeRate: 0.06,
       peekPause: true,
+      cardPause: true,
       shuffleStyle: s.shuffle,
     });
     placed.current = [];
@@ -249,7 +254,12 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     let wait = ph === 'peek' ? PEEK_MS : speed.card;
     // after a peek with no blackjack, José says so before anyone moves
     wait = Math.max(wait, peekClearUntil.current - Date.now());
-    if (ph === 'play') {
+    const owed = t.owesCard;
+    if (owed) {
+      // a double: the chips go down beside the bet, then the one card, sideways. A split: the next hand's
+      // second card comes one card later, like any other card the dealer puts down.
+      wait = Math.round(speed.card * (owed === 'double' ? DOUBLE_BEAT : SPLIT_BEAT) * (0.9 + Math.random() * 0.2));
+    } else if (ph === 'play') {
       const hand = t.seats[t.turn.seat]?.hands[t.turn.hand];
       if (hand) {
         const values = hand.cards.map(valueOf);
