@@ -37,14 +37,9 @@ export function EndOfShoe({ table, model, onDone }: { table: Table; model?: Edge
         {!answered ? (
           <>
             <Pad label="That’s my count" onSubmit={(n) => say(n)} />
-            <div className="actions" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <button className="act" onClick={() => say('pass')}>
-                Don’t know
-              </button>
-              <button className="act quiet-ink" onClick={() => say('pass')}>
-                Skip
-              </button>
-            </div>
+            <button className="act" onClick={() => say('pass')}>
+              I lost it
+            </button>
           </>
         ) : (
           <>

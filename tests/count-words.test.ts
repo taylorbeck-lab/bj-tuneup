@@ -16,7 +16,7 @@ describe('count keypad (up / down / even)', () => {
   });
   it('number first, then the direction', () => {
     expect(padValue(press('5'))).toBeNull();
-    expect(padText(press('5'))).toBe('5 — up or down?');
+    expect(padText(press('5'))).toBe('5: up or down?');
     expect(padValue(press('5', 'up'))).toBe(5);
   });
   it('two-digit counts and switching direction', () => {

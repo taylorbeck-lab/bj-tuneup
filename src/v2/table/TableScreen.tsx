@@ -7,7 +7,7 @@ import { FeltPrint, Rail, PlayingCard, ShoeAndTray, BetStack, Chip, DENOMS, Limi
 import { StatsIcon, ChartIcon, GearIcon } from '../icons';
 import { spotCenter, LOGO_BOX } from './layout';
 import { JoseZone } from './Jose';
-import { joseLine, cutWords, noteRound, currentStreak, type JoseMoment } from './joseLines';
+import { joseLine, cutWords, noteRound, currentStreak, levelNoteFor, type JoseMoment } from './joseLines';
 import { isBlackjack, valueOf, handTotal } from '../../engine/cards';
 import { ACTION_LABEL, type Action } from '../../engine/strategy/chart';
 import { BRAND } from '../brand';
@@ -131,7 +131,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     setBets({ ...bets, [sp]: cur + d });
   };
   const doDeal = (b: Record<number, number>) => {
-    if (!t) return;
+    // (a tap in the instant someone sits down or gets up waits for the table to be ready)
+    if (!t || !g.canDeal()) return;
     setLastBets(b);
     hooks.onBet?.(b, t);
     const practice = hooks.practiceHand?.() ?? null;
@@ -177,6 +178,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const dealerVals = t ? t.dealer.map(valueOf) : [];
   const joseMoment: JoseMoment = (() => {
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
+    const leveled = betting ? levelNoteFor(round) : null;
+    if (leveled) return { kind: 'levelUp', what: leveled };
     if (betting && g.trafficNote) return { kind: 'traffic', seed: round, joined: g.trafficNote.joined, left: g.trafficNote.left, alone: g.layout.spots.length === g.layout.mine.length };
     if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
     if (practiceDeal && (g.phase === 'dealing' || g.phase === 'yourTurn')) return { kind: 'practice', seed: round };
@@ -198,6 +201,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
         doubled: myHands.some((h) => h.doubled),
         surrendered: myHands.some((h) => h.surrendered),
         streak: noteRound(round, g.result.net),
+        // with one hand against a dealer who played his hand out, he calls his total
+        dealerTotal: myHands.length === 1 && t?.holeRevealed && handTotal(dealerVals).total >= 17 && handTotal(dealerVals).total <= 21 ? handTotal(dealerVals).total : undefined,
       };
     }
     if (t?.phase === 'dealer') return { kind: 'dealer', seed: round };
@@ -314,7 +319,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           <>
             {br.balance < s.tableMin ? (
               <button className="act primary" onClick={() => reset(s.startBankroll)}>
-                Out of chips — reload {money(s.startBankroll)}
+                Out of chips. Buy back in: {money(s.startBankroll)}
               </button>
             ) : (
               <>
@@ -364,12 +369,15 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
           <span className="spacer" />
           <a className="icon-btn" href="#/stats" aria-label="Your stats">
             <StatsIcon />
+            <span>Stats</span>
           </a>
           <a className="icon-btn" href="#/chart" aria-label="Strategy charts">
             <ChartIcon />
+            <span>Charts</span>
           </a>
           <a className="icon-btn" href="#/settings" aria-label="Settings">
             <GearIcon />
+            <span>Settings</span>
           </a>
         </div>
         {/* the dealer pays or takes on the felt; screen readers still hear the result */}

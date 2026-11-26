@@ -40,9 +40,10 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
 
   // A. first open: intro, all cards, Level 1
   await p.goto(URL); await wait(1200);
+  ok('intro opens on José', (await p.locator('.intro-jose').count()) === 1);
   let cards = 1; while (await p.getByRole('button', { name: 'Next ›' }).count()) { await p.getByRole('button', { name: 'Next ›' }).click(); cards++; await wait(150); }
-  ok('intro: six cards with Next', cards === 6, `cards=${cards}`);
-  ok('intro: everyone starts at the beginning, APs can unlock', (await p.getByRole('button', { name: /Start at the beginning/ }).count()) === 1 && (await p.getByRole('button', { name: /already an advantage player/ }).count()) === 1);
+  ok('intro: three cards with Next, José up front', cards === 3 && (await p.locator('.intro-jose').count()) === 0, `cards=${cards}`);
+  ok('intro: everyone starts at the beginning, APs can unlock', (await p.getByRole('button', { name: /Start at the beginning/ }).count()) === 1 && (await p.getByRole('button', { name: /I already count cards/ }).count()) === 1);
   await p.getByRole('button', { name: /Start at the beginning/ }).click(); await wait(1200);
   ok('intro → table', (await p.locator('.felt').count()) === 1);
 
@@ -76,7 +77,11 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   ok('shuffle returns to betting', (await p.getByRole('button', { name: /^Deal/ }).count()) > 0);
 
   // C. settings controls
+  const openRules = async () => { if (!(await p.locator('details.rules-fold').getAttribute('open') !== null)) await p.locator('details.rules-fold > summary').click(); await wait(150); };
   await p.goto(URL + '#/settings'); await wait(800);
+  ok('house rules are folded, with the game in words', /Double deck/.test(await p.locator('details.rules-fold > summary').innerText()) && !(await p.getByRole('group', { name: 'Decks' }).isVisible()));
+  ok('no leftover switches or AI coach in settings', !/Deviations|Show the count|Bet coach|API key|Penetration/i.test(await p.locator('.page').innerText()));
+  await openRules();
   const segs = await p.locator('.seg').all();
   let segFails = [];
   for (const sg of segs) {
@@ -93,13 +98,14 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   ok('every toggle flips', togFails.length === 0, togFails.join(',') + ` (${togs.length} toggles)`);
   // modes
   for (const m of ['Count & bet', 'Full AP', 'Basic strategy']) { await p.getByRole('button', { name: new RegExp(m) }).first().click(); await wait(100); }
-  ok('mode buttons', (await p.locator('.act.stand', { hasText: 'Basic strategy' }).count()) === 1);
+  ok('level buttons', (await p.locator('.level-pick.on', { hasText: 'Basic strategy' }).count()) === 1);
   // persistence of a setting across reload
-  await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Fixed', exact: true }).click(); await wait(200);
-  await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
+  await p.getByRole('group', { name: 'Other players' }).getByRole('button', { name: 'Fixed', exact: true }).click(); await wait(200);
+  await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
   await p.reload(); await wait(1200);
-  ok('settings persist after reload', (await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '6', exact: true }).getAttribute('aria-pressed')) === 'true');
+  ok('settings persist after reload', (await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '6', exact: true }).getAttribute('aria-pressed')) === 'true');
   // 6 decks, 2 hands, seat 6
+  await openRules();
   await p.getByRole('group', { name: 'Decks' }).getByRole('button', { name: '6', exact: true }).click();
   await p.getByRole('group', { name: 'Hands' }).getByRole('button', { name: 'Two' }).click();
   await p.getByRole('group', { name: 'Your seat' }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
@@ -108,12 +114,13 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   ok('6 decks, 6 players, two hands at third base: a hand plays through', (await p.getByRole('button', { name: /^Deal/ }).count()) > 0);
   // put back the house game
   await p.goto(URL + '#/settings'); await wait(800);
+  await openRules();
   await p.getByRole('group', { name: 'Decks' }).getByRole('button', { name: '2', exact: true }).click();
   await p.getByRole('group', { name: 'Hands' }).getByRole('button', { name: 'One' }).click();
   await p.getByRole('group', { name: 'Your seat' }).getByRole('button', { name: '3', exact: true }).click();
-  await p.getByRole('group', { name: 'Players' }).getByRole('button', { name: '4', exact: true }).click(); await wait(200);
-  await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Normal', exact: true }).click(); await wait(300);
-  ok('table traffic setting', (await p.getByRole('group', { name: 'Table' }).getByRole('button', { name: 'Normal', exact: true }).getAttribute('aria-pressed')) === 'true' && (await p.getByRole('group', { name: 'Players' }).count()) === 0);
+  await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '4', exact: true }).click(); await wait(200);
+  await p.getByRole('group', { name: 'Other players' }).getByRole('button', { name: 'Normal', exact: true }).click(); await wait(300);
+  ok('table traffic setting', (await p.getByRole('group', { name: 'Other players' }).getByRole('button', { name: 'Normal', exact: true }).getAttribute('aria-pressed')) === 'true' && (await p.getByRole('group', { name: 'Players', exact: true }).count()) === 0);
 
   // D. resets via our own sheet
   await toTable(); await playHand(); const before = await bankroll();
@@ -133,10 +140,10 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   await p.getByRole('link', { name: '← Table' }).click(); await wait(900);
   ok('bankroll reset reaches the table', (await bankroll()) === '$1,000', await bankroll());
   await p.goto(URL + '#/stats'); await wait(800);
-  ok('stats reset', /0 of 0 decisions/.test(await p.locator('.page').innerText()));
-  ok('stats show the course', /Your level/i.test(await p.locator('.course').innerText()));
+  ok('stats reset', /Nothing on the board yet/.test(await p.locator('.page').innerText()));
+  ok('stats show the course', /Level 1/i.test(await p.locator('.course').innerText()));
   await p.reload(); await wait(1200);
-  ok('stats reset survives reload', /0 of 0 decisions/.test(await p.locator('.page').innerText()));
+  ok('stats reset survives reload', /Nothing on the board yet/.test(await p.locator('.page').innerText()));
 
   // E. other pages
   await p.goto(URL + '#/chart'); await wait(1500);
@@ -144,7 +151,7 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   await p.getByRole('button', { name: 'Count plays' }).click(); await wait(800);
   ok('chart count plays', (await p.locator('.dev').count()) > 0);
   await p.goto(URL + '#/coach'); await wait(1200);
-  ok('coach page renders', (await p.locator('.frame').count()) > 0);
+  ok('the AI coach chat is not in this build', (await p.locator('.felt').count()) === 1);
   await p.goto(URL + '#/home'); await wait(800);
   ok('#/home shows intro', (await p.getByRole('button', { name: 'Deal me in' }).count()) > 0);
 

@@ -22,6 +22,7 @@ import { kvGet, kvSet } from '../../store/db';
 import { ACTION_LABEL } from '../../engine/strategy/chart';
 import { decisionFeedback, betFeedback, insuranceFeedback } from '../coach/round';
 import type { Table } from '../../engine/game';
+import { AI_COACH } from '../features';
 
 
 const firstSentence = (t: string) => (t.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? t).trim();
@@ -51,7 +52,7 @@ export function PlayScreen() {
    * Level 2 (not held to them yet) and for the ones not yet given at Level 3. At Level 1 the play is
    * the chart's.
    */
-  const counting = s.coach.countQuiz !== 'off' || s.coach.betCoach || s.coach.deviations;
+  const counting = s.progress.level >= 2;
   const accept = counting ? plays : undefined;
   const [card, setCardState] = useState<(Card & { msg: CoachMsg }) | null>(() => lastCard);
   const setCard: typeof setCardState = (v) =>
@@ -126,7 +127,18 @@ export function PlayScreen() {
           // strategy José just shuffles up
           // the end of the shoe: José's count check and shoe review (when counting), then his offer to
           // move you up when your stats say you're ready; otherwise he just shuffles
-          endOfShoe: (t, done) => <ShoeEnd table={t} model={edgeModel} plays={plays} onDone={done} />,
+          endOfShoe: (t, done) => (
+            <ShoeEnd
+              table={t}
+              model={edgeModel}
+              plays={plays}
+              onDone={() => {
+                // the shoe is over: José's last note on your play gives way to the shuffle (and to his word when you've just moved up)
+                setCard(null);
+                done();
+              }}
+            />
+          ),
           feltExtra: (t) => {
             tableRef.current = t;
             if (!t || !s.coach.showCount) return null;
@@ -167,7 +179,7 @@ export function PlayScreen() {
             recordDecision(v.key, v.hand, v.right, !!v.countPlay && !v.accepted, kind, !!v.accepted);
             pushEvent(`${v.hand} at true count ${snap.tc}: chose ${v.chosen}, ${v.right ? 'right' : `should ${v.correct}`}${v.countPlay ? ' (count play)' : ''}.`);
             const practiced = practiceKey.current === v.key;
-            let msg: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you fixed a leak' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
+            let msg: CoachMsg = { kind: 'decision', ok: v.right, title: v.title, accent: practiced && v.right ? 'you missed this one before' : v.accent, hand: (practiced ? '↻ ' : '') + v.hand, text: v.why, verdict: v };
             const f = decisionFeedback(v, practiced && v.right);
             let line: string | undefined;
             if (v.right) {
@@ -183,7 +195,7 @@ export function PlayScreen() {
                 }
               }
               if (!line && v.countPlay) line = 'Count play: the count changed this one.';
-              if (!line && practiced) line = 'You fixed a leak.';
+              if (!line && practiced) line = 'You missed this one before. Not this time.';
             } else line = f.layer === 'play' ? firstSentence(v.why) : f.line;
             const id = show({ ok: v.right, title: ACTION_LABEL[v.right ? v.chosen : v.correct], hand: v.hand, line, msg });
             call('coachOdds', snap.unseen, snap.values, snap.up, s.rules, snap.avail).then((odds) => {
@@ -264,7 +276,7 @@ export function PlayScreen() {
               msg={card.msg}
               startOpen
               onClose={() => setDetailOpen(false)}
-              askHref={s.apiKey && card.msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${card.msg.verdict?.correct ?? ''} on ${card.msg.hand.replace('↻ ', '')}?`) : undefined}
+              askHref={AI_COACH && s.apiKey && card.msg.hand ? '#/coach?q=' + encodeURIComponent(`Why is the play ${card.msg.verdict?.correct ?? ''} on ${card.msg.hand.replace('↻ ', '')}?`) : undefined}
             />
           </div>
         </div>

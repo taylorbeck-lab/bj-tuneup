@@ -104,6 +104,12 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   /** The saved shoe belongs to the game (the rules), not to who's sitting at the table. */
   const shoeKey = JSON.stringify([s.rules, !!chart]);
   const restoring = useRef(false);
+  /**
+   * Which setup (rules, seats, shuffle) the table in play was built for. When someone sits down or
+   * gets up the setup changes while this screen stays open: until the table has been rebuilt for the
+   * new seats it must not be drawn, dealt on, or remembered as the game in progress.
+   */
+  const builtFor = useRef<string | null>(null);
   /** When your current decision started (for your pace and the table-is-waiting cue). */
   const turnStarted = useRef(Date.now());
   /** Each other player's own pace (quick regular to slow ponderer), fixed per table. */
@@ -112,6 +118,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     if (!chart) return;
     // coming back from the chart, stats or settings: carry on exactly where we were
     if (live && live.key === setupKey) {
+      builtFor.current = setupKey;
       tableRef.current = live.table;
       placed.current = live.placed;
       idSeq.current = live.idSeq;
@@ -141,6 +148,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       cardPause: true,
       shuffleStyle: s.shuffle,
     });
+    builtFor.current = setupKey;
     placed.current = [];
     setResult(null);
     if (carry && tableRef.current.restoreShoe(carry.shoe)) {
@@ -221,8 +229,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   // card placements are derived from the engine on every render (ids stay stable)
   // (when someone has just sat down or got up, the seats change one render before the table is rebuilt:
   // keep the felt as it was until they match)
-  if (t && t.seats.length === layout.spots.length) sync();
-  if (t) live = { key: setupKey, table: t, phase, result, placed: placed.current, idSeq: idSeq.current };
+  const current = !!t && builtFor.current === setupKey;
+  if (current) sync();
+  // (only a table built for this setup is the game in progress: remembering the old one under the new
+  // setup's name is how a seat change once left the old table running, with no cards on the felt)
+  if (t && current) live = { key: setupKey, table: t, phase, result, placed: placed.current, idSeq: idSeq.current };
 
   // the automatic dealer loop
   useEffect(() => {
@@ -242,7 +253,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       }
       return;
     }
-    if (ph === 'bet') return;
+    if (ph === 'bet') {
+      // nothing has been dealt on this table: the screen can only be between hands
+      if (phase !== 'betting' && phase !== 'shuffling' && phase !== 'endOfShoe') setPhase('betting');
+      return;
+    }
     if (paused) return;
     if (t.waitingForHuman) {
       if (phase !== 'yourTurn' && phase !== 'insurance') turnStarted.current = Date.now();
@@ -313,8 +328,14 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
   }, [phase, speed.linger, bump, paused]);
 
+  /** Can a round be dealt right now? (Not while the table is being rebuilt for new seats, or a saved shoe is loading.) */
+  const canDeal = () => {
+    const tb = tableRef.current;
+    return !!tb && builtFor.current === setupKey && !restoring.current && (tb.phase === 'bet' || tb.phase === 'settled');
+  };
   const deal = (bets: Record<number, number>, practice?: { values: [number, number]; up: number } | null) => {
-    if (!t || restoring.current) return;
+    const t = tableRef.current;
+    if (!t || !canDeal()) return;
     const bySeat: Record<number, number> = {};
     for (const [spot, amt] of Object.entries(bets)) {
       const si = seatOfSpot.get(Number(spot));
@@ -329,7 +350,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     bump();
   };
   const act = (a: Action) => {
-    if (!t || t.phase !== 'play') return;
+    const t = tableRef.current;
+    if (!t || t.phase !== 'play' || !t.waitingForHuman) return;
     const spot = spotOfSeat(t.turn.seat);
     const snap = t.act(a);
     onDecision?.(snap, spot, Date.now() - turnStarted.current);
@@ -337,7 +359,8 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     bump();
   };
   const insure = (take: boolean) => {
-    if (!t) return;
+    const t = tableRef.current;
+    if (!t || t.phase !== 'insurance') return;
     t.insure(take);
     bump();
   };
@@ -371,6 +394,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     activeHand: t?.phase === 'play' ? t.turn.hand : 0,
     legal: t && t.phase === 'play' && t.seats[t.turn.seat]?.human ? t.legalActions() : [],
     deal,
+    canDeal,
     act,
     insure,
     hurry,

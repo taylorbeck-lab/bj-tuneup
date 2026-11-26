@@ -9,6 +9,14 @@ import { normalizeRules, type Rules } from '../../engine/rules';
 import { useBankroll, money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
 import { BRAND } from '../brand';
+import { AI_COACH } from '../features';
+import { useInstall, installLine } from '../install';
+
+/** The game on the felt, in a line you'd say out loud. */
+function rulesInWords(r: Rules): string {
+  const decks = r.decks === 1 ? 'Single deck' : r.decks === 2 ? 'Double deck' : `${r.decks} decks`;
+  return [decks, r.h17 ? 'dealer hits soft 17' : 'dealer stands on soft 17', r.bjPayout === 1.5 ? 'blackjack pays 3 to 2' : 'blackjack pays 6 to 5', r.lateSurrender ? 'surrender' : ''].filter(Boolean).join(' · ');
+}
 
 function Seg<T extends string | number>({ value, options, onChange, label }: { value: T; options: { v: T; l: string }[]; onChange: (v: T) => void; label: string }) {
   return (
@@ -61,6 +69,8 @@ export function SettingsPage() {
   const r = s.rules;
   const R = (p: Partial<Rules>) => set({ rules: normalizeRules({ ...r, ...p }) });
   const C = (p: Partial<V2Settings['coach']>) => set({ coach: { ...s.coach, ...p } });
+  const level = s.progress.level;
+  const inst = useInstall();
   return (
     <div className="frame">
       <header className="hud">
@@ -76,23 +86,21 @@ export function SettingsPage() {
         <Group title="Your level">
           <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
             {MODES.map((m, i) => {
-              const level = (i + 1) as Level;
-              const on = s.progress.level === level;
+              const lv = (i + 1) as Level;
+              const on = level === lv;
               return (
                 <button
                   key={i}
-                  className={'act' + (on ? ' stand' : ' quiet')}
-                  style={{ textAlign: 'left', padding: '8px 12px', minHeight: 0 }}
+                  type="button"
+                  className={'level-pick' + (on ? ' on' : '')}
                   aria-pressed={on}
                   // picking Level 3 yourself means you know the count plays: all of them are graded
-                  onClick={() => set(levelSettings(s, level, level === 3 ? { tier: 3 } : {}))}
+                  onClick={() => set(levelSettings(s, lv, lv === 3 ? { tier: 3 } : {}))}
                 >
-                  <span className="display" style={{ fontSize: 18 }}>
-                    Level {level} · {m.title}
-                  </span>{' '}
-                  <span className="serif" style={{ fontSize: 17, textTransform: 'none' }}>
-                    {m.sub}
+                  <span className="display">
+                    Level {lv} · {m.title}
                   </span>
+                  <span className="serif">{m.sub}</span>
                 </button>
               );
             })}
@@ -107,29 +115,24 @@ export function SettingsPage() {
           </Row>
         </Group>
 
-        <Group title="Fine-tune">
-          <Row label="Coach" hint="Feedback after your decisions">
-            <Seg label="Coach" value={s.coach.feedback} onChange={(v) => C({ feedback: v })} options={[{ v: 'always', l: 'Always' }, { v: 'mistakes', l: 'Mistakes' }, { v: 'off', l: 'Off' }]} />
+        <Group title="José’s coaching">
+          <Row label="His notes on your play" hint="After each move: every time, only when you miss, or never">
+            <Seg label="José’s notes" value={s.coach.feedback} onChange={(v) => C({ feedback: v })} options={[{ v: 'always', l: 'Always' }, { v: 'mistakes', l: 'Misses' }, { v: 'off', l: 'Off' }]} />
           </Row>
-          <Row label="Deviations" hint="The right play changes with the count">
-            <Tog on={s.coach.deviations} set={(v) => C({ deviations: v })} label="Deviations" />
-          </Row>
-          <Row label="Show the count" hint="Training wheels: the count on the table (tap the discard tray any time to be tested or to ask)">
-            <Tog on={s.coach.showCount} set={(v) => C({ showCount: v })} label="Show the count" />
-          </Row>
-          <Row label="Count quizzes" hint="José asks “what's the count?”">
-            <Seg label="Count quizzes" value={s.coach.countQuiz} onChange={(v) => C({ countQuiz: v })} options={[{ v: 'off', l: 'Off' }, { v: 'sometimes', l: 'Sometimes' }, { v: 'often', l: 'Often' }]} />
-          </Row>
-          <Row label="Practice my misses" hint="A hand you miss comes back a few hands later, then about 30, then about 100. Often at Level 1, now and then at Level 2, never at Level 3 (a fully random shoe).">
-            <Tog on={s.coach.practiceMisses} set={(v) => C({ practiceMisses: v })} label="Practice my misses" />
-          </Row>
-          <Row label="Bet coach" hint="Raise and lower your bet with the count">
-            <Tog on={s.coach.betCoach} set={(v) => C({ betCoach: v })} label="Bet coach" />
-          </Row>
+          {level >= 2 && (
+            <Row label="Count checks" hint="How often José asks “what’s the count?” between hands. He always asks at the end of the shoe.">
+              <Seg label="Count checks" value={s.coach.countQuiz} onChange={(v) => C({ countQuiz: v })} options={[{ v: 'off', l: 'Off' }, { v: 'sometimes', l: 'Sometimes' }, { v: 'often', l: 'Often' }]} />
+            </Row>
+          )}
+          {level < 3 && (
+            <Row label="Hands you missed come back" hint={level === 1 ? 'A hand you miss is dealt again a few hands later, then further apart. José says so when he does it.' : 'Now and then, never on a good count, and José says so. At Level 3 every shoe is fully random.'}>
+              <Tog on={s.coach.practiceMisses} set={(v) => C({ practiceMisses: v })} label="Hands you missed come back" />
+            </Row>
+          )}
         </Group>
 
-        <Group title="Table">
-          <Row label="José’s pace">
+        <Group title="The table">
+          <Row label="José’s pace" hint="How fast he deals">
             <select value={s.speed} onChange={(e) => set({ speed: e.target.value as V2Settings['speed'] })} aria-label="José’s dealing pace" style={{ background: 'transparent', border: '1px solid rgba(233,220,198,0.25)', borderRadius: 99, padding: '6px 10px' }}>
               {SPEEDS.map((x) => (
                 <option key={x.id} value={x.id} style={{ background: '#18241e' }}>
@@ -139,7 +142,7 @@ export function SettingsPage() {
             </select>
           </Row>
           <Row
-            label="Table"
+            label="Other players"
             hint={
               s.traffic === 'off'
                 ? 'A set number of players, nobody comes or goes'
@@ -151,7 +154,7 @@ export function SettingsPage() {
             }
           >
             <Seg
-              label="Table"
+              label="Other players"
               value={s.traffic}
               onChange={(v) => set({ traffic: v })}
               options={[
@@ -167,22 +170,34 @@ export function SettingsPage() {
               <Seg label="Players" value={s.players} onChange={(v) => set({ players: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
             </Row>
           )}
-          <Row label="Your seat" hint="1 = first base (dealt first) · 6 = third base">
+          <Row label="Your seat" hint="1 is first base (dealt first), 6 is third base (acts last)">
             <Seg label="Your seat" value={s.seat} onChange={(v) => set({ seat: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
           </Row>
           <Row label="Hands you play">
             <Seg label="Hands" value={s.spots} onChange={(v) => set({ spots: v })} options={[{ v: 1 as const, l: 'One' }, { v: 2 as const, l: 'Two' }]} />
           </Row>
+          <Row label="Table minimum" hint={`Maximum ${money(tableMax(s.tableMin))}`}>
+            <Seg label="Table minimum" value={s.tableMin} onChange={(v) => set({ tableMin: v })} options={[5, 10, 25, 50, 100].map((n) => ({ v: n, l: '$' + n }))} />
+          </Row>
+          <Row label="Buy-in" hint={`Play money. You have ${money(br.balance)} now.`}>
+            <Seg label="Buy-in" value={s.startBankroll} onChange={(v) => set({ startBankroll: v })} options={[500, 1000, 5000, 10000].map((n) => ({ v: n, l: money(n) }))} />
+          </Row>
         </Group>
 
-        <Group title="Rules">
+        <section className="group">
+          <details className="rules-fold">
+            <summary>
+              <span className="gh-in">House rules</span>
+              <span className="rules-now">{rulesInWords(r)}</span>
+              <span className="rules-change">Change</span>
+            </summary>
           <Row label="Decks">
             <Seg label="Decks" value={r.decks} onChange={(v) => R({ decks: v })} options={([1, 2, 6, 8] as const).map((n) => ({ v: n, l: String(n) }))} />
           </Row>
           <Row label="Soft 17">
             <Seg label="Soft 17" value={r.h17 ? 'h' : 's'} onChange={(v) => R({ h17: v === 'h' })} options={[{ v: 'h', l: 'Dealer hits' }, { v: 's', l: 'Stands' }]} />
           </Row>
-          <Row label="Blackjack pays">
+          <Row label="Blackjack pays" hint={r.bjPayout === 1.5 ? undefined : 'Costs you about 1.4% on every bet. See how bad it is here; never play it for real.'}>
             <Seg label="Blackjack pays" value={r.bjPayout} onChange={(v) => R({ bjPayout: v })} options={[{ v: 1.5 as const, l: '3 to 2' }, { v: 1.2 as const, l: '6 to 5' }]} />
           </Row>
           <Row label="Double after split">
@@ -197,11 +212,11 @@ export function SettingsPage() {
           <Row label="Resplit aces">
             <Tog on={r.resplitAces} set={(v) => R({ resplitAces: v })} label="Resplit aces" />
           </Row>
-          <Row label="Late surrender">
-            <Tog on={r.lateSurrender} set={(v) => R({ lateSurrender: v })} label="Late surrender" />
+          <Row label="Surrender" hint="Give up half your bet after the dealer checks for blackjack">
+            <Tog on={r.lateSurrender} set={(v) => R({ lateSurrender: v })} label="Surrender" />
           </Row>
-          <Row label="Penetration" hint={r.cutSpread ? `Cut card around ${Math.round(r.penetration * 100)}% of the shoe` : `Cut card at ${Math.round(r.penetration * 100)}% every shoe`}>
-            <input type="range" min={50} max={90} step={5} value={Math.round(r.penetration * 100)} onChange={(e) => R({ penetration: Number(e.target.value) / 100 })} aria-label="Penetration" />
+          <Row label="How deep the cut card goes" hint={`${r.cutSpread ? 'About' : 'Exactly'} ${Math.round(r.penetration * 100)}% of the shoe is dealt before the shuffle. Deeper is better for you.`}>
+            <input type="range" min={50} max={90} step={5} value={Math.round(r.penetration * 100)} onChange={(e) => R({ penetration: Number(e.target.value) / 100 })} aria-label="How deep the cut card goes" />
           </Row>
           <Row
             label="Shuffle"
@@ -221,20 +236,23 @@ export function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Cut card" hint={r.cutSpread ? 'Placed by hand: a little deeper or shallower each shoe' : 'Same spot every shoe, like a notched tray'}>
-            <Seg label="Cut card" value={r.cutSpread ? 'hand' : 'fixed'} onChange={(v) => R({ cutSpread: v === 'hand' ? HAND_CUT : 0 })} options={[{ v: 'hand', l: 'By hand' }, { v: 'fixed', l: 'Fixed' }]} />
+          <Row label="Cut card placed" hint={r.cutSpread ? 'Placed by hand: a little deeper or shallower each shoe' : 'Same spot every shoe, like a notched tray'}>
+            <Seg label="Cut card placed" value={r.cutSpread ? 'hand' : 'fixed'} onChange={(v) => R({ cutSpread: v === 'hand' ? HAND_CUT : 0 })} options={[{ v: 'hand', l: 'By hand' }, { v: 'fixed', l: 'Fixed' }]} />
           </Row>
-        </Group>
+          </details>
+        </section>
 
-        <Group title="Money">
-          <Row label="Table minimum" hint={`Maximum ${money(tableMax(s.tableMin))}`}>
-            <Seg label="Table minimum" value={s.tableMin} onChange={(v) => set({ tableMin: v })} options={[5, 10, 25, 50, 100].map((n) => ({ v: n, l: '$' + n }))} />
-          </Row>
-          <Row label="Starting bankroll">
-            <Seg label="Starting bankroll" value={s.startBankroll} onChange={(v) => set({ startBankroll: v })} options={[500, 1000, 5000, 10000].map((n) => ({ v: n, l: money(n) }))} />
-          </Row>
-          <Row label="Bankroll" hint={`${money(br.balance)} now · ${br.hands} hands played`} />
-        </Group>
+        {inst.how !== 'installed' && inst.how !== 'none' && (
+          <Group title="Keep it on your phone">
+            <Row label="Add to your home screen" hint={installLine(inst.how) ?? undefined}>
+              {inst.how === 'prompt' && (
+                <button className="pill" onClick={() => void inst.install()}>
+                  Install
+                </button>
+              )}
+            </Row>
+          </Group>
+        )}
 
         <Group title="Before you play for real">
           <Row label="Plan a session" hint="Tell José the game and how you’ll play it: what it’s worth and how a session goes">
@@ -255,7 +273,7 @@ export function SettingsPage() {
               Show me
             </a>
           </Row>
-          <Row label="Reset bankroll" hint={done.bankroll || `Back to ${money(s.startBankroll)} of play money`}>
+          <Row label="Reset bankroll" hint={done.bankroll || `${money(br.balance)} now, ${br.hands} hands played. Back to ${money(s.startBankroll)} of play money.`}>
             <button
               className="pill"
               onClick={() =>
@@ -309,22 +327,24 @@ export function SettingsPage() {
           </Row>
         </Group>
 
-        <Group title="Ask the coach (AI)">
-          <Row label="Claude API key" hint={s.apiKey ? 'Saved on this device only' : 'Unlocks the coach chat'}>
-            {s.apiKey ? (
-              <button className="pill" onClick={() => set({ apiKey: undefined })}>
-                Remove key
-              </button>
-            ) : (
-              <a className="pill" href="#/coach">
-                Add key
-              </a>
-            )}
-          </Row>
-        </Group>
+        {AI_COACH && (
+          <Group title="Ask the coach (AI)">
+            <Row label="Claude API key" hint={s.apiKey ? 'Saved on this device only' : 'Unlocks the coach chat'}>
+              {s.apiKey ? (
+                <button className="pill" onClick={() => set({ apiKey: undefined })}>
+                  Remove key
+                </button>
+              ) : (
+                <a className="pill" href="#/coach">
+                  Add key
+                </a>
+              )}
+            </Row>
+          </Group>
+        )}
 
         <p className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
-          {BRAND.long} · practice only, play money. {LEGAL_LINE}
+          {BRAND.long} · version {__APP_VERSION__} · practice only, play money. Everything you do stays on this device. {LEGAL_LINE}
         </p>
       </div>
       {ask && (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRoute, navigate } from '../router';
 import { useV2 } from './settings';
 import { PlayScreen } from './play/PlayScreen';
@@ -10,10 +10,13 @@ import { PlanPage } from './screens/PlanPage';
 import { RealPage } from './screens/RealPage';
 import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
-import { applyUpdateIfReady } from './update';
-const CoachPage = lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage })));
+import { applyUpdateIfReady, checkForUpdate } from './update';
+// (the build-time constant itself, so the chat and its SDK are left out of the bundle entirely)
+const CoachPage = __AI_COACH__ ? lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage }))) : null;
 
 const SEEN = 'elPrimoHomeSeen';
+/** Away this long, and you come back to the front door. */
+const AWAY_MS = 30 * 60 * 1000;
 const seenThisVisit = () => {
   try {
     return sessionStorage.getItem(SEEN) === '1';
@@ -33,6 +36,29 @@ export function App() {
     }
     setSeen(true);
   };
+  // Back after a while away (an app on the home screen stays open in the background): look for a new
+  // version, and after half an hour or more start again at the front door, like sitting back down.
+  useEffect(() => {
+    let hiddenAt = 0;
+    const on = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        return;
+      }
+      checkForUpdate();
+      if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS) {
+        try {
+          sessionStorage.removeItem(SEEN);
+        } catch {
+          /* ignore */
+        }
+        setSeen(false);
+      }
+      hiddenAt = 0;
+    };
+    document.addEventListener('visibilitychange', on);
+    return () => document.removeEventListener('visibilitychange', on);
+  }, []);
   const { s, loaded } = useV2();
   if (!loaded)
     return (
@@ -44,6 +70,8 @@ export function App() {
   if (path === '/home' || (path === '/' && (!s.onboarded || !seen)))
     return (
       <Welcome
+        // asked for by name (Settings → How it works, the logo on the felt): the cards, not just the door
+        tour={path === '/home'}
         onEnter={() => {
           markSeen();
           if (path === '/home') navigate('/');
@@ -57,7 +85,7 @@ export function App() {
   if (path === '/stats') return <StatsPage />;
   if (path === '/plan') return <PlanPage />;
   if (path === '/real') return <RealPage />;
-  if (path.split('?')[0] === '/coach')
+  if (CoachPage && path.split('?')[0] === '/coach')
     return (
       <Suspense fallback={null}>
         <CoachPage />

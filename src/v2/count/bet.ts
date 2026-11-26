@@ -1,3 +1,4 @@
+import { countWords } from './words';
 /** Bet coaching: a simple, standard spread by true count (multiples of the table minimum). */
 export const SPREAD = [
   { tc: 1, units: 1 },
@@ -24,7 +25,7 @@ export interface BetVerdict {
 export function gradeBet(bet: number, tableMin: number, tc: number): BetVerdict {
   const units = recommendedUnits(tc);
   const rec = units * tableMin;
-  const tcs = tc > 0 ? '+' + tc : String(tc);
+  const tcs = countWords(tc);
   if (units === 1) {
     const right = bet <= tableMin * 2;
     return {

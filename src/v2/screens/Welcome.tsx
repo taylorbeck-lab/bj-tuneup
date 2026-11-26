@@ -1,120 +1,119 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useV2, tableMax, type V2Settings } from '../settings';
 import { levelSettings } from '../course/LevelUp';
-import { LEVEL_NAME } from '../progress';
+import { LEVEL_NAME, nextStep } from '../progress';
+import { loadStats, handsPlayed, type V2Stats } from '../stats';
 import { BRAND } from '../brand';
-import { MODES } from '../modes';
 import { money } from '../bankroll';
 import { LEGAL_LINE } from '../../legal';
+import { useInstall, installLine } from '../install';
 
 /**
- * The front door, shown each time the app opens and any time from the logo on the felt. José lets
- * you in on the secret in a few short cards, in the same order as the three modes you'll play:
- * the right play for every hand (Basic strategy), the count and betting with it (Count & bet), then
- * the plays that change with the count (Full AP). The last card picks where to start. You're taught
- * how it works in a couple of minutes, before the first hand.
+ * The front door. First time: José says hello and tells you how it works in three short cards (the
+ * secret, the three levels, where everyone starts); the detail of each level is taught at the table
+ * when you get there. After that, the door is one screen: welcome back, where you stand, deal me in.
+ * `tour` shows the cards again (Settings → How it works, or the logo on the felt).
  */
-export function Welcome({ onEnter }: { onEnter: () => void }) {
+export function Welcome({ onEnter, tour = false }: { onEnter: () => void; tour?: boolean }) {
   const { s, set } = useV2();
   const deck = s.rules.decks === 1 ? 'single deck' : s.rules.decks === 2 ? 'double deck' : `${s.rules.decks} decks`;
   const returning = s.onboarded;
   const [i, setI] = useState(0);
   const [apOpen, setApOpen] = useState(false);
+  const [showTour, setShowTour] = useState(tour);
+  const inst = useInstall();
   const enter = (patch: Partial<V2Settings> = {}) => {
     set({ onboarded: true, ...patch });
     onEnter();
   };
+  const [stats, setStats] = useState<V2Stats | null>(null);
+  useEffect(() => {
+    if (returning) void loadStats().then(setStats);
+  }, [returning]);
+  const portrait = <img className="intro-jose" src={`${import.meta.env.BASE_URL}brand/jose-portrait.jpg`} alt="José, your dealer" />;
+  const install = inst.how !== 'installed' && inst.how !== 'none' && (
+    <p className="intro-install">
+      <b>Keep it on your phone.</b>{' '}
+      {inst.how === 'prompt' ? (
+        <button className="intro-install-btn" onClick={() => void inst.install()}>
+          Add to home screen
+        </button>
+      ) : (
+        installLine(inst.how)
+      )}
+    </p>
+  );
 
-  const cards: { key: string; level?: string; body: ReactNode }[] = [
+  // welcome back: one screen
+  if (returning && !showTour) {
+    const step = stats ? nextStep(stats, s.progress) : null;
+    const open = step?.checks.find((c) => !c.ok);
+    const hands = stats ? handsPlayed(stats) : 0;
+    return (
+      <div className="frame intro-frame">
+        <div className="page intro door">
+          <img src={`${import.meta.env.BASE_URL}brand/el-primo-logo-cream.png`} alt={BRAND.long} className="intro-logo small" />
+          {portrait}
+          <h1 className="intro-h">Welcome back, primo</h1>
+          <p className="intro-p">
+            <b>
+              Level {s.progress.level} · {LEVEL_NAME[s.progress.level]}
+            </b>
+            {hands > 0 ? ` · ${hands.toLocaleString()} hands played` : ''}
+            {step && (
+              <>
+                <br />
+                {step.ready ? `${step.title}. You’re ready: I’ll offer it at the end of a shoe.` : open ? `${step.title}. ${open.label}: ${open.have}, need ${open.need}.` : null}
+              </>
+            )}
+          </p>
+          <span className="door-gap" />
+          {install}
+          <button className="act stand" onClick={() => enter()}>
+            Deal me in
+          </button>
+          <button className="intro-skip door-how" onClick={() => setShowTour(true)}>
+            How it works ›
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const cards: { key: string; body: ReactNode }[] = [
     {
       key: 'secret',
       body: (
         <>
-          <img src={`${import.meta.env.BASE_URL}brand/el-primo-logo-cream.png`} alt={BRAND.long} className="intro-logo" />
-          <h1 className="intro-h">Welcome to Casino El Primo</h1>
+          <img src={`${import.meta.env.BASE_URL}brand/el-primo-logo-cream.png`} alt={BRAND.long} className="intro-logo small" />
+          {portrait}
           <Jose>Hey primo. I’m going to let you in on a little secret, the one they don’t want you to know: you can beat blackjack.</Jose>
           <p className="intro-p">
-            A real game: {deck}, {money(s.tableMin)} to {money(tableMax(s.tableMin))}, play money. A couple of minutes on how it works, then we play.
+            This is a real table: {deck}, {money(s.tableMin)} to {money(tableMax(s.tableMin))}, play money. I deal, you play, and I tell you how every move went.
           </p>
         </>
       ),
     },
     {
-      key: 'solved',
-      level: `Level 1 · ${MODES[0].title}`,
+      key: 'levels',
       body: (
         <>
-          <h1 className="intro-h">It’s a solved game</h1>
-          <Jose>Every hand has one right play. Computers worked them all out years ago.</Jose>
-          <p className="intro-p">
-            When to hit, stand, double or split, against every card the dealer shows. Play every hand right and the casino’s edge shrinks to about half a percent. Learn this
-            first: it’s the base everything else stands on.
-          </p>
-          <p className="intro-p">
-            The <a href="#/chart">charts</a> are one tap away, and José tells you how each move went, right after you make it.
-          </p>
-        </>
-      ),
-    },
-    {
-      key: 'count',
-      level: `Level 2 · ${MODES[1].title}`,
-      body: (
-        <>
-          <h1 className="intro-h">¿Qué más? Counting is easier than you think</h1>
-          <div className="hilo" role="table" aria-label="The Hi-Lo count">
-            <div role="row" className="hilo-col up">
-              <b role="cell">Up 1</b>
-              <span role="cell">2 3 4 5 6</span>
-            </div>
-            <div role="row" className="hilo-col even">
-              <b role="cell">Nothing</b>
-              <span role="cell">7 8 9</span>
-            </div>
-            <div role="row" className="hilo-col down">
-              <b role="cell">Down 1</b>
-              <span role="cell">10 J Q K A</span>
-            </div>
-          </div>
-          <p className="intro-p">
-            See a low card, 2 through 6: the count goes <b>up one</b>. A ten or an ace: <b>down one</b>. 7, 8 and 9 don’t count.
-          </p>
-          <p className="intro-p">
-            As the cards come out, scan them, then look for pairs: a high card and a low card cancel out. Add up what’s left and keep one number in your head, up or down.
-          </p>
-          <Jose>I’ll help you, and now and then I’ll test you.</Jose>
-          <p className="intro-credit">This is the Hi-Lo count, first published by Harvey Dubner in 1963 and made famous by Stanford Wong. It’s what most pros use.</p>
-        </>
-      ),
-    },
-    {
-      key: 'bet',
-      level: `Level 2 · ${MODES[1].title}`,
-      body: (
-        <>
-          <h1 className="intro-h">Then bet with it</h1>
-          <Jose>When the count runs up, the cards left are on your side. That’s when you bet more.</Jose>
-          <p className="intro-p">
-            A count that’s up means more tens and aces still to come: more blackjacks, better doubles, more dealer busts. Bet small when it’s down, raise your bet when it’s up.
-            That’s where most of a counter’s edge comes from.
-          </p>
-          <p className="intro-p">
-            One step: divide the count by the decks left in the shoe (look at the discard tray). That’s the <b>true count</b>, the one you bet on.
-          </p>
-        </>
-      ),
-    },
-    {
-      key: 'plays',
-      level: `Level 3 · ${MODES[2].title}`,
-      body: (
-        <>
-          <h1 className="intro-h">Last, bend the rules</h1>
-          <Jose>At the right count, a few plays change. Some are quiet. Some get you noticed.</Jose>
-          <p className="intro-p">
-            Stand on 16 against a 10 when the count is up. Take insurance when it’s high. Nobody looks twice at the quiet ones; splitting tens on a big bet gets the pit boss
-            walking over. Pick your spots, primo.
-          </p>
+          <h1 className="intro-h">Three levels. I move you up.</h1>
+          <ol className="intro-levels">
+            <li>
+              <b>Play every hand right</b>
+              <span>Every hand has one right play; computers solved the game years ago. Learn them and the house edge shrinks to about half a percent.</span>
+            </li>
+            <li>
+              <b>Count, and bet with it</b>
+              <span>Keep one number in your head as the cards come out. When it runs up, the cards left are on your side: that’s when you bet more.</span>
+            </li>
+            <li>
+              <b>Bend the rules</b>
+              <span>At the right count a few plays change. Some are quiet. Some get the pit boss walking over.</span>
+            </li>
+          </ol>
+          <Jose>Don’t memorise any of that now. I’ll teach each one at the table when you get there.</Jose>
         </>
       ),
     },
@@ -134,7 +133,7 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
             </button>
           ) : (
             <>
-              <Jose>Everybody starts with the hands, even people who say they know them. When your play shows you’re ready, I’ll move you up: counting, then the count plays.</Jose>
+              <Jose>Everybody starts with the hands, even people who say they know them. When your play shows you’re ready, I’ll move you up.</Jose>
               <button className="act stand intro-choice" onClick={() => enter(levelSettings(s, 1, { tier: 1, auto: true, askAfter: 0 }))}>
                 <span className="display" style={{ fontSize: 19 }}>
                   Start at the beginning
@@ -149,8 +148,8 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
             (apOpen ? (
               <div className="intro-ap">
                 <p className="intro-p">
-                  <b>Full AP from the first hand.</b> You already count Hi-Lo, size your bets by the true count and know the count plays. Every hand is graded against the
-                  count, every bet against your edge, and I’ll check your count at every shoe.
+                  <b>Everything from the first hand.</b> You already count Hi-Lo, size your bets by the true count and know the count plays. Every hand is graded against the
+                  count, every bet against your edge, and I’ll ask your count at the end of every shoe. Tap the discard tray any time to be tested, or to ask me the count.
                 </p>
                 <button className="act hit intro-choice" onClick={() => enter(levelSettings(s, 3, { tier: 3, auto: true }))}>
                   <span className="display" style={{ fontSize: 19 }}>
@@ -160,23 +159,18 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
               </div>
             ) : (
               <button className="intro-skip intro-ap-link" onClick={() => setApOpen(true)}>
-                I’m already an advantage player ›
+                I already count cards ›
               </button>
             ))}
           <ul className="muted tips">
             <li>
-              <b>Tap the discard tray</b> to be tested on the count, or just ask José.
+              <b>Tap what José says</b> about your play for the why and the odds.
             </li>
             <li>
-              <b>Tap the shoe</b> and he shuffles (count back to zero).
-            </li>
-            <li>
-              <b>Tap José’s note</b> for the full why on any move.
-            </li>
-            <li>
-              <b>Tap the logo</b> on the table to come back here. Down by your chips: <b>★</b> stats and your progress · <b>▦</b> charts · <b>⚙</b> settings.
+              <b>The charts</b>, your stats and the settings are down by your chips.
             </li>
           </ul>
+          {install}
           <p className="muted" style={{ fontSize: 11, lineHeight: 1.45, margin: 0 }}>
             {LEGAL_LINE}
           </p>
@@ -204,7 +198,7 @@ export function Welcome({ onEnter }: { onEnter: () => void }) {
         }}
       >
         <div className="intro-top">
-          {card.level ? <span className="intro-level">{card.level}</span> : <span />}
+          <span />
           {returning && i < last ? (
             <button className="pill" onClick={() => enter()}>
               Deal me in

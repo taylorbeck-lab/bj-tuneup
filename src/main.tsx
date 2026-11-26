@@ -12,6 +12,7 @@ import './v2/theme.css';
 import { App } from './v2/App';
 import { V2SettingsProvider } from './v2/settings';
 import './v2/update';
+import './v2/install';
 import { ErrorBoundary } from './v2/ErrorBoundary';
 
 // After an update, an old page can ask for a file that no longer exists: reload once to pick up the new version.
@@ -31,6 +32,11 @@ createRoot(document.getElementById('root')!).render(
       <V2SettingsProvider>
         <App />
       </V2SettingsProvider>
+      {/* shown only on a phone held sideways (see theme.css) */}
+      <div className="rotate-note" role="status">
+        <img src={`${import.meta.env.BASE_URL}brand/jose-avatar.jpg`} alt="" />
+        <p>Turn your phone upright, primo. The table’s this way.</p>
+      </div>
     </ErrorBoundary>
   </StrictMode>,
 );

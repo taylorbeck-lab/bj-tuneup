@@ -96,11 +96,23 @@ function upgradeDefaults(s: Partial<V2Settings>): Partial<V2Settings> {
   return { ...s, rules: { ...(r ?? DEFAULT_V2.rules), ...DEFAULT_V2.rules }, tableMin: DEFAULT_V2.tableMin, players: s.players === 5 ? DEFAULT_V2.players : s.players, defaultsVersion: 2 };
 }
 
+/**
+ * Your level decides what you're graded on, so the two can never disagree: bets from Level 2, count
+ * plays at Level 3, no count checks before you count. The count is never printed on the table; you
+ * ask José for it (tap the discard tray). How often he checks your count, his notes and practice
+ * hands stay your choice.
+ */
+export function levelCoach(c: V2Settings['coach'], level: Progress['level']): V2Settings['coach'] {
+  return { ...c, deviations: level === 3, betCoach: level >= 2, countQuiz: level === 1 ? 'off' : c.countQuiz, showCount: false };
+}
+
 export function mergeV2(s?: Partial<V2Settings>): V2Settings {
   const d = DEFAULT_V2;
   if (!s) return structuredClone(d);
   s = upgradeDefaults(s);
   const players = Math.min(6, Math.max(1, Math.round(s.players ?? d.players)));
+  const saved = { ...d.coach, ...(s.coach ?? {}) };
+  const progress = progressFrom(s, saved);
   return {
     ...d,
     ...s,
@@ -108,8 +120,8 @@ export function mergeV2(s?: Partial<V2Settings>): V2Settings {
     players,
     seat: Math.min(6, Math.max(1, Math.round(s.seat ?? d.seat))),
     spots: s.spots === 2 ? 2 : 1,
-    coach: { ...d.coach, ...(s.coach ?? {}) },
-    progress: progressFrom(s, { ...d.coach, ...(s.coach ?? {}) }),
+    coach: levelCoach(saved, progress.level),
+    progress,
     // settings saved before traffic: a player count someone chose on purpose stays fixed
     traffic: s.traffic ?? (s.players !== undefined && s.players !== d.players ? 'off' : 'normal'),
     shuffle: s.shuffle === 'machine' ? 'machine' : 'hand',

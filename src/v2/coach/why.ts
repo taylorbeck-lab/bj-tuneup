@@ -40,7 +40,7 @@ export function whyBasic(values: number[], up: number, play: Action): string {
   }
 
   if (play === 'double') {
-    if (total === 11) return `11 is the best double: a 10-value card (about 4 in 13) makes 21, and most cards make 18+.`;
+    if (total === 11) return `11 is the best double: a 10-value card (about 4 in 13) makes 21, and most cards make 18 or better.`;
     if (total === 10) return `10 lands on 20 with any 10-value card. Against ${U}, doubling makes more money than hitting.`;
     if (total === 9) return `9 vs a weak dealer card: you'll often end on 19, while the dealer has to draw and may bust.`;
     return `Double here: the dealer is weak and you have the better start.`;
@@ -64,16 +64,17 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 /** Why a count play changes the decision. */
 export function whyIndex(p: IndexPlay, tc: number, play: Action | 'insure' | 'noinsure'): string {
-  const at = `${p.index > 0 ? '+' : ''}${p.index}`;
+  // said the way the count is said everywhere else: up 3, even, down 1
+  const at = p.index === 0 ? 'even' : `${p.index > 0 ? 'up' : 'down'} ${Math.abs(p.index)}`;
   const high = tc >= p.index;
   if (p.hand.kind === 'insurance')
     return high
-      ? `At a true count of ${at} or more, over a third of the unseen cards are 10s, so the insurance bet pays for itself.`
-      : 'Insurance only pays when the hidden card is a 10. Below +3, fewer than a third of the cards left are 10s: skip it.';
-  if (play === 'surrender') return `At ${at} or higher this hand loses so often that giving up half the bet is cheaper.`;
+      ? `At a true count of ${at} or higher, over a third of the cards left are 10s, so the insurance bet pays for itself.`
+      : `Insurance only pays when the hidden card is a 10. Until the true count reaches ${at}, fewer than a third of the cards left are 10s: skip it.`;
+  if (play === 'surrender') return `At a true count of ${at} or higher this hand loses so often that giving up half the bet is cheaper.`;
   if (play === 'split') return `Very high count: the dealer busts so often that two hands starting with a 10 earn more than one 20.`;
-  if (play === 'double') return high ? `True count ${at}+: lots of 10s left, so your double lands on a strong total more often.` : `The count is low: fewer 10s left, so doubling isn't worth it.`;
-  if (play === 'stand') return `True count ${at}+: the shoe is rich in 10s. Hitting busts you more often and the dealer busts more, so stand.`;
+  if (play === 'double') return high ? `True count ${at} or higher: lots of 10s left, so your double lands on a strong total more often.` : `The count is low: fewer 10s left, so doubling isn't worth it.`;
+  if (play === 'stand') return `True count ${at} or higher: the shoe is rich in 10s. Hitting busts you more often and the dealer busts more, so stand.`;
   if (play === 'hit') return `Low count: few 10s left, so a hit rarely busts you and the dealer busts less. Take a card.`;
   return '';
 }
