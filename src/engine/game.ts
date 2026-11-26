@@ -116,6 +116,12 @@ export interface TableOptions {
    */
   peekPause?: boolean;
   /**
+   * Deal a double's card, and each split hand's second card, as its own step(): the dealer puts one
+   * card down at a time, at the table's pace, instead of the card landing the instant you act (and the
+   * next split hand's card with it). Off: dealt at once, for simulations.
+   */
+  cardPause?: boolean;
+  /**
    * How the cards are shuffled when the cut card comes out. 'machine' (default): a shuffle machine
    * between shoes, a perfect shuffle. 'hand': a dealer's shuffle built from the last shoe's discards
    * (handShuffle.ts). (No continuous shuffler: counting means nothing there, and nobody should play one.)
@@ -153,6 +159,12 @@ export class Table {
   logs: RoundLog[] = [];
   current: RoundLog | null = null;
   private dealQueue: { who: number; hand: number }[] = [];
+  /** With cardPause: the card the dealer owes the hand whose turn it is (a double's card, or a split hand's second). */
+  private owed: 'double' | 'split' | null = null;
+  /** The dealer is about to put down a card nobody asked for one at a time: a double's card or a split hand's second. */
+  get owesCard(): 'double' | 'split' | null {
+    return this.phase === 'play' ? this.owed : null;
+  }
   /** True after a round in which the cut card came out; shoe is reshuffled before the next deal. */
   needsShuffle = false;
   shoesPlayed = 0;
@@ -238,6 +250,7 @@ export class Table {
       dealerBJ: false,
     };
     this.dealQueue = [];
+    this.owed = null;
     for (let r = 0; r < 2; r++) {
       for (let i = 0; i < this.seats.length; i++) if (this.seats[i].hands.length) this.dealQueue.push({ who: i, hand: 0 });
       this.dealQueue.push({ who: -1, hand: 0 });
@@ -352,7 +365,7 @@ export class Table {
   /** Is the game waiting for the human? */
   get waitingForHuman(): boolean {
     if (this.phase === 'insurance') return this.pendingInsurance.length > 0;
-    if (this.phase === 'play') return this.seats[this.turn.seat]?.human ?? false;
+    if (this.phase === 'play') return !this.owed && (this.seats[this.turn.seat]?.human ?? false);
     return this.phase === 'bet' || this.phase === 'settled';
   }
 
@@ -369,6 +382,10 @@ export class Table {
         return true;
       }
       case 'play': {
+        if (this.owed) {
+          this.dealOwed();
+          return true;
+        }
         const s = this.seats[this.turn.seat];
         if (!s) {
           this.phase = 'dealer';
@@ -467,7 +484,11 @@ export class Table {
         continue;
       }
       if (h.cards.length === 1) {
-        // split hand waiting for its second card
+        // split hand waiting for its second card (with cardPause the dealer puts it down as its own step)
+        if (this.opts.cardPause) {
+          this.owed = 'split';
+          return;
+        }
         h.cards.push(this.draw(this.turn.seat, this.turn.hand));
         if (h.splitAces && !this.rules.hitSplitAces && !(valueOf(h.cards[1]) === 1 && this.canSplit(h, s))) h.done = true;
       }
@@ -502,7 +523,7 @@ export class Table {
   }
 
   legalActions(): Action[] {
-    if (this.phase !== 'play') return [];
+    if (this.phase !== 'play' || this.owed) return [];
     const s = this.seats[this.turn.seat];
     const h = s.hands[this.turn.hand];
     const a = this.availFor(h, s);
@@ -526,7 +547,7 @@ export class Table {
   /** Human action. */
   act(a: Action): DecisionSnapshot {
     const s = this.seats[this.turn.seat];
-    if (this.phase !== 'play' || !s.human) throw new Error('Not your turn');
+    if (this.phase !== 'play' || !s.human || this.owed) throw new Error('Not your turn');
     if (!this.legalActions().includes(a)) throw new Error('Illegal action ' + a);
     const h = s.hands[this.turn.hand];
     const snap: DecisionSnapshot = {
@@ -565,6 +586,10 @@ export class Table {
       case 'double':
         h.bet *= 2;
         h.doubled = true;
+        if (this.opts.cardPause) {
+          this.owed = 'double';
+          return;
+        }
         h.cards.push(this.draw(this.turn.seat, this.turn.hand));
         h.done = true;
         break;
@@ -579,11 +604,25 @@ export class Table {
         h.fromSplit = true;
         h.splitAces = aces;
         s.hands.splice(this.turn.hand + 1, 0, nh);
+        if (this.opts.cardPause) break; // advance() finds the first hand one card short
         h.cards.push(this.draw(this.turn.seat, this.turn.hand));
         if (aces && !this.rules.hitSplitAces && !(valueOf(h.cards[1]) === 1 && this.canSplit(h, s))) h.done = true;
         break;
       }
     }
+    if (h.done) this.turn = { seat: this.turn.seat, hand: this.turn.hand + 1 };
+    this.advance();
+  }
+
+  /** Put down the card the dealer owes (cardPause): a double's one card, or a split hand's second. */
+  private dealOwed(): void {
+    const s = this.seats[this.turn.seat];
+    const h = s.hands[this.turn.hand];
+    const kind = this.owed;
+    this.owed = null;
+    h.cards.push(this.draw(this.turn.seat, this.turn.hand));
+    if (kind === 'double') h.done = true;
+    else if (h.splitAces && !this.rules.hitSplitAces && !(valueOf(h.cards[1]) === 1 && this.canSplit(h, s))) h.done = true;
     if (h.done) this.turn = { seat: this.turn.seat, hand: this.turn.hand + 1 };
     this.advance();
   }
