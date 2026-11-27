@@ -123,7 +123,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const idle = betting || g.phase === 'shuffling' || g.phase === 'endOfShoe';
   const pending = Object.values(bets).reduce((a, b) => a + b, 0);
   const max = tableMax(s.tableMin);
-  const canDeal = betting && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
+  // (on a first visit the table opens a moment after the screen does: nothing can be bet or dealt until then)
+  const canDeal = !!t && betting && g.layout.mine.some((sp) => (bets[sp] ?? 0) >= s.tableMin) && Object.values(bets).every((b) => b === 0 || b >= s.tableMin) && pending <= br.balance;
   const addChip = (d: number) => {
     const sp = activeBetSpot;
     const cur = bets[sp] ?? 0;
@@ -177,6 +178,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
   const bigBet = myBet >= Math.max(5 * s.tableMin, max / 2);
   const dealerVals = t ? t.dealer.map(valueOf) : [];
   const joseMoment: JoseMoment = (() => {
+    if (!t) return { kind: 'setup' };
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
     const leveled = betting ? levelNoteFor(round) : null;
     if (leveled) return { kind: 'levelUp', what: leveled };
@@ -325,7 +327,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               <>
                 <div className="chips-row">
                   {DENOMS.map((d) => (
-                    <Chip key={d} value={d} onClick={() => addChip(d)} disabled={pending + d > br.balance || (bets[activeBetSpot] ?? 0) + d > max} />
+                    <Chip key={d} value={d} onClick={() => addChip(d)} disabled={!t || pending + d > br.balance || (bets[activeBetSpot] ?? 0) + d > max} />
                   ))}
                 </div>
                 <div className="actions" style={{ gridTemplateColumns: '1fr 1.6fr' }}>

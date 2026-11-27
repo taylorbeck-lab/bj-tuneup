@@ -40,6 +40,8 @@ export type JoseMoment =
   | { kind: 'traffic'; seed: number; joined: number; left: number; alone: boolean }
   /** You just moved up (or took the quiet table): his first word back at the table. */
   | { kind: 'levelUp'; what: LevelNote }
+  /** First visit: the strategy for these rules is still being worked out, so the table isn't open yet. */
+  | { kind: 'setup' }
   | { kind: 'quiet' };
 
 export type LevelNote = 'count' | 'plays' | 'tier' | 'headsUp';
@@ -159,6 +161,8 @@ export function joseLine(m: JoseMoment): string | null {
         tier: 'New plays are in, primo. Same game, sharper.',
         headsUp: 'Your own table, primo. Twice the hands.',
       }[m.what];
+    case 'setup':
+      return 'One second, primo. Setting up the table.';
     case 'quiet':
       return null;
   }
