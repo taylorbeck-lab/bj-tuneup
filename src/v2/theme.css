@@ -2445,3 +2445,25 @@ a,
   flex-direction: column;
   gap: 2px;
 }
+
+/* a short window on the course (the last 10), result by result: filled = right, ring = miss, faint = not yet */
+.course-marks {
+  display: flex;
+  gap: 5px;
+  margin: 7px 0 3px;
+}
+.course-marks span {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+}
+.course-marks .hit {
+  background: #5fae7c;
+}
+.course-marks .miss {
+  background: transparent;
+}
+.course-marks .empty {
+  border-color: rgba(27, 26, 23, 0.18);
+}

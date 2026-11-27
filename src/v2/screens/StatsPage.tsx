@@ -91,9 +91,21 @@ function Course({ stats }: { stats: V2Stats }) {
                 <div className="hint">
                   {c.have} · need {c.need}
                 </div>
-                <div className="course-bar" aria-hidden="true">
-                  <span style={{ width: `${Math.round(c.frac * 100)}%` }} className={c.ok ? 'ok' : ''} />
-                </div>
+                {c.marks && c.window ? (
+                  // a short window is shown result by result: you can see what's in it and what drops out next
+                  <>
+                    <div className="course-marks" role="img" aria-label={`Last ${c.window}, oldest first: ${c.marks.map((m) => (m ? 'right' : 'miss')).join(', ') || 'none yet'}`}>
+                      {Array.from({ length: c.window }, (_, i) => (
+                        <span key={i} className={i < c.marks!.length ? (c.marks![i] ? 'hit' : 'miss') : 'empty'} />
+                      ))}
+                    </div>
+                    {c.note && c.marks.length > 0 && <div className="hint">{c.note}</div>}
+                  </>
+                ) : (
+                  <div className="course-bar" aria-hidden="true">
+                    <span style={{ width: `${Math.round(c.frac * 100)}%` }} className={c.ok ? 'ok' : ''} />
+                  </div>
+                )}
               </div>
             </div>
           ))}
