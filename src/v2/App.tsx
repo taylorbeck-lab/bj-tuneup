@@ -11,6 +11,8 @@ import { RealPage } from './screens/RealPage';
 import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
 import { applyUpdateIfReady, checkForUpdate } from './update';
+import { loadGenerated } from '../store/strategy';
+import { rulesKey } from '../engine/rules';
 // (the build-time constant itself, so the chat and its SDK are left out of the bundle entirely)
 const CoachPage = __AI_COACH__ ? lazy(() => import('./screens/CoachPage').then((m) => ({ default: m.CoachPage }))) : null;
 
@@ -60,6 +62,13 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', on);
   }, []);
   const { s, loaded } = useV2();
+  // Work out the strategy for the rules in play as soon as the app opens (it takes a second or more the
+  // first time, then it's kept on the device), so the table is ready by the time you sit down.
+  const rk = rulesKey(s.rules);
+  useEffect(() => {
+    if (loaded) void loadGenerated(s.rules).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, rk]);
   if (!loaded)
     return (
       <div className="splash" aria-label="Loading">

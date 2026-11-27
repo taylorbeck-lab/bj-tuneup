@@ -6,16 +6,15 @@ import type { PlacedCard } from './useTableGame';
 import { money } from '../bankroll';
 
 /** Card back: the El Primo sun and canyon, cream on desert orange. */
+/** The back of the cards: the Casino El Primo wordmark, centred, inside a thin cream frame. Nothing else. */
 function CardBack() {
-  const rays = Array.from({ length: 13 }, (_, i) => Math.PI + (i * Math.PI) / 12);
+  // the wordmark image is 480 x 155
+  const w = 37;
+  const h = (w * 155) / 480;
   return (
     <svg viewBox="0 0 50 70" preserveAspectRatio="none" aria-hidden="true">
       <rect x="3" y="3" width="44" height="64" rx="3" fill="none" stroke="#f6ead3" strokeWidth="1.1" />
-      <rect x="5.5" y="5.5" width="39" height="59" rx="2" fill="none" stroke="#f6ead3" strokeOpacity="0.45" strokeWidth="0.6" />
-      {rays.map((a, i) => (
-        <line key={i} x1={25 + Math.cos(a) * 6} y1={41 + Math.sin(a) * 6} x2={25 + Math.cos(a) * (i % 2 ? 15 : 20)} y2={41 + Math.sin(a) * (i % 2 ? 15 : 20)} stroke="#f6ead3" strokeWidth="1.5" />
-      ))}
-      <path d="M12 47h26M15.5 47v-6.5h6l2 6.5M34.5 47v-6.5h-6l-2 6.5" fill="#f6ead3" stroke="#f6ead3" strokeWidth="1.2" strokeLinejoin="round" />
+      <image href={`${import.meta.env.BASE_URL}brand/el-primo-wordmark-cream.png`} x={25 - w / 2} y={35 - h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet" />
     </svg>
   );
 }
@@ -393,11 +392,8 @@ export function ShoeAndTray({ discards, decks, onTray, onShoe }: { discards: num
         <g clipPath="url(#shoeSlot)">
           <rect x="46" y="130" width="68" height="68" fill="var(--orange)" />
           <rect x="46" y="130" width="68" height="68" fill="#e9772f" fillOpacity="0.35" />
-          <path d="M52 198 V166 a28 28 0 0 1 56 0 V198" fill="none" stroke="#f6ead3" strokeOpacity="0.85" strokeWidth="1.6" />
-          {/* the sunburst on the card back */}
-          {[-70, -42, -14, 14, 42, 70].map((a) => (
-            <line key={a} x1={80 + Math.sin((a * Math.PI) / 180) * 7} y1={190 - Math.cos((a * Math.PI) / 180) * 7} x2={80 + Math.sin((a * Math.PI) / 180) * 19} y2={190 - Math.cos((a * Math.PI) / 180) * 19} stroke="#f6ead3" strokeWidth="2.2" strokeLinecap="round" />
-          ))}
+          {/* the bottom of the card back's cream frame */}
+          <rect x="53" y="110" width="54" height="80" rx="5" fill="none" stroke="#f6ead3" strokeOpacity="0.85" strokeWidth="1.8" />
         </g>
         <path d="M46 196 V166 a34 34 0 0 1 68 0 V196" fill="none" stroke="#3a1505" strokeWidth="2.2" />
         {/* the card waiting at the mouth, and the base */}
