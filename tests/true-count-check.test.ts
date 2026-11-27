@@ -54,22 +54,47 @@ describe('the true count check', () => {
   it('counts that are down round down too (further down)', () => {
     // down 5 ÷ 1.5 = down 3.33 → down 4
     expect(at15(-5, -4).grade).toBe('exact');
-    expect(at15(-5, -3).right).toBe(false);
     // down 6 ÷ 1.5 = down 4.0
     expect(at15(-6, -4).grade).toBe('exact');
     expect(at15(-6, -5).grade).toBe('close');
+  });
+  it('deep in a down count the whole number nearer even counts too (the reported case: down 5 with 1.5 decks left, answered down 3)', () => {
+    const c = at15(-5, -3);
+    expect(c.right).toBe(true);
+    expect(c.nearerEven).toBe(true);
+    // but not two away
+    expect(at15(-5, -2).right).toBe(false);
+    // down 7 ÷ 1.5 = down 4.67: down 4 or down 5
+    expect(at15(-7, -4).right).toBe(true);
+    expect(at15(-7, -5).grade).toBe('exact');
+    expect(at15(-7, -3).right).toBe(false);
+  });
+  it('near even it has to be rounded down: that is where the plays at down 1 and down 2 change', () => {
+    // down 2 ÷ 1.5 = down 1.33 → down 2, not down 1
+    expect(at15(-2, -2).grade).toBe('exact');
+    expect(at15(-2, -1).right).toBe(false);
+    // down 1 ÷ 1.5 = down 0.67 → down 1, not even
+    expect(at15(-1, -1).grade).toBe('exact');
+    expect(at15(-1, 0).right).toBe(false);
+    // down 3 ÷ 1.5 = down 2.0 exactly: down 2 (and down 3, a hair of tray away); not down 1
+    expect(at15(-3, -2).grade).toBe('exact');
+    expect(at15(-3, -1).right).toBe(false);
+  });
+  it('none of this loosens the up side', () => {
+    expect(at15(5, 4).right).toBe(false);
+    expect(at15(8, 6).right).toBe(false);
+    for (let rc = 1; rc <= 12; rc++) for (let unseen = 30; unseen <= 300; unseen += 9) expect(trueCountCheck(rc, unseen, 0).nearerEven).toBe(false);
   });
   it('even is even, and no answer is no answer', () => {
     expect(trueCountCheck(0, 60, 0).grade).toBe('exact');
     expect(trueCountCheck(0, 60, 1).right).toBe(false);
     expect(trueCountCheck(6, 40, null).right).toBe(false);
   });
-  it('how often there is only one right answer: most of the time', () => {
+  it('on the up side, where the bets ride on it, there is often only one right answer', () => {
     let one = 0;
     let n = 0;
     for (let unseen = 26; unseen <= 104; unseen += 3)
-      for (let rc = -10; rc <= 10; rc++) {
-        if (rc === 0) continue;
+      for (let rc = 1; rc <= 10; rc++) {
         const c = trueCountCheck(rc, unseen);
         n++;
         if (c.hi === c.lo) one++;
@@ -101,8 +126,13 @@ describe('what José says about your true count', () => {
     expect(up).toMatchObject({ ok: false, title: 'One off' });
     expect(up.line).toMatch(/rounding up/);
     expect(v(8, 78, 4).line).toMatch(/one too low/);
-    // down 4 ÷ 1.5 = down 2.7 is down 3; down 2 is rounding toward even
-    expect(v(-4, 78, -2).line).toMatch(/toward even/);
+    // down 2 ÷ 1.5 = down 1.3 is down 2; down 1 is rounding toward even, and this close to even it matters
+    expect(v(-2, 78, -1)).toMatchObject({ ok: false, title: 'One off' });
+    expect(v(-2, 78, -1).line).toMatch(/toward even.*down 1 and down 2/);
+    // the reported case: down 5 ÷ 1.5 = down 3.3, answered down 3
+    const deep = v(-5, 78, -3);
+    expect(deep).toMatchObject({ ok: true, title: 'Close enough' });
+    expect(deep.line).toBe('down 5 ÷ 1.5 decks left = down 3.3, so down 4 (round down). You said down 3: this far down it changes nothing (you’re at the minimum either way), so it counts.');
   });
   it('never calls a far miss close', () => {
     for (const [rc, unseen, ans] of [[6, 40, 1], [5, 78, 9], [-4, 78, 3], [2, 78, 8]] as const) {

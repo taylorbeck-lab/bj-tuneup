@@ -6,9 +6,12 @@
  * number on the other side of the line when the division lands close to a line (within a quarter
  * point: up 2.9 can be called up 3, up 3.1 can be called up 2), and so is a sharper read of the tray
  * (the exact cards left). What's not right is rounding the wrong way when it isn't close: up 3.5 is
- * up 3, not up 4. Rounding up is betting on an edge you don't have.
+ * up 3, not up 4. Rounding up is betting on an edge you don't have. Deep in a down count (below
+ * down 2) either whole number counts: nothing rides on it.
  */
 export const TC_SLACK = 0.25;
+/** Below this, rounding a down count toward even is as good as rounding it down (see trueCountCheck). */
+export const DEEP_DOWN = -2;
 
 export type TcGrade = 'exact' | 'close' | 'oneOff' | 'off';
 
@@ -20,13 +23,20 @@ export function trueCountCheck(rc: number, unseen: number, answer?: number | nul
   // every whole number a careful player could land on
   // (the quarter point either side applies to the division you were shown; the exact value is exact)
   const lo = Math.min(Math.floor(raw - TC_SLACK), Math.floor(exact));
-  const hi = Math.max(Math.floor(raw + TC_SLACK), Math.floor(exact));
+  let hi = Math.max(Math.floor(raw + TC_SLACK), Math.floor(exact));
+  // Deep in a down count the whole number nearer even counts too (down 3.3 as down 3): you're at the
+  // minimum either way, and no count play is numbered that low. Down to down 2 it has to be rounded
+  // down, because that's where the plays numbered down 1 and down 2 change.
+  const deepDown = raw < DEEP_DOWN;
+  if (deepDown) hi = Math.max(hi, Math.ceil(raw));
   const given = answer !== null && answer !== undefined;
   const right = given && answer >= lo && answer <= hi;
   /** How far outside the accepted answers (0 when right). */
   const miss = !given ? Infinity : answer < lo ? lo - answer : answer > hi ? answer - hi : 0;
   const grade: TcGrade = !given ? 'off' : answer === shown ? 'exact' : right ? 'close' : miss === 1 ? 'oneOff' : 'off';
-  return { decksLeft, raw, shown, exact, lo, hi, right, miss, grade };
+  /** Right only because it's deep in a down count, where the nearer whole number is as good. */
+  const nearerEven = deepDown && given && right && answer === Math.ceil(raw) && answer !== shown && answer > Math.max(Math.floor(raw + TC_SLACK), Math.floor(exact));
+  return { decksLeft, raw, shown, exact, lo, hi, right, miss, grade, nearerEven };
 }
 
 const say = (n: number) => (n === 0 ? 'even' : `${n > 0 ? 'up' : 'down'} ${Math.abs(n)}`);
@@ -51,6 +61,7 @@ export function tcVerdict(o: { rc: number; unseen: number; totalCards: number; a
   const work = tcWorking(o.rc, o.unseen);
   const you = `You said ${say(o.answer)}`;
   if (c.grade === 'exact') return { ok: true, title: 'Nailed it', line: `${work}.` };
+  if (c.nearerEven) return { ok: true, title: 'Close enough', line: `${work}. ${you}: this far down it changes nothing (you’re at the minimum either way), so it counts.` };
   if (c.grade === 'close') {
     const sharper = Math.floor(c.exact) === o.answer && Math.floor(c.raw) !== o.answer;
     return { ok: true, title: 'Close enough', line: `${work}. ${you}: ${sharper ? 'a sharper read of the tray gets you there, so it counts' : 'that close to the line the tray could read either way, so it counts'}.` };
@@ -63,7 +74,7 @@ export function tcVerdict(o: { rc: number; unseen: number; totalCards: number; a
   if (played !== c.decksLeft && o.answer === Math.floor(o.rc / played)) return { ok: false, title: c.miss === 1 ? 'One off' : `Off by ${c.miss}`, line: `${work}. ${you}: that's dividing by the decks in the tray. Divide by the decks left in the shoe.` };
   if (c.grade === 'oneOff') {
     const up = o.answer > c.hi;
-    return { ok: false, title: 'One off', line: `${work}. ${you}: ${up ? (c.shown < 0 ? 'that’s rounding toward even. A count that’s down rounds down too, further from even' : 'that’s rounding up. Round down, so you never bet on an edge you don’t have') : 'one too low. It only rounds down as far as the whole number below'}.` };
+    return { ok: false, title: 'One off', line: `${work}. ${you}: ${up ? (c.shown < 0 ? 'that’s rounding toward even. This close to even it matters: the plays at down 1 and down 2 go by the rounded-down count' : 'that’s rounding up. Round down, so you never bet on an edge you don’t have') : 'one too low. It only rounds down as far as the whole number below'}.` };
   }
   // a sanity check worth carrying to the table
   if (c.decksLeft > 1 && Math.abs(o.answer) > Math.abs(o.rc)) return { ok: false, title: `Off by ${c.miss}`, line: `${work}. ${you}. With more than a deck left, the true count is always smaller than the running count.` };
