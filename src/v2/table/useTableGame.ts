@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Table, type DecisionSnapshot, type ShoeSnapshot } from '../../engine/game';
 import { kvGet, kvSet } from '../../store/db';
 import type { Chart, Action } from '../../engine/strategy/chart';
-import { valueOf, type CardId } from '../../engine/cards';
+import { valueOf, isBlackjack, type CardId } from '../../engine/cards';
 import { randomSeed } from '../../engine/rng';
 import { SPEEDS, tableMax, type V2Settings } from '../settings';
-import { thinkFactor, thinkMs, personality } from './pace';
+import { thinkFactor, thinkMs, personality, holeTurnMs, lingerMs } from './pace';
 import { occupiedSpots, dealerCardPos, layoutTable, type TableLayout, type SpotShape } from './layout';
 import { initialBots, betweenHands, atShuffle, type TrafficChange } from './traffic';
 
@@ -282,6 +282,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
         const pace = (paces.current[t.turn.seat] ??= personality(Math.random));
         wait = thinkMs(speed.card, thinkFactor(values, valueOf(t.dealer[0]), first), pace, Math.random);
       }
+    } else if (ph === 'dealer' && !t.holeRevealed) {
+      // the last player is done: a beat, then the dealer turns his hole card (never a blink, at any speed)
+      wait = Math.max(wait, holeTurnMs(speed.card));
     }
     const id = setTimeout(() => {
       const peeked = t.phase === 'peek';
@@ -302,7 +305,12 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   useEffect(() => {
     if (paused) return;
     if (phase === 'results') {
-      const id = setTimeout(() => setPhase('sweeping'), speed.linger);
+      // the round stays down long enough to read it: longer with more hands to pay or take, and a
+      // dealer blackjack is shown (and said) before anything is collected
+      const tb = tableRef.current;
+      const hands = tb ? tb.seats.reduce((a, s) => a + s.hands.length, 0) : 1;
+      const dealerBJ = !!tb && tb.dealer.length === 2 && isBlackjack(tb.dealer.map(valueOf));
+      const id = setTimeout(() => setPhase('sweeping'), lingerMs(speed, hands, dealerBJ));
       return () => clearTimeout(id);
     }
     if (phase === 'sweeping') {

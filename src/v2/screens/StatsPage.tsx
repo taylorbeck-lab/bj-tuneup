@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useV2 } from '../settings';
 import { nextStep, LEVEL_NAME } from '../progress';
 import { useBankroll, money } from '../bankroll';
-import { loadStats, onStats, SEAT_POS_LABEL, type SeatPos, type V2Stats } from '../stats';
+import { loadStats, onStats, SEAT_POS_LABEL, type SeatPos, type V2Stats, type CardsRecord } from '../stats';
 import { leaks, parseKey } from '../practice';
 import { useStrategy } from '../../store/strategy';
 import { chartAction, ACTION_LABEL } from '../../engine/strategy/chart';
@@ -122,6 +122,49 @@ function Course({ stats }: { stats: V2Stats }) {
   );
 }
 
+/**
+ * Your cards against the odds: how the deal has actually run for you, beside what the game gives
+ * everyone. Blackjack feels streakier than it is (you lose more hands than you win at any count, and
+ * six losses in a row turn up about every 160 hands), so this is here to check the feeling against
+ * the record. The odds are for the house game played by the chart; they move very little with rules.
+ */
+function CardsVsOdds({ c, counting, decks }: { c: CardsRecord; counting: boolean; decks: number }) {
+  const p = (a: number, b: number) => (b ? Math.round((100 * a) / b) + '%' : '—');
+  const oneIn = (a: number) => (a ? `1 in ${Math.round(c.n / a)}` : 'none yet');
+  const rows: { label: string; you: string; odds: string }[] = [
+    { label: 'Hands won · lost · tied', you: `${p(c.win, c.n)} · ${p(c.lose, c.n)} · ${p(c.n - c.win - c.lose, c.n)}`, odds: '43% · 48% · 9%' },
+    { label: 'Blackjack', you: oneIn(c.bj), odds: '1 in 21' },
+    { label: 'Dealt a 20', you: p(c.twenty, c.n), odds: '10%' },
+    { label: 'A pair you split', you: oneIn(c.split), odds: '1 in 43, splitting every pair the chart says to' },
+    { label: 'Six losses in a row', you: `${c.runs6} ${c.runs6 === 1 ? 'time' : 'times'} · longest run ${c.maxRun}`, odds: `about ${Math.max(1, Math.round(c.n / 160))} in ${c.n} hands` },
+  ];
+  if (counting) {
+    rows.push({ label: 'Bets at a true count of up 2 or more', you: p(c.hot.n, c.n), odds: decks === 2 ? '23% in double deck' : 'fewer the more decks there are and the shallower the cut' });
+    if (c.hot.n >= 20) rows.push({ label: 'Won · lost at up 2 or more', you: `${p(c.hot.win, c.hot.n)} · ${p(c.hot.lose, c.hot.n)}`, odds: '44% · 47% (the edge is in the blackjacks and doubles, not in winning more hands)' });
+  }
+  return (
+    <section className="group">
+      <div className="gh">Your cards against the odds · {c.n} hands</div>
+      {rows.map((r) => (
+        <div className="row" key={r.label}>
+          <div style={{ flex: 1 }}>
+            <div className="lbl">{r.label}</div>
+            <div className="hint">the odds: {r.odds}</div>
+          </div>
+          <span className="mono" style={{ fontSize: 14, fontWeight: 700, textAlign: 'right' }}>
+            {r.you}
+          </span>
+        </div>
+      ))}
+      <div className="row">
+        <span className="hint">
+          Every hand dealt from the shoe as it lay (a practice hand José sets up is left out). The deal never looks at your bet or your record. {c.n < 300 ? 'These swing a lot at first: give it a few hundred hands.' : 'A few hundred hands in, your numbers should sit close to the odds.'}
+        </span>
+      </div>
+    </section>
+  );
+}
+
 /** True counts graded right (see trueCount.ts), out of the times you actually gave one. */
 function trueCountLine(s: V2Stats): string {
   const t = s.tc?.n ? s.tc : s.tcRecent?.length ? { n: s.tcRecent.length, right: s.tcRecent.reduce((a, b) => a + b, 0) } : null;
@@ -192,6 +235,8 @@ export function StatsPage() {
               ) : null}
               {stats.insurance.n > 0 && <Tile label="Insurance" value={pct(stats.insurance.right, stats.insurance.n)} sub={`${stats.insurance.n} ${stats.insurance.n === 1 ? 'decision' : 'decisions'}`} />}
             </div>
+
+            {stats.cards && stats.cards.n >= 30 && <CardsVsOdds c={stats.cards} counting={level >= 2} decks={s.rules.decks} />}
 
             {paced && (
               <section className="group">

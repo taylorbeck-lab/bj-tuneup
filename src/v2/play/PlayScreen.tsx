@@ -5,14 +5,14 @@ import { useStrategy } from '../../store/strategy';
 import { useIndexPlays } from '../../store/indices';
 import { gradeDecision, gradeInsurance } from '../coach/grade';
 import { CoachCard, type CoachMsg } from '../coach/CoachCard';
-import { recordPace, recordDecision, recordHand, recordInsurance, recordBet, loadStats, onStats, handsPlayed, type V2Stats } from '../stats';
+import { recordPace, recordDecision, recordHand, recordInsurance, recordBet, recordCards, loadStats, onStats, handsPlayed, type V2Stats } from '../stats';
 import { pickPractice } from '../practice';
 import { pushEvent } from '../coach/history';
 import { call } from '../../workers/client';
 import { CountSheet } from '../count/CountSheet';
 import { ShoeEnd } from '../course/LevelUp';
 import { playsForTier } from '../progress';
-import { handTotal } from '../../engine/cards';
+import { handTotal, valueOf, isBlackjack } from '../../engine/cards';
 import { useEdgeModel } from '../../store/edge';
 import { countWords } from '../count/words';
 import { gradeBet, recommendedUnits } from '../count/bet';
@@ -212,8 +212,14 @@ export function PlayScreen() {
             const countTake = v.right && v.take && !v.shouldTake;
             show({ ok: v.right, title: v.right ? (v.take ? 'Insurance' : 'No insurance') : v.shouldTake ? 'Take insurance' : 'No insurance', line: countTake ? 'Count play: right at this count.' : v.right ? undefined : f.line, msg });
           },
-          onRoundEnd: () => {
+          onRoundEnd: (_r, t) => {
             recordHand();
+            // your cards against the odds: only rounds dealt as the shoe lay (never a set-up practice hand)
+            const log = t.logs[t.logs.length - 1];
+            if (log && !practiceKey.current) {
+              const first = log.dealt.filter((d) => d.who === t.humanSeats[0] && d.hand === 0).slice(0, 2).map((d) => valueOf(d.card));
+              if (first.length === 2) recordCards({ net: log.net, bj: isBlackjack(first), twenty: handTotal(first).total === 20, pair: first[0] === first[1], split: log.decisions.some((d) => d.chosen === 'split'), tc: log.bet.tc });
+            }
             // a right play has been said; José moves on to the result. A miss stays until your next move.
             setCard((cur) => (cur && cur.ok ? null : cur));
           },
