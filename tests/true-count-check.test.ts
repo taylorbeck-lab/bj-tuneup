@@ -122,6 +122,11 @@ describe('what José says about your true count', () => {
     expect(carried).toMatchObject({ ok: false, title: 'Right sum, wrong count' });
     expect(carried.line).toMatch(/up 3 you were carrying/);
   });
+  it('the reported case: up 3 with 3 decks left, answered up 6', () => {
+    const r = tcVerdict({ rc: 3, unseen: 156, totalCards: 312, answer: 6, rcAnswer: 3 });
+    expect(r).toMatchObject({ ok: false, title: 'Off by 5' });
+    expect(r.line).toBe('up 3 ÷ 3 decks left = up 1. You said up 6. With more than a deck left, the true count is always smaller than the running count.');
+  });
   it('the running count: exact or off by how much', () => {
     expect(rcVerdict(4, 4)).toMatchObject({ ok: true, title: 'Spot on' });
     expect(rcVerdict(4, 5).title).toBe('Off by one');

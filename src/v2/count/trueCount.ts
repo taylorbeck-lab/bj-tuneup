@@ -43,8 +43,8 @@ export function tcWorking(rc: number, unseen: number): string {
 
 /**
  * José's word on your true count: how it was graded and, when it's wrong, what most likely went
- * wrong (rounded up, gave the running count, divided by the decks in the tray, or carried a running
- * count that was off).
+ * wrong (rounded up, gave the running count, divided by the decks in the tray, carried a running count
+ * that was off, or came out bigger than the running count with more than a deck left).
  */
 export function tcVerdict(o: { rc: number; unseen: number; totalCards: number; answer: number; rcAnswer?: number | null }): { ok: boolean; title: string; line: string } {
   const c = trueCountCheck(o.rc, o.unseen, o.answer);
@@ -65,6 +65,8 @@ export function tcVerdict(o: { rc: number; unseen: number; totalCards: number; a
     const up = o.answer > c.hi;
     return { ok: false, title: 'One off', line: `${work}. ${you}: ${up ? (c.shown < 0 ? 'that’s rounding toward even. A count that’s down rounds down too, further from even' : 'that’s rounding up. Round down, so you never bet on an edge you don’t have') : 'one too low. It only rounds down as far as the whole number below'}.` };
   }
+  // a sanity check worth carrying to the table
+  if (c.decksLeft > 1 && Math.abs(o.answer) > Math.abs(o.rc)) return { ok: false, title: `Off by ${c.miss}`, line: `${work}. ${you}. With more than a deck left, the true count is always smaller than the running count.` };
   return { ok: false, title: `Off by ${c.miss}`, line: `${work}. ${you}.` };
 }
 
