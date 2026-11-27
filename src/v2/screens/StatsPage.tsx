@@ -156,6 +156,17 @@ function CardsVsOdds({ c, counting, decks }: { c: CardsRecord; counting: boolean
           </span>
         </div>
       ))}
+      {c.recent && (
+        <div className="row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+          <div className="lbl">Your last {c.recent.length} hands</div>
+          <div className="hand-strip" role="img" aria-label={`Oldest first: ${[...c.recent].map((x) => (x === 'W' ? 'won' : x === 'L' ? 'lost' : 'tied')).join(', ')}`}>
+            {[...c.recent].map((x, i) => (
+              <span key={i} className={x === 'W' ? 'w' : x === 'L' ? 'l' : 'p'} />
+            ))}
+          </div>
+          <div className="hint">Oldest first. Filled is a win, a ring is a loss, a dash is a tie.</div>
+        </div>
+      )}
       <div className="row">
         <span className="hint">
           Every hand dealt from the shoe as it lay (a practice hand José sets up is left out). The deal never looks at your bet or your record. {c.n < 300 ? 'These swing a lot at first: give it a few hundred hands.' : 'A few hundred hands in, your numbers should sit close to the odds.'}

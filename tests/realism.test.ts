@@ -40,7 +40,7 @@ function play(shuffle: 'hand' | 'machine', rounds: number, seed: number): Run {
   let bots = initialBots('normal', mine, rng);
   const build = (prev?: Table) => {
     const spots = [...mine, ...bots].sort((a, b) => a - b);
-    const t = new Table({ rules, seats: spots.length, humanSeat: spots.indexOf(4), chart, seed: Math.floor(rng() * 2 ** 31), granularity: 0.5, rounding: 'floor', botMistakeRate: 0.06, shuffleStyle: shuffle, cardPause: true, peekPause: true });
+    const t = new Table({ rules, seats: spots.length, humanSeat: spots.indexOf(4), chart, seed: Math.floor(rng() * 2 ** 31), granularity: 0.5, rounding: 'floor', botMistakeRate: 0.06, shuffleStyle: shuffle, cardPause: true, payPause: true, peekPause: true });
     if (prev) {
       if (!t.restoreShoe(prev.snapshotShoe())) throw new Error('the shoe was not carried to the new table');
       t.logs = prev.logs;

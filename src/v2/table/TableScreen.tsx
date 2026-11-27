@@ -189,6 +189,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (g.phase === 'insurance') return { kind: 'insurance', seed: round };
     if (g.phase === 'peeking') return { kind: 'peek', seed: round, ace: dealerVals[0] === 1 };
     if (g.peekClear) return { kind: 'peekClear', seed: round };
+    // a blackjack being paid as the dealer gets to it
+    if (t?.owesCard === 'pay') return { kind: 'payBlackjack', mine: g.layout.mine.includes(g.activeSpot ?? -1), seed: round };
     if (g.phase === 'yourTurn') return { kind: 'yourTurn', waiting, seed: round };
     if ((g.phase === 'results' || g.phase === 'sweeping') && g.result) {
       const mine = myHand ? myHand.cards.map(valueOf) : [];
@@ -241,7 +243,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     ? seat.hands.reduce((a, h) => a + ((h.net ?? 0) >= 0 ? h.bet : 0), 0)
                     : seat.hands.reduce((a, h) => a + h.bet, 0) || seat.baseBet
                   : 0;
-              const payout = settled && seat ? seat.hands.reduce((a, h) => a + Math.max(0, h.net ?? 0), 0) : 0;
+              // (a blackjack is paid when the dealer gets to it, so its payout is out from then on)
+              const payout = settled && seat ? seat.hands.reduce((a, h) => a + Math.max(0, h.net ?? 0), 0) : seat && t?.owesCard !== 'pay' ? seat.hands.reduce((a, h) => a + (h.paid ? h.bet * s.rules.bjPayout : 0), 0) : seat ? seat.hands.reduce((a, h, hi) => a + (h.paid && !(t!.turn.seat === g.seatOfSpot.get(sp) && t!.turn.hand === hi) ? h.bet * s.rules.bjPayout : 0), 0) : 0;
               return (
                 <div key={sp}>
                   <button

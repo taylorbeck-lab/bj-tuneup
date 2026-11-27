@@ -105,3 +105,72 @@ describe('one card at a time after a split or double (cardPause)', () => {
     }
   });
 });
+
+describe('a blackjack is paid when the dealer gets to it (payPause)', () => {
+  const t3 = (stack: number[], payPause = true) => {
+    const t = new Table({ rules: { ...DEFAULT_RULES, burn: 0 }, seats: 3, humanSeat: 1, chart, seed: 1, granularity: 0, rounding: 'floor', cardPause: true, payPause });
+    const used = new Map<number, number>();
+    t.shoe.stack(stack.map((v) => { const n = used.get(v) ?? 0; used.set(v, n + 1); return C(v, n % 4); }));
+    return t;
+  };
+  it('your blackjack: the dealer stops at your hand, pays, and moves on without asking you anything', () => {
+    // seats 0,1,2 then dealer: 10,A,9,7 | 8,K,8,10 → you (seat 1) have A,K; dealer shows 7
+    const t = t3([10, 1, 9, 7, 8, 10, 8, 10, 5, 5, 5]);
+    t.placeBet(1);
+    while (t.phase === 'deal') t.step();
+    // seat 0 (18) stands on its own step
+    while (t.phase === 'play' && t.turn.seat === 0) t.step();
+    expect(t.turn.seat).toBe(1);
+    expect(t.owesCard).toBe('pay');
+    expect(t.waitingForHuman).toBe(false);
+    expect(t.legalActions()).toEqual([]);
+    expect(t.human.hands[0].paid).toBe(true);
+    t.step();
+    expect(t.owesCard).toBeNull();
+    expect(t.turn.seat).toBe(2);
+    t.runToHuman();
+    expect(t.phase).toBe('settled');
+    expect(t.logs[0].net).toBe(1.5);
+  });
+  it('another player’s blackjack gets the same stop', () => {
+    // seat 0 gets A,K
+    const t = t3([1, 10, 9, 7, 10, 8, 8, 10, 5, 5, 5]);
+    t.placeBet(1);
+    while (t.phase === 'deal') t.step();
+    expect(t.turn.seat).toBe(0);
+    expect(t.owesCard).toBe('pay');
+    t.step();
+    expect(t.turn.seat).toBe(1);
+    expect(t.waitingForHuman).toBe(true);
+  });
+  it('a dealer blackjack ends the round at the peek: nothing is paid along the way', () => {
+    // dealer A up, K in the hole; you have A,K too
+    const t = t3([10, 1, 9, 1, 8, 10, 8, 10]);
+    t.placeBet(1);
+    while (t.phase === 'deal') t.step();
+    if (t.phase === 'insurance') t.insure(false);
+    t.runToHuman();
+    expect(t.phase).toBe('settled');
+    expect(t.human.hands[0].paid).toBeFalsy();
+    expect(t.logs[0].net).toBe(0);
+  });
+  it('same cards and results with or without the stop', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const run = (payPause: boolean) => {
+        const t = new Table({ rules: { ...DEFAULT_RULES }, seats: 4, humanSeat: 2, chart, seed, granularity: 0.5, rounding: 'floor', cardPause: true, payPause });
+        const out: number[] = [];
+        for (let r = 0; r < 40; r++) {
+          t.placeBet(1);
+          for (let i = 0; i < 600 && t.phase !== 'settled'; i++) {
+            if (t.waitingForHuman && t.phase === 'play') t.act(t.legalActions().includes('double') ? 'double' : 'stand');
+            else if (t.waitingForHuman && t.phase === 'insurance') t.insure(false);
+            else t.step();
+          }
+          out.push(t.logs[t.logs.length - 1].net);
+        }
+        return out;
+      };
+      expect(run(true)).toEqual(run(false));
+    }
+  });
+});
