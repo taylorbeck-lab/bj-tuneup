@@ -40,6 +40,8 @@ export type JoseMoment =
   | { kind: 'traffic'; seed: number; joined: number; left: number; alone: boolean }
   /** You just moved up (or took the quiet table): his first word back at the table. */
   | { kind: 'levelUp'; what: LevelNote }
+  /** A blackjack being paid, when the dealer gets to that hand: yours or another player's. */
+  | { kind: 'payBlackjack'; mine: boolean; seed: number }
   /** First visit: the strategy for these rules is still being worked out, so the table isn't open yet. */
   | { kind: 'setup' }
   | { kind: 'quiet' };
@@ -161,6 +163,8 @@ export function joseLine(m: JoseMoment): string | null {
         tier: 'New plays are in, primo. Same game, sharper.',
         headsUp: 'Your own table, primo. Twice the hands.',
       }[m.what];
+    case 'payBlackjack':
+      return m.mine ? pick(['Blackjack! Three to two, primo.', 'Órale, blackjack! Paying three to two.', 'Blackjack. Let me count that out, primo.'], m.seed, 28) : pick(['Blackjack over here. Three to two.', 'Blackjack. Paying three to two.', 'Blackjack for the table. One moment.'], m.seed, 29);
     case 'setup':
       return 'One second, primo. Setting up the table.';
     case 'quiet':

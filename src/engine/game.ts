@@ -24,6 +24,8 @@ export interface Hand {
   done: boolean;
   /** Net result in units (set at settlement). */
   net?: number;
+  /** A blackjack the dealer has already paid, when he got to it (payPause). */
+  paid?: boolean;
 }
 
 export interface Seat {
@@ -122,6 +124,11 @@ export interface TableOptions {
    */
   cardPause?: boolean;
   /**
+   * Pay a player's blackjack as a step of its own, when the dealer gets to that hand (as at a table:
+   * he stops, works out three to two, pays, and moves on). Off: blackjacks are simply skipped.
+   */
+  payPause?: boolean;
+  /**
    * How the cards are shuffled when the cut card comes out. 'machine' (default): a shuffle machine
    * between shoes, a perfect shuffle. 'hand': a dealer's shuffle built from the last shoe's discards
    * (handShuffle.ts). (No continuous shuffler: counting means nothing there, and nobody should play one.)
@@ -160,9 +167,12 @@ export class Table {
   current: RoundLog | null = null;
   private dealQueue: { who: number; hand: number }[] = [];
   /** With cardPause: the card the dealer owes the hand whose turn it is (a double's card, or a split hand's second). */
-  private owed: 'double' | 'split' | null = null;
-  /** The dealer is about to put down a card nobody asked for one at a time: a double's card or a split hand's second. */
-  get owesCard(): 'double' | 'split' | null {
+  private owed: 'double' | 'split' | 'pay' | null = null;
+  /**
+   * What the dealer is about to do for the hand whose turn it is, as a step of its own: put down a
+   * double's card or a split hand's second card, or pay a blackjack.
+   */
+  get owesCard(): 'double' | 'split' | 'pay' | null {
     return this.phase === 'play' ? this.owed : null;
   }
   /** True after a round in which the cut card came out; shoe is reshuffled before the next deal. */
@@ -492,6 +502,12 @@ export class Table {
         h.cards.push(this.draw(this.turn.seat, this.turn.hand));
         if (h.splitAces && !this.rules.hitSplitAces && !(valueOf(h.cards[1]) === 1 && this.canSplit(h, s))) h.done = true;
       }
+      // a blackjack is paid when the dealer gets to it (payPause): he stops here for it
+      if (this.opts.payPause && !h.paid && !h.fromSplit && isBlackjack(h.cards.map(valueOf))) {
+        h.paid = true;
+        this.owed = 'pay';
+        return;
+      }
       const t = handTotal(h.cards.map(valueOf));
       if (h.done || t.total >= 21) {
         h.done = true;
@@ -620,6 +636,11 @@ export class Table {
     const h = s.hands[this.turn.hand];
     const kind = this.owed;
     this.owed = null;
+    if (kind === 'pay') {
+      // the blackjack is paid: on to the next hand
+      this.advance();
+      return;
+    }
     h.cards.push(this.draw(this.turn.seat, this.turn.hand));
     if (kind === 'double') h.done = true;
     else if (h.splitAces && !this.rules.hitSplitAces && !(valueOf(h.cards[1]) === 1 && this.canSplit(h, s))) h.done = true;

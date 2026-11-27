@@ -73,20 +73,61 @@ export function holeTurnMs(cardMs: number, u = 0): number {
   return Math.round(Math.max(cardMs, 650) * (1 + 0.4 * u));
 }
 
+/**
+ * The dealer playing his own hand. Dealing to the table is one motion after another; his own hand
+ * isn't: he turns a card, totals what he has, and only then draws again or stops. So each step is
+ * part hand speed and part reading the hand, longer the more cards there are to add up and longer on
+ * a soft hand (`cards`: how many he's holding now; `u`: 0..1, because no dealer is a metronome).
+ */
+export function dealerStepMs(cardMs: number, cards: number, soft: boolean, u = 0): number {
+  return Math.round((0.6 * cardMs + 500 + 140 * Math.max(0, cards - 2) + (soft ? 200 : 0)) * (0.9 + 0.5 * u));
+}
+
 /** A dealer blackjack is shown, and said, before anything is collected. */
 export const BLACKJACK_HOLD_MS = 1700;
 
-/** The least time a finished round stays down, whatever the dealing speed: one hand, and each further hand the dealer pays or takes. */
-export const READ_MIN_MS = 1500;
+/** Paying a blackjack: the dealer stops, works out three to two, and counts it out. */
+export const BLACKJACK_PAY_MS = 1600;
+export function blackjackPayMs(u = 0): number {
+  return Math.round(BLACKJACK_PAY_MS * (1 + 0.35 * u));
+}
+/** Settling insurance (paying it on a dealer blackjack, or taking it). */
+export const INSURANCE_MS = 700;
+
+/** A hand at the end of the round, as the dealer has to deal with it. */
+export interface SettledHand {
+  net: number;
+  doubled?: boolean;
+  /** A blackjack still to be paid now (not one paid earlier, when the dealer got to it). */
+  blackjack?: boolean;
+  /** Paid earlier in the round: only the cards are left to pick up. */
+  paid?: boolean;
+}
+/** Time for the dealer to pay or take one hand. */
+export function payMs(h: SettledHand): number {
+  if (h.paid) return 250;
+  if (h.net > 0) return h.blackjack ? BLACKJACK_PAY_MS : h.doubled ? 650 : 450; // a doubled bet is a bigger stack to match
+  if (h.net === 0) return 250; // a push: a knock on the felt
+  return 350; // the bet and the cards
+}
+
+/** The least time a finished round stays down, whatever the dealing speed: reading the dealer's hand, then each hand he pays or takes. */
+export const READ_DEALER_MS = 1100;
 export const READ_PER_HAND_MS = 400;
+export const READ_MIN_MS = READ_DEALER_MS + READ_PER_HAND_MS;
 
 /**
  * How long the finished round stays on the felt before the cards are picked up. Each speed has its
  * own pause, but never less than it takes to read the dealer's hand and for the dealer to pay or
- * take each hand in turn (so a full table takes longer than heads up), and a dealer blackjack is held
- * on top of that.
+ * take each hand in turn: a win takes longer than a loss, a doubled win longer still, a push is a
+ * knock on the felt, insurance is settled first, and a dealer blackjack is held on top of it all. So a
+ * full table takes longer than heads up, and a round of big payouts longer than a round of losses.
  */
-export function lingerMs(speed: { linger: number }, hands: number, dealerBlackjack: boolean, u = 0): number {
+export function lingerMs(speed: { linger: number }, hands: number | SettledHand[], dealerBlackjack: boolean, u = 0, insurance = false): number {
+  // what the dealer has to do: each hand by its result when we know them, or an ordinary hand's worth each
+  const paying = typeof hands === 'number' ? READ_PER_HAND_MS * Math.max(1, hands) : Math.max(READ_PER_HAND_MS, hands.reduce((a, h) => a + payMs(h), 0));
+  const hold = dealerBlackjack ? BLACKJACK_HOLD_MS : 0;
+  const need = READ_DEALER_MS + paying + hold + (insurance ? INSURANCE_MS : 0);
   // (`u`: 0..1; paying and taking never takes exactly the same time twice, and never less than the floor)
-  return Math.round((Math.max(speed.linger, READ_MIN_MS + READ_PER_HAND_MS * Math.max(0, hands - 1)) + (dealerBlackjack ? BLACKJACK_HOLD_MS : 0)) * (1 + 0.25 * u));
+  return Math.round(Math.max(speed.linger + hold, need) * (1 + 0.25 * u));
 }

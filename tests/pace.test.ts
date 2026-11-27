@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { thinkFactor, thinkMs, personality, THINK_MIN, THINK_MAX, holeTurnMs, lingerMs, BLACKJACK_HOLD_MS, READ_PER_HAND_MS } from '../src/v2/table/pace';
+import { thinkFactor, thinkMs, personality, THINK_MIN, THINK_MAX, holeTurnMs, dealerStepMs, lingerMs, payMs, blackjackPayMs, BLACKJACK_HOLD_MS, BLACKJACK_PAY_MS, INSURANCE_MS, READ_PER_HAND_MS } from '../src/v2/table/pace';
 import { SPEEDS } from '../src/v2/settings';
 import { mulberry32 } from '../src/engine/rng';
 
@@ -70,6 +70,21 @@ describe('table time: the pauses that belong to people stay real at every dealin
     expect(holeTurnMs(300, 1)).toBeGreaterThan(holeTurnMs(300, 0));
     expect(holeTurnMs(300, 1)).toBeLessThanOrEqual(950);
   });
+  it('the dealer totals his own hand before he draws again: never card after card in a blur', () => {
+    for (const s of SPEEDS) {
+      // at least six tenths of a second a step, at any dealing speed
+      expect(dealerStepMs(s.card, 2, false, 0)).toBeGreaterThanOrEqual(600);
+      // more cards take longer to add up; a soft hand longer still
+      expect(dealerStepMs(s.card, 4, false)).toBeGreaterThan(dealerStepMs(s.card, 2, false));
+      expect(dealerStepMs(s.card, 3, true)).toBeGreaterThan(dealerStepMs(s.card, 3, false));
+      // it varies from step to step
+      expect(dealerStepMs(s.card, 3, false, 1)).toBeGreaterThan(dealerStepMs(s.card, 3, false, 0) * 1.4);
+      // and it's slower than dealing to the table at the two fastest speeds
+      if (s.card < 500) expect(dealerStepMs(s.card, 2, false, 0.5)).toBeGreaterThan(s.card * 1.5);
+    }
+    // a five-card hand at Extra fast: about a second and a half a card
+    expect(dealerStepMs(300, 5, false, 0.5)).toBeGreaterThan(1200);
+  });
   it('the finished round stays down long enough to read: longer with more hands on the table', () => {
     for (const s of SPEEDS) {
       expect(lingerMs(s, 1, false)).toBeGreaterThanOrEqual(1500);
@@ -94,5 +109,29 @@ describe('table time: the pauses that belong to people stay real at every dealin
       expect(lingerMs(s, 5, true) - lingerMs(s, 5, false)).toBe(BLACKJACK_HOLD_MS);
       expect(lingerMs(s, 5, true)).toBeGreaterThanOrEqual(4500);
     }
+  });
+  it('payouts take the time they take: a blackjack most, then a doubled win, a win, a loss, a push', () => {
+    const win = { net: 1 }, lose = { net: -1 }, push = { net: 0 }, dbl = { net: 2, doubled: true }, bj = { net: 1.5, blackjack: true }, paidBj = { net: 1.5, paid: true };
+    expect(payMs(bj)).toBe(BLACKJACK_PAY_MS);
+    expect(payMs(bj)).toBeGreaterThan(payMs(dbl));
+    expect(payMs(dbl)).toBeGreaterThan(payMs(win));
+    expect(payMs(win)).toBeGreaterThan(payMs(lose));
+    expect(payMs(lose)).toBeGreaterThan(payMs(push));
+    // a blackjack paid when the dealer got to it isn't paid again at the end
+    expect(payMs(paidBj)).toBeLessThan(payMs(win));
+    // stopping to pay a blackjack: a second and a half at the least, at any speed
+    expect(blackjackPayMs(0)).toBeGreaterThanOrEqual(1500);
+    expect(blackjackPayMs(1)).toBeGreaterThan(blackjackPayMs(0));
+    const x = speed('xfast');
+    // a table of winners takes longer to clear than a table of losers
+    expect(lingerMs(x, [win, win, dbl, win, win], false)).toBeGreaterThan(lingerMs(x, [lose, lose, lose, lose, lose], false));
+    // an unpaid blackjack at the end adds its payout
+    expect(lingerMs(x, [win, bj, lose], false) - lingerMs(x, [win, win, lose], false)).toBe(BLACKJACK_PAY_MS - payMs(win));
+    // insurance is settled too
+    expect(lingerMs(x, [lose, lose, lose, lose], true, 0, true) - lingerMs(x, [lose, lose, lose, lose], true)).toBe(INSURANCE_MS);
+    // five ordinary hands by result come out near five ordinary hands by count
+    expect(Math.abs(lingerMs(x, [win, win, lose, lose, push], false) - lingerMs(x, 5, false))).toBeLessThan(400);
+    // and never under the speed's own pause
+    for (const s of SPEEDS) expect(lingerMs(s, [push], false)).toBeGreaterThanOrEqual(Math.max(s.linger, 1500));
   });
 });

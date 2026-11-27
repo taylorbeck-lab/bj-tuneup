@@ -13,6 +13,14 @@ import { AI_COACH } from '../features';
 import { useInstall, installLine } from '../install';
 import { applyUpdateIfReady, checkForUpdate, useUpdateReady, type UpdateCheck } from '../update';
 
+/** What each dealing speed is like. It's José's hands only: the people at the table take the time people take. */
+const SPEED_WORD: Record<V2Settings['speed'], string> = {
+  slow: 'A new dealer. A good pace to learn the count on.',
+  average: 'A typical table.',
+  fast: 'A sharp dealer. A fair test of your count.',
+  xfast: 'A drill: quicker hands than you’ll usually meet. The players still take their time.',
+};
+
 /** When this copy of the app was built, in your own time. */
 const BUILT = new Date(__BUILD_TIME__).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const CHECK_WORD: Record<UpdateCheck, string> = {
@@ -145,7 +153,7 @@ export function SettingsPage() {
         </Group>
 
         <Group title="The table">
-          <Row label="José’s pace" hint="How fast he deals">
+          <Row label="José’s pace" hint={SPEED_WORD[s.speed]}>
             <select value={s.speed} onChange={(e) => set({ speed: e.target.value as V2Settings['speed'] })} aria-label="José’s dealing pace" style={{ background: 'transparent', border: '1px solid rgba(233,220,198,0.25)', borderRadius: 99, padding: '6px 10px' }}>
               {SPEEDS.map((x) => (
                 <option key={x.id} value={x.id} style={{ background: '#18241e' }}>

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Table, type DecisionSnapshot, type ShoeSnapshot } from '../../engine/game';
 import { kvGet, kvSet } from '../../store/db';
 import type { Chart, Action } from '../../engine/strategy/chart';
-import { valueOf, isBlackjack, type CardId } from '../../engine/cards';
+import { valueOf, isBlackjack, handTotal, type CardId } from '../../engine/cards';
 import { randomSeed } from '../../engine/rng';
 import { SPEEDS, tableMax, type V2Settings } from '../settings';
-import { thinkFactor, thinkMs, personality, holeTurnMs, lingerMs } from './pace';
+import { thinkFactor, thinkMs, personality, holeTurnMs, lingerMs, blackjackPayMs, dealerStepMs } from './pace';
 import { occupiedSpots, dealerCardPos, layoutTable, type TableLayout, type SpotShape } from './layout';
 import { initialBots, betweenHands, atShuffle, type TrafficChange } from './traffic';
 
@@ -146,6 +146,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       botMistakeRate: 0.06,
       peekPause: true,
       cardPause: true,
+      payPause: true,
       shuffleStyle: s.shuffle,
     });
     builtFor.current = setupKey;
@@ -270,7 +271,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     // after a peek with no blackjack, José says so before anyone moves
     wait = Math.max(wait, peekClearUntil.current - Date.now());
     const owed = t.owesCard;
-    if (owed) {
+    if (owed === 'pay') {
+      // a blackjack: the dealer stops at that hand, works out three to two and pays it (at any dealing
+      // speed), after he's said there's no blackjack of his own when he's just checked
+      wait = Math.max(0, peekClearUntil.current - Date.now()) + blackjackPayMs(Math.random());
+    } else if (owed) {
       // a double: the chips go down beside the bet, then the one card, sideways. A split: the next hand's
       // second card comes one card later, like any other card the dealer puts down.
       wait = Math.round(speed.card * (owed === 'double' ? DOUBLE_BEAT : SPLIT_BEAT) * (0.9 + Math.random() * 0.2));
@@ -285,6 +290,10 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     } else if (ph === 'dealer' && !t.holeRevealed) {
       // the last player is done: a beat, then the dealer turns his hole card (never a blink, at any speed)
       wait = Math.max(wait, holeTurnMs(speed.card, Math.random()));
+    } else if (ph === 'dealer') {
+      // his own hand: he totals what he has before he draws again or stops (never card after card in a blur)
+      const dv = t.dealer.map(valueOf);
+      wait = Math.max(wait, dealerStepMs(speed.card, dv.length, handTotal(dv).soft, Math.random()));
     }
     const id = setTimeout(() => {
       const peeked = t.phase === 'peek';
@@ -308,9 +317,11 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       // the round stays down long enough to read it: longer with more hands to pay or take, and a
       // dealer blackjack is shown (and said) before anything is collected
       const tb = tableRef.current;
-      const hands = tb ? tb.seats.reduce((a, s) => a + s.hands.length, 0) : 1;
+      // each hand by what the dealer has to do with it: pay (more for a double), take, or knock for a push
+      const hands = tb ? tb.seats.flatMap((s) => s.hands.map((h) => ({ net: h.net ?? 0, doubled: h.doubled, paid: !!h.paid && (h.net ?? 0) > 0 }))) : 1;
       const dealerBJ = !!tb && tb.dealer.length === 2 && isBlackjack(tb.dealer.map(valueOf));
-      const id = setTimeout(() => setPhase('sweeping'), lingerMs(speed, hands, dealerBJ, Math.random()));
+      const insurance = !!tb && tb.seats.some((s) => s.insurance > 0);
+      const id = setTimeout(() => setPhase('sweeping'), lingerMs(speed, hands, dealerBJ, Math.random(), insurance));
       return () => clearTimeout(id);
     }
     if (phase === 'sweeping') {
