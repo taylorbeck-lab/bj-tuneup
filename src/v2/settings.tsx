@@ -9,6 +9,11 @@ import { MODES, modeMatches } from './modes';
 export const HAND_CUT = 0.06;
 
 export type Speed = 'slow' | 'average' | 'fast' | 'xfast';
+/**
+ * Dealing speeds. `card`: ms between cards out of the shoe (the dealer's hands). `linger`: ms the
+ * finished round stays on the felt, at the least (a fuller table, or a dealer blackjack, holds it
+ * longer at any speed). The people at the table don't speed up with the dealer: see table/pace.ts.
+ */
 export const SPEEDS: { id: Speed; label: string; card: number; linger: number }[] = [
   { id: 'slow', label: 'Slow', card: 1050, linger: 3400 },
   { id: 'average', label: 'Average', card: 720, linger: 2500 },

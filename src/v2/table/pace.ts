@@ -33,13 +33,51 @@ export function personality(rnd: () => number): number {
   return 0.65 + rnd() * 0.85;
 }
 
+/**
+ * Table time: the pauses that belong to people, not to the dealer's hands. The dealing speed sets how
+ * fast cards come out of the shoe. It does not make the other players decide in a blink, the dealer
+ * snatch the cards up the moment his hand is done, or a dealer blackjack vanish before you've seen
+ * it. At a real table a fast dealer still waits on each player, pays and takes spot by spot, and
+ * shows a blackjack before he collects. That time is what you count in, so it's kept at every speed.
+ */
+
+/** An ordinary decision by another player, in ms: mostly the person, a little the pace of the table. */
+export function thinkBase(cardMs: number): number {
+  return 560 + 0.45 * cardMs;
+}
+/** Nobody signals faster than this, however obvious the hand. */
+export const THINK_MIN = 380;
+
 /** Milliseconds for one decision at a given dealer card pace. */
 export function thinkMs(cardMs: number, factor: number, pace: number, rnd: () => number): number {
   // roughly log-normal jitter, plus the occasional distracted player
   const u = Math.max(1e-6, rnd());
   const v = rnd();
   const normal = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  let ms = cardMs * 1.25 * factor * pace * Math.exp(0.3 * normal);
+  const base = thinkBase(cardMs);
+  let ms = base * factor * pace * Math.exp(0.3 * normal);
   if (rnd() < 0.06) ms *= 2.2;
-  return Math.round(Math.min(cardMs * 7, Math.max(cardMs * 0.45, ms)));
+  return Math.round(Math.min(base * 5.5, Math.max(THINK_MIN, ms)));
+}
+
+/** The last player is done: the beat before the dealer turns his hole card over. */
+export function holeTurnMs(cardMs: number): number {
+  return Math.max(cardMs, 650);
+}
+
+/** A dealer blackjack is shown, and said, before anything is collected. */
+export const BLACKJACK_HOLD_MS = 1700;
+
+/** The least time a finished round stays down, whatever the dealing speed: one hand, and each further hand the dealer pays or takes. */
+export const READ_MIN_MS = 1500;
+export const READ_PER_HAND_MS = 350;
+
+/**
+ * How long the finished round stays on the felt before the cards are picked up. Each speed has its
+ * own pause, but never less than it takes to read the dealer's hand and for the dealer to pay or
+ * take each hand in turn (so a full table takes longer than heads up), and a dealer blackjack is held
+ * on top of that.
+ */
+export function lingerMs(speed: { linger: number }, hands: number, dealerBlackjack: boolean): number {
+  return Math.max(speed.linger, READ_MIN_MS + READ_PER_HAND_MS * Math.max(0, hands - 1)) + (dealerBlackjack ? BLACKJACK_HOLD_MS : 0);
 }
