@@ -10,7 +10,7 @@ import { PlanPage } from './screens/PlanPage';
 import { RealPage } from './screens/RealPage';
 import { lazy, Suspense } from 'react';
 import { Emblem } from './icons';
-import { applyUpdateIfReady, checkForUpdate } from './update';
+import { applyUpdateIfReady, checkForUpdate, onUpdateReady } from './update';
 import { loadGenerated } from '../store/strategy';
 import { rulesKey } from '../engine/rules';
 // (the build-time constant itself, so the chat and its SDK are left out of the bundle entirely)
@@ -47,7 +47,7 @@ export function App() {
         hiddenAt = Date.now();
         return;
       }
-      checkForUpdate();
+      void checkForUpdate();
       if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS) {
         try {
           sessionStorage.removeItem(SEEN);
@@ -69,6 +69,14 @@ export function App() {
     if (loaded) void loadGenerated(s.rules).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, rk]);
+  // At the front door nothing is in play, so a new version goes in the moment it's ready (not only
+  // when you tap Deal me in: the download often finishes while the door is still showing).
+  const atDoor = loaded && (path === '/home' || (path === '/' && (!s.onboarded || !seen)));
+  useEffect(() => {
+    if (!atDoor) return;
+    if (applyUpdateIfReady()) return;
+    return onUpdateReady(() => void applyUpdateIfReady());
+  }, [atDoor]);
   if (!loaded)
     return (
       <div className="splash" aria-label="Loading">

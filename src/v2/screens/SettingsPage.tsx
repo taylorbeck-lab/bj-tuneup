@@ -11,6 +11,16 @@ import { LEGAL_LINE } from '../../legal';
 import { BRAND } from '../brand';
 import { AI_COACH } from '../features';
 import { useInstall, installLine } from '../install';
+import { applyUpdateIfReady, checkForUpdate, useUpdateReady, type UpdateCheck } from '../update';
+
+/** When this copy of the app was built, in your own time. */
+const BUILT = new Date(__BUILD_TIME__).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const CHECK_WORD: Record<UpdateCheck, string> = {
+  ready: 'A newer version is ready.',
+  downloading: 'A newer version is downloading. Give it a moment.',
+  latest: 'You have the latest version.',
+  unknown: 'Couldn’t check just now. Close the app fully and open it again to pick up the newest version.',
+};
 
 /** The game on the felt, in a line you'd say out loud. */
 function rulesInWords(r: Rules): string {
@@ -71,6 +81,9 @@ export function SettingsPage() {
   const C = (p: Partial<V2Settings['coach']>) => set({ coach: { ...s.coach, ...p } });
   const level = s.progress.level;
   const inst = useInstall();
+  const updateReady = useUpdateReady();
+  const [checked, setChecked] = useState<UpdateCheck | 'checking' | null>(null);
+  const [updating, setUpdating] = useState(false);
   return (
     <div className="frame">
       <header className="hud">
@@ -267,6 +280,37 @@ export function SettingsPage() {
           </Row>
         </Group>
 
+        <Group title="This copy of the app">
+          <Row
+            label={`Version ${__APP_VERSION__}`}
+            hint={`Built ${BUILT}. ${updateReady ? CHECK_WORD.ready + ' Updating reloads the app; a hand in play is dropped.' : checked === 'checking' ? 'Checking…' : checked ? CHECK_WORD[checked] : 'New versions go in by themselves when you open the app.'}`}
+          >
+            {updateReady || updating ? (
+              <button
+                className="pill mustard"
+                disabled={updating}
+                onClick={() => {
+                  setUpdating(true);
+                  applyUpdateIfReady();
+                }}
+              >
+                {updating ? 'Updating…' : 'Update now'}
+              </button>
+            ) : (
+              <button
+                className="pill"
+                disabled={checked === 'checking'}
+                onClick={async () => {
+                  setChecked('checking');
+                  setChecked(await checkForUpdate());
+                }}
+              >
+                Check
+              </button>
+            )}
+          </Row>
+        </Group>
+
         <Group title="Start over">
           <Row label="How it works" hint="José's intro, from the top">
             <a className="pill" href="#/home">
@@ -344,7 +388,7 @@ export function SettingsPage() {
         )}
 
         <p className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
-          {BRAND.long} · version {__APP_VERSION__} · practice only, play money. Everything you do stays on this device. {LEGAL_LINE}
+          {BRAND.long} · practice only, play money. Everything you do stays on this device. {LEGAL_LINE}
         </p>
       </div>
       {ask && (
