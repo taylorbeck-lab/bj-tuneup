@@ -48,6 +48,15 @@ describe('spaced practice', () => {
     expect(pickPractice(st, rng, { ...at, shoe: 8, lastPracticeShoe: 7 })).not.toBeNull();
   });
 
+  it('once bets are graded, never on a hand you have bet up', () => {
+    const st = stats({ s18v7: sit({ step: 0, due: 60 }) });
+    const at = { hands: 100, lastPractice: -Infinity, trueCount: 0 };
+    expect(pickPractice(st, rng, { ...at, level: 2, bigBet: true })).toBeNull();
+    expect(pickPractice(st, rng, { ...at, level: 2, bigBet: false })).not.toBeNull();
+    // Level 1: bets aren't graded and practice is the point, whatever you bet
+    expect(pickPractice(st, rng, { ...at, level: 1, bigBet: true })).not.toBeNull();
+  });
+
   it('picks the most overdue first, and a miss saved before the schedule counts as due', () => {
     const st = stats({ h12v3: sit({ step: 1, due: 90 }), s18v7: sit({ step: 0, due: 70 }), p8v10: sit(undefined, [1, 0, 1]) });
     expect(pickPractice(st, rng, { hands: 100, lastPractice: -Infinity, level: 1 })!.key).toBe('p8v10');

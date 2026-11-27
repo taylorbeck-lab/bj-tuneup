@@ -124,7 +124,7 @@ describe('progress lines read one way only', () => {
     s.betRecent = Array(100).fill(1);
     s.log = 'H'.repeat(150);
     const n = nextStep(s, P({ level: 2 }))!;
-    const tc = n.checks.find((c) => c.label === 'True count within one')!;
+    const tc = n.checks.find((c) => c.label === 'True count right')!;
     expect(tc.have).toBe('only 7 true counts answered so far');
     expect(tc.ok).toBe(false);
     const cut = n.checks.find((c) => c.label === 'Count exact at the cut card')!;

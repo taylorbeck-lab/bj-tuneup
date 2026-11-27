@@ -108,12 +108,12 @@ export function PlayScreen() {
         hooks={{
           paused: !!countOpen,
           // a hand you missed comes back, spaced out, and less as the course goes on (see practice.ts)
-          practiceHand: () => {
+          practiceHand: (bets) => {
             practiceKey.current = null;
             if (!s.coach.practiceMisses || !stats.current) return null;
             const hands = handsPlayed(stats.current);
             const t = tableRef.current;
-            const p = pickPractice(stats.current, Math.random, { hands, lastPractice: lastPractice.current, level: s.progress.level, trueCount: t?.tcPlayer(), shoe: t?.shoesPlayed, lastPracticeShoe: lastPractice.shoe });
+            const p = pickPractice(stats.current, Math.random, { hands, lastPractice: lastPractice.current, level: s.progress.level, trueCount: t?.tcPlayer(), shoe: t?.shoesPlayed, lastPracticeShoe: lastPractice.shoe, bigBet: Math.max(0, ...Object.values(bets)) > 2 * s.tableMin });
             if (p) {
               practiceKey.current = p.key;
               lastPractice.current = hands;
