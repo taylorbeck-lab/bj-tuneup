@@ -284,7 +284,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       }
     } else if (ph === 'dealer' && !t.holeRevealed) {
       // the last player is done: a beat, then the dealer turns his hole card (never a blink, at any speed)
-      wait = Math.max(wait, holeTurnMs(speed.card));
+      wait = Math.max(wait, holeTurnMs(speed.card, Math.random()));
     }
     const id = setTimeout(() => {
       const peeked = t.phase === 'peek';
@@ -310,7 +310,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       const tb = tableRef.current;
       const hands = tb ? tb.seats.reduce((a, s) => a + s.hands.length, 0) : 1;
       const dealerBJ = !!tb && tb.dealer.length === 2 && isBlackjack(tb.dealer.map(valueOf));
-      const id = setTimeout(() => setPhase('sweeping'), lingerMs(speed, hands, dealerBJ));
+      const id = setTimeout(() => setPhase('sweeping'), lingerMs(speed, hands, dealerBJ, Math.random()));
       return () => clearTimeout(id);
     }
     if (phase === 'sweeping') {

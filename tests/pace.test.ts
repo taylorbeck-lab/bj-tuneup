@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { thinkFactor, thinkMs, personality, thinkBase, THINK_MIN, holeTurnMs, lingerMs, BLACKJACK_HOLD_MS } from '../src/v2/table/pace';
+import { thinkFactor, thinkMs, personality, THINK_MIN, THINK_MAX, holeTurnMs, lingerMs, BLACKJACK_HOLD_MS, READ_PER_HAND_MS } from '../src/v2/table/pace';
 import { SPEEDS } from '../src/v2/settings';
 import { mulberry32 } from '../src/engine/rng';
 
@@ -21,13 +21,16 @@ describe('other players take realistic time', () => {
     const r = mulberry32(3);
     const times = Array.from({ length: 2000 }, () => thinkMs(700, 1, 1, r));
     expect(Math.min(...times)).toBeGreaterThanOrEqual(THINK_MIN);
-    expect(Math.max(...times)).toBeLessThanOrEqual(thinkBase(700) * 5.5);
+    expect(Math.max(...times)).toBeLessThanOrEqual(THINK_MAX);
     expect(new Set(times).size).toBeGreaterThan(500);
     const avg = (pace: number) => Array.from({ length: 2000 }, () => thinkMs(700, 1.5, pace, r)).reduce((a, b) => a + b) / 2000;
     expect(avg(1.4)).toBeGreaterThan(avg(0.7) * 1.6);
     const p = Array.from({ length: 500 }, () => personality(r));
-    expect(Math.min(...p)).toBeGreaterThanOrEqual(0.65);
-    expect(Math.max(...p)).toBeLessThanOrEqual(1.5);
+    expect(Math.min(...p)).toBeGreaterThanOrEqual(0.6);
+    expect(Math.max(...p)).toBeLessThanOrEqual(1.8);
+    // more quick players than slow ones, but both sit down
+    expect(p.filter((x) => x < 1).length).toBeGreaterThan(p.filter((x) => x > 1.4).length);
+    expect(p.filter((x) => x > 1.4).length).toBeGreaterThan(20);
   });
 });
 
@@ -42,16 +45,30 @@ describe('table time: the pauses that belong to people stay real at every dealin
       const times = Array.from({ length: 4000 }, () => thinkMs(s.card, 0.55, 0.65, r)); // the snappiest player on the easiest hand
       expect(Math.min(...times)).toBeGreaterThanOrEqual(THINK_MIN);
     }
-    // an ordinary decision takes about as long at Extra fast as at Average (within a third), though the cards come 2.4 times as fast
-    expect(think('xfast', 1.1) / think('average', 1.1)).toBeGreaterThan(0.7);
+    // an ordinary decision takes as long at Extra fast as at Average (within a tenth), though the cards come 2.4 times as fast
+    expect(think('xfast', 1.1) / think('average', 1.1)).toBeGreaterThan(0.9);
+    expect(think('xfast', 1.1) / think('slow', 1.1)).toBeGreaterThan(0.85);
     expect(speed('average').card / speed('xfast').card).toBeGreaterThan(2);
     // and a tough one still takes a moment
-    expect(think('xfast', 2.6)).toBeGreaterThan(1500);
-    expect(think('xfast', 1.1)).toBeGreaterThan(650);
+    expect(think('xfast', 2.6)).toBeGreaterThan(2000);
+    expect(think('xfast', 1.1)).toBeGreaterThan(900);
+  });
+  it('no two players, and no two hands, take the same time', () => {
+    const r = mulberry32(11);
+    const times = Array.from({ length: 6000 }, () => thinkMs(300, 1.1, personality(r), r)).sort((a, b) => a - b);
+    const at = (q: number) => times[Math.floor(times.length * q)];
+    // the slow end of ordinary decisions is well over twice the quick end
+    expect(at(0.9) / at(0.1)).toBeGreaterThan(2.8);
+    // one decision in ten keeps the table waiting two seconds or more; one in fifty, four
+    expect(at(0.9)).toBeGreaterThan(2000);
+    expect(at(0.98)).toBeGreaterThan(3500);
+    expect(at(0.999)).toBeLessThanOrEqual(THINK_MAX);
   });
   it('a beat before the dealer turns his hole card, at any speed', () => {
     for (const s of SPEEDS) expect(holeTurnMs(s.card)).toBeGreaterThanOrEqual(650);
     expect(holeTurnMs(1050)).toBe(1050);
+    expect(holeTurnMs(300, 1)).toBeGreaterThan(holeTurnMs(300, 0));
+    expect(holeTurnMs(300, 1)).toBeLessThanOrEqual(950);
   });
   it('the finished round stays down long enough to read: longer with more hands on the table', () => {
     for (const s of SPEEDS) {
@@ -64,7 +81,10 @@ describe('table time: the pauses that belong to people stay real at every dealin
       expect(lingerMs(s, 10, false)).toBeGreaterThan(lingerMs(s, 6, false));
     }
     // at Extra fast, a third of a second for each hand the dealer pays or takes
-    expect(lingerMs(speed('xfast'), 5, false) - lingerMs(speed('xfast'), 4, false)).toBe(350);
+    expect(lingerMs(speed('xfast'), 5, false) - lingerMs(speed('xfast'), 4, false)).toBe(READ_PER_HAND_MS);
+    expect(READ_PER_HAND_MS).toBeGreaterThanOrEqual(400);
+    // it varies a little, and only ever upward
+    expect(lingerMs(speed('xfast'), 5, false, 1)).toBeGreaterThan(lingerMs(speed('xfast'), 5, false, 0));
     // a slower speed that already waits longer isn't slowed further at a normal table
     expect(lingerMs(speed('slow'), 4, false)).toBe(speed('slow').linger);
   });

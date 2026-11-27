@@ -28,9 +28,12 @@ export function thinkFactor(values: readonly number[], up: number, firstDecision
   return firstDecision ? f : f * 0.75;
 }
 
-/** A player's own pace, fixed for the session: 0.65 (quick) to 1.5 (slow). */
+/**
+ * A player's own pace, fixed for as long as they sit: 0.6 (a quick regular) to 1.8 (a slow ponderer),
+ * with more people near the quick end than the slow one, the way a real table runs.
+ */
 export function personality(rnd: () => number): number {
-  return 0.65 + rnd() * 0.85;
+  return 0.6 + 1.2 * rnd() ** 1.4;
 }
 
 /**
@@ -41,12 +44,16 @@ export function personality(rnd: () => number): number {
  * shows a blackjack before he collects. That time is what you count in, so it's kept at every speed.
  */
 
-/** An ordinary decision by another player, in ms: mostly the person, a little the pace of the table. */
+/**
+ * An ordinary decision by another player, in ms. People don't think faster because the dealer's
+ * hands are fast: it's about a second at any speed (a hair more at a slow table).
+ */
 export function thinkBase(cardMs: number): number {
-  return 560 + 0.45 * cardMs;
+  return 900 + 0.1 * cardMs;
 }
-/** Nobody signals faster than this, however obvious the hand. */
-export const THINK_MIN = 380;
+/** Nobody signals faster than this, however obvious the hand; nobody is waited on longer than THINK_MAX. */
+export const THINK_MIN = 450;
+export const THINK_MAX = 7000;
 
 /** Milliseconds for one decision at a given dealer card pace. */
 export function thinkMs(cardMs: number, factor: number, pace: number, rnd: () => number): number {
@@ -54,15 +61,16 @@ export function thinkMs(cardMs: number, factor: number, pace: number, rnd: () =>
   const u = Math.max(1e-6, rnd());
   const v = rnd();
   const normal = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  const base = thinkBase(cardMs);
-  let ms = base * factor * pace * Math.exp(0.3 * normal);
-  if (rnd() < 0.06) ms *= 2.2;
-  return Math.round(Math.min(base * 5.5, Math.max(THINK_MIN, ms)));
+  // (a wide spread: the same player is quick on one hand and slow on the next)
+  let ms = thinkBase(cardMs) * factor * pace * Math.exp(0.42 * normal);
+  // now and then someone isn't paying attention, counts their chips, or asks the table
+  if (rnd() < 0.08) ms *= 2 + 1.5 * rnd();
+  return Math.round(Math.min(THINK_MAX, Math.max(THINK_MIN, ms)));
 }
 
-/** The last player is done: the beat before the dealer turns his hole card over. */
-export function holeTurnMs(cardMs: number): number {
-  return Math.max(cardMs, 650);
+/** The last player is done: the beat before the dealer turns his hole card over (`u`: 0..1, a little variation). */
+export function holeTurnMs(cardMs: number, u = 0): number {
+  return Math.round(Math.max(cardMs, 650) * (1 + 0.4 * u));
 }
 
 /** A dealer blackjack is shown, and said, before anything is collected. */
@@ -70,7 +78,7 @@ export const BLACKJACK_HOLD_MS = 1700;
 
 /** The least time a finished round stays down, whatever the dealing speed: one hand, and each further hand the dealer pays or takes. */
 export const READ_MIN_MS = 1500;
-export const READ_PER_HAND_MS = 350;
+export const READ_PER_HAND_MS = 400;
 
 /**
  * How long the finished round stays on the felt before the cards are picked up. Each speed has its
@@ -78,6 +86,7 @@ export const READ_PER_HAND_MS = 350;
  * take each hand in turn (so a full table takes longer than heads up), and a dealer blackjack is held
  * on top of that.
  */
-export function lingerMs(speed: { linger: number }, hands: number, dealerBlackjack: boolean): number {
-  return Math.max(speed.linger, READ_MIN_MS + READ_PER_HAND_MS * Math.max(0, hands - 1)) + (dealerBlackjack ? BLACKJACK_HOLD_MS : 0);
+export function lingerMs(speed: { linger: number }, hands: number, dealerBlackjack: boolean, u = 0): number {
+  // (`u`: 0..1; paying and taking never takes exactly the same time twice, and never less than the floor)
+  return Math.round((Math.max(speed.linger, READ_MIN_MS + READ_PER_HAND_MS * Math.max(0, hands - 1)) + (dealerBlackjack ? BLACKJACK_HOLD_MS : 0)) * (1 + 0.25 * u));
 }
