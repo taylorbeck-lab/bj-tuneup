@@ -31,6 +31,8 @@ Around the table:
 
 - The shoe is dealt down to a cut card and shuffled by hand (or by a machine between shoes). No continuous shufflers.
 - Cards come out one at a time at the dealer's pace, including after a split or a double.
+- Every hand sits in its own column in front of its circle, side by side across the table, however full the table is.
+- One hand or two is your call between hands: when the circle beside you is free, tap it and bet it too.
 - The count is never shown on the table. You keep it; tap the discard tray to be tested or to ask José.
 - Feedback comes after you act, never before.
 

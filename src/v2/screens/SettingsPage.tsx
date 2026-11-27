@@ -194,9 +194,6 @@ export function SettingsPage() {
           <Row label="Your seat" hint="1 is first base (dealt first), 6 is third base (acts last)">
             <Seg label="Your seat" value={s.seat} onChange={(v) => set({ seat: v })} options={[1, 2, 3, 4, 5, 6].map((n) => ({ v: n, l: String(n) }))} />
           </Row>
-          <Row label="Hands you play">
-            <Seg label="Hands" value={s.spots} onChange={(v) => set({ spots: v })} options={[{ v: 1 as const, l: 'One' }, { v: 2 as const, l: 'Two' }]} />
-          </Row>
           <Row label="Table minimum" hint={`Maximum ${money(tableMax(s.tableMin))}`}>
             <Seg label="Table minimum" value={s.tableMin} onChange={(v) => set({ tableMin: v })} options={[5, 10, 25, 50, 100].map((n) => ({ v: n, l: '$' + n }))} />
           </Row>

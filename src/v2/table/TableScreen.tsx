@@ -99,7 +99,12 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     return () => clearTimeout(id);
   }, [g.phase, g.tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeBetSpot, setActiveBetSpot] = useState<number>(s.seat);
-  useEffect(() => setActiveBetSpot(g.layout.mine[0]), [g.layout]);
+  // chips go on the circle you last tapped; a circle that stops being yours hands them back
+  useEffect(() => {
+    if (!g.layout.mine.includes(activeBetSpot)) setActiveBetSpot(g.layout.mine[0]);
+    if (Object.keys(bets).some((sp) => !g.layout.mine.includes(Number(sp)))) setBets(Object.fromEntries(Object.entries(bets).filter(([sp]) => g.layout.mine.includes(Number(sp)))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.layout]);
   useEffect(() => {
     // the end of the shoe: everything comes down before the shuffle, whatever the last hand did
     if (g.phase === 'endOfShoe' || g.phase === 'shuffling') {
@@ -182,6 +187,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (g.phase === 'shuffling') return { kind: 'shuffling', seed: t?.shoesPlayed ?? 0, cut, pen: s.rules.penetration };
     const leveled = betting ? levelNoteFor(round) : null;
     if (leveled) return { kind: 'levelUp', what: leveled };
+    if (betting && g.layout.mine.length > 1 && !(bets[g.layout.mine[1]] > 0)) return { kind: 'twoHands', seed: round };
     if (betting && g.trafficNote) return { kind: 'traffic', seed: round, joined: g.trafficNote.joined, left: g.trafficNote.left, alone: g.layout.spots.length === g.layout.mine.length };
     if (betting) return { kind: 'betting', first: !t || t.round === 0, seed: round, streak: currentStreak() };
     if (practiceDeal && (g.phase === 'dealing' || g.phase === 'yourTurn')) return { kind: 'practice', seed: round };
@@ -230,6 +236,8 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
               const c = spotCenter(sp);
               const occupied = g.layout.spots.includes(sp);
               const mine = g.layout.mine.includes(sp);
+              // the free circle beside you: tap it between hands to play a second hand there
+              const open = betting && !!t && g.openSpots.includes(sp);
               const seat = t && !idle ? t.seats[g.seatOfSpot.get(sp) ?? -1] : undefined;
               // Once the round is settled the dealer pays or takes, like a real table: a winning bet
               // stays with its payout stacked beside it, a losing bet is taken, a push just stays.
@@ -249,14 +257,17 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                 <div key={sp}>
                   <button
                     type="button"
-                    className={'spot' + (mine ? ' mine' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '') + (t?.phase === 'play' && g.activeSpot === sp ? ' turn' : '') + (mine && waiting && g.activeSpot === sp ? ' waiting' : '')}
-                    style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied ? 1 : 0.35 }}
-                    aria-label={mine ? `Your spot ${sp}` : `Spot ${sp}`}
+                    className={'spot' + (mine ? ' mine' : '') + (open ? ' open' : '') + (mine && betting && activeBetSpot === sp && g.layout.mine.length > 1 ? ' active' : '') + (t?.phase === 'play' && g.activeSpot === sp ? ' turn' : '') + (mine && waiting && g.activeSpot === sp ? ' waiting' : '')}
+                    style={{ left: `${c.x}cqw`, top: `${c.y}cqw`, opacity: occupied || open ? 1 : 0.35 }}
+                    aria-label={mine ? `Your spot ${sp}` : open ? `Spot ${sp} is free: play a second hand here` : `Spot ${sp}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (mine && betting) setActiveBetSpot(sp);
+                      else if (open && g.takeSpot(sp)) setActiveBetSpot(sp);
                     }}
-                  />
+                  >
+                    {open && <span aria-hidden="true">+</span>}
+                  </button>
                   {occupied && <BetStack amount={amount} x={c.x} y={c.y} />}
                   {/* the payout goes just beside the bet, overlapping the circle's edge (left at the end seat, by the rail) */}
                   {occupied && payout > 0 && <BetStack amount={payout} x={c.x + (sp === 1 ? -5.2 : 5.2)} y={c.y + 2.6} />}
@@ -341,7 +352,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
                     Deal {pending ? money(pending) : ''}
                   </button>
                 </div>
-                {g.layout.mine.length > 1 && <p className="muted hold-hint">Tap one of your circles to bet that spot.</p>}
+                {g.layout.mine.length > 1 && <p className="muted hold-hint">Two hands. Tap a circle to put chips on it; a circle left empty isn't dealt.</p>}
               </>
             )}
           </>

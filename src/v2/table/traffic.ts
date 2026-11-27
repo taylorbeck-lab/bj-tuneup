@@ -32,13 +32,23 @@ export interface TrafficChange {
 
 const freeSeats = (bots: number[], mine: number[]) => Array.from({ length: MAX_SPOTS }, (_, i) => i + 1).filter((s) => !bots.includes(s) && !mine.includes(s));
 const pickOne = <T,>(xs: T[], rng: () => number) => xs[Math.floor(rng() * xs.length)];
+/**
+ * Where a new player sits: any free seat, but people leave a gap beside a stranger while there are
+ * other seats to take. (So the circle next to you is usually free until the table fills up, and you
+ * can spread to two hands the way you could at a real table.)
+ */
+function seatFor(bots: number[], mine: number[], rng: () => number): number {
+  const free = freeSeats(bots, mine);
+  const apart = free.filter((s) => Math.abs(s - mine[0]) !== 1);
+  return pickOne(apart.length ? apart : free, rng);
+}
 
 /** Who's at the table when you sit down. */
 export function initialBots(traffic: Exclude<Traffic, 'off'>, mine: number[], rng: () => number): number[] {
   const [lo, hi] = TRAFFIC_RANGE[traffic];
   const others = Math.min(MAX_SPOTS - mine.length, lo - 1 + Math.floor(rng() * (hi - lo + 1)));
   let bots: number[] = [];
-  for (let i = 0; i < others; i++) bots = [...bots, pickOne(freeSeats(bots, mine), rng)];
+  for (let i = 0; i < others; i++) bots = [...bots, seatFor(bots, mine, rng)];
   return bots.sort((a, b) => a - b);
 }
 
@@ -47,7 +57,7 @@ function settle(bots: number[], traffic: Exclude<Traffic, 'off'>, mine: number[]
   let out = bots.slice();
   // keep within the range for this kind of table
   while (out.length + 1 > hi && out.length) out = out.filter((b) => b !== pickOne(out, rng));
-  while (out.length + 1 < lo && freeSeats(out, mine).length) out = [...out, pickOne(freeSeats(out, mine), rng)];
+  while (out.length + 1 < lo && freeSeats(out, mine).length) out = [...out, seatFor(out, mine, rng)];
   return out.sort((a, b) => a - b);
 }
 
@@ -62,7 +72,7 @@ export function betweenHands(bots: number[], traffic: Exclude<Traffic, 'off'>, m
     left++;
   }
   if (!left && out.length + 1 < hi && freeSeats(out, mine).length && rng() < MID_SHOE_JOIN) {
-    out = [...out, pickOne(freeSeats(out, mine), rng)];
+    out = [...out, seatFor(out, mine, rng)];
     joined++;
   }
   return { bots: out.sort((a, b) => a - b), joined, left };
@@ -76,7 +86,7 @@ export function atShuffle(bots: number[], traffic: Exclude<Traffic, 'off'>, mine
   const [, hi] = TRAFFIC_RANGE[traffic];
   for (let tries = 0; tries < 3; tries++)
     if (out.length + 1 < hi && freeSeats(out, mine).length && rng() < SHUFFLE_JOIN) {
-      out = [...out, pickOne(freeSeats(out, mine), rng)];
+      out = [...out, seatFor(out, mine, rng)];
       joined++;
     }
   const settled = settle(out, traffic, mine, rng);

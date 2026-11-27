@@ -554,6 +554,19 @@ a {
 .spot.mine {
   border: 0.7cqw solid var(--orange);
 }
+/* the free circle beside you, between hands: tap it to play a second hand there */
+.spot.open {
+  border: 0.5cqw dashed var(--orange);
+  color: var(--orange);
+  font-family: var(--font);
+  font-size: 5.4cqw;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+}
 .spot.active {
   box-shadow: 0 0 0 1cqw rgba(196, 86, 31, 0.3);
 }
