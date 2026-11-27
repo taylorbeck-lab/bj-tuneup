@@ -38,6 +38,8 @@ export type JoseMoment =
   | { kind: 'shuffling'; seed: number; cut: number; pen: number }
   /** Someone sat down or got up (table traffic); `alone` = it's just you and José now. */
   | { kind: 'traffic'; seed: number; joined: number; left: number; alone: boolean }
+  /** You just spread to the free circle beside you and haven't bet it yet. */
+  | { kind: 'twoHands'; seed: number }
   /** You just moved up (or took the quiet table): his first word back at the table. */
   | { kind: 'levelUp'; what: LevelNote }
   /** A blackjack being paid, when the dealer gets to that hand: yours or another player's. */
@@ -156,6 +158,8 @@ export function joseLine(m: JoseMoment): string | null {
       if (m.left && m.joined) return pick(['One out, one in. Bets down.', 'Musical chairs. Bets, primo.'], m.seed, 23);
       if (m.left) return pick(['We lost one. More cards for you, primo.', 'Somebody’s done for the night.', 'One less at the table.'], m.seed, 24);
       return pick(['New player. Bets in.', 'Somebody sat down. Table’s filling up.', 'Company, primo. Bets in.'], m.seed, 25);
+    case 'twoHands':
+      return pick(['Two hands, primo. Chips on both.', 'Spreading out? Chips on both circles.', 'Two spots. Bet them both, primo.'], m.seed, 30);
     case 'levelUp':
       return {
         count: 'Level two, primo. Count from the first card out.',

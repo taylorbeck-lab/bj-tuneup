@@ -6,11 +6,13 @@ import { valueOf, isBlackjack, handTotal, type CardId } from '../../engine/cards
 import { randomSeed } from '../../engine/rng';
 import { SPEEDS, tableMax, type V2Settings } from '../settings';
 import { thinkFactor, thinkMs, personality, holeTurnMs, lingerMs, blackjackPayMs, dealerStepMs } from './pace';
-import { occupiedSpots, dealerCardPos, layoutTable, type TableLayout, type SpotShape } from './layout';
+import { occupiedSpots, neighbours, dealerCardPos, layoutTable, MAX_SPOTS, type SpotShape } from './layout';
 import { initialBots, betweenHands, atShuffle, type TrafficChange } from './traffic';
 
 /** Who else is at the table right now (kept across screens, like the game itself). */
 let liveBots: { key: string; bots: number[] } | null = null;
+/** The second circle you are playing, and the seat it goes with (kept across screens too). */
+let liveExtra: { seat: number; spot: number } | null = null;
 
 export interface PlacedCard {
   id: string;
@@ -56,26 +58,34 @@ export const PEEK_CLEAR_MS = 1100;
  * little longer, finished hands stay on the felt for a realistic beat, then the sweep.
  */
 export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision?: (snap: DecisionSnapshot, spot: number, ms: number) => void, onRoundEnd?: (r: RoundResult, t: Table) => void, paused = false) {
-  // your spots, and the other players: a fixed number, or people coming and going (table traffic)
-  const mine = useMemo(() => occupiedSpots(1, s.seat, s.spots).mine, [s.seat, s.spots]);
-  const trafficKey = JSON.stringify([s.traffic, mine]);
+  // your seat, and the other players: a fixed number, or people coming and going (table traffic)
+  const seat = Math.min(MAX_SPOTS, Math.max(1, s.seat));
+  const trafficKey = JSON.stringify([s.traffic, seat]);
   const [bots, setBots] = useState<number[]>(() => {
     if (s.traffic === 'off') return [];
     if (liveBots?.key === trafficKey) return liveBots.bots;
-    return initialBots(s.traffic, mine, Math.random);
+    return initialBots(s.traffic, [seat], Math.random);
   });
   useEffect(() => {
     if (s.traffic === 'off') return;
     if (liveBots?.key === trafficKey) return;
-    const b = initialBots(s.traffic, mine, Math.random);
+    const b = initialBots(s.traffic, [seat], Math.random);
     liveBots = { key: trafficKey, bots: b };
     setBots(b);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trafficKey]);
-  const layout = useMemo(
-    () => (s.traffic === 'off' ? occupiedSpots(s.players, s.seat, s.spots) : { spots: [...mine, ...bots.filter((b) => !mine.includes(b))].sort((a, b) => a - b), mine }),
-    [s.traffic, s.players, s.seat, s.spots, mine, bots],
-  );
+  const others = useMemo(() => (s.traffic === 'off' ? occupiedSpots(s.players, seat).spots : bots).filter((sp) => sp !== seat), [s.traffic, s.players, seat, bots]);
+  /**
+   * A second hand, the way it works at a table: when the circle beside you is free you can put chips
+   * on it too, any time between hands, and stop whenever you like. `extra` is that circle while you
+   * hold it; it is yours only as long as it is next to you and nobody else is sitting there.
+   */
+  const [extra, setExtra] = useState<number | null>(() => (liveExtra?.seat === seat ? liveExtra.spot : null));
+  const second = extra !== null && neighbours(seat).includes(extra) && !others.includes(extra) ? extra : null;
+  const mine = useMemo(() => (second ? [seat, second] : [seat]), [seat, second]);
+  /** The free circles beside you (none once you hold one: two hands is the most). */
+  const openSpots = useMemo(() => (second ? [] : neighbours(seat).filter((sp) => !others.includes(sp))), [second, seat, others]);
+  const layout = useMemo(() => ({ spots: [...mine, ...others.filter((b) => !mine.includes(b))].sort((a, b) => a - b), mine }), [mine, others]);
   /** Who just sat down or got up (José mentions it); cleared when the next hand is dealt. */
   const [trafficNote, setTrafficNote] = useState<TrafficChange | null>(null);
   const moveTraffic = (kind: 'hand' | 'shuffle') => {
@@ -188,20 +198,21 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
   /** After a peek with no blackjack: José says so for a moment before play goes on. */
   const peekClearUntil = useRef(0);
   const [peekClear, setPeekClear] = useState(false);
-  /** Where every hand sits this round (collision-free; re-placed only when a spot's hands change). */
-  const tableLayout = useRef<{ round: number; layout?: TableLayout }>({ round: -1 });
-
   /** Recompute card placements, keeping ids stable so landed cards never move or re-animate. */
   const sync = useCallback(() => {
     const tb = tableRef.current;
     if (!tb) return;
-    if (tableLayout.current.round !== tb.round) tableLayout.current = { round: tb.round };
     const shapes: SpotShape[] = [];
     tb.seats.forEach((seat, si) => {
       if (seat.hands.some((h) => h.cards.length)) shapes.push({ spot: spotOfSeat(si), mine: seat.human, hands: seat.hands.map((h) => h.cards.length) });
     });
-    const lay = layoutTable(shapes, tb.dealer.length, layout.spots, tableLayout.current.layout);
-    tableLayout.current.layout = lay;
+    // every seat in this round has its column of felt from the first card (a circle sitting the hand out has none)
+    const lay = layoutTable(
+      shapes,
+      tb.dealer.length,
+      layout.spots.filter((_, si) => tb.seats[si]?.hands.length),
+      layout.mine,
+    );
     const prev = placed.current;
     const used = new Set<string>();
     const next: PlacedCard[] = [];
@@ -350,6 +361,25 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
   }, [phase, speed.linger, bump, paused]);
 
+  /** Put chips on the free circle beside you: a second hand from the next deal (only between hands). */
+  const takeSpot = (sp: number) => {
+    if (phase !== 'betting' || !openSpots.includes(sp)) return false;
+    liveExtra = { seat, spot: sp };
+    dropExtra.current = false;
+    setExtra(sp);
+    return true;
+  };
+  /** A second circle dealt past with no chips on it is given up: it sits out that hand, then it's free again. */
+  const dropExtra = useRef(false);
+  useEffect(() => {
+    // (also when it stops being yours to play: you moved seats, or the table is set full)
+    if (extra !== null && (second === null || (phase === 'betting' && dropExtra.current))) {
+      dropExtra.current = false;
+      liveExtra = null;
+      setExtra(null);
+    }
+  }, [phase, extra, second]);
+
   /** Can a round be dealt right now? (Not while the table is being rebuilt for new seats, or a saved shoe is loading.) */
   const canDeal = () => {
     const tb = tableRef.current;
@@ -365,6 +395,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     }
     placed.current = [];
     setTrafficNote(null);
+    dropExtra.current = second !== null && !((bets[second] ?? 0) > 0);
     t.placeBet(bySeat);
     if (practice) t.stackPractice(practice.values, practice.up);
     setResult(null);
@@ -417,6 +448,9 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     legal: t && t.phase === 'play' && t.seats[t.turn.seat]?.human ? t.legalActions() : [],
     deal,
     canDeal,
+    /** The free circles beside you that you could play as a second hand right now. */
+    openSpots: phase === 'betting' ? openSpots : [],
+    takeSpot,
     act,
     insure,
     hurry,

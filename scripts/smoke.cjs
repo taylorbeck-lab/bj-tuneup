@@ -104,19 +104,50 @@ const ok = (name, pass, extra = '') => { results.push([pass ? 'PASS' : 'FAIL', n
   await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
   await p.reload(); await wait(1200);
   ok('settings persist after reload', (await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '6', exact: true }).getAttribute('aria-pressed')) === 'true');
-  // 6 decks, 2 hands, seat 6
+  // 6 decks, a full table, seat 6
+  ok('one hand or two is not a setting: it is done at the table', (await p.getByRole('group', { name: 'Hands' }).count()) === 0);
   await openRules();
   await p.getByRole('group', { name: 'Decks' }).getByRole('button', { name: '6', exact: true }).click();
-  await p.getByRole('group', { name: 'Hands' }).getByRole('button', { name: 'Two' }).click();
   await p.getByRole('group', { name: 'Your seat' }).getByRole('button', { name: '6', exact: true }).click(); await wait(300);
   await toTable();
+  await waitDeal();
+  const fullOpen = await p.locator('.spot.open').count();
   await playHand('$25 chip', 'split');
-  ok('6 decks, 6 players, two hands at third base: a hand plays through', (await p.getByRole('button', { name: /^Deal/ }).count()) > 0);
+  await waitDeal();
+  ok('6 decks, a full table at third base: no free circle to spread to, and a hand plays through', fullOpen === 0 && (await p.getByRole('button', { name: /^Deal/ }).count()) > 0, `open=${fullOpen}`);
+  // five players: the circle beside you is free; tap it between hands and you are playing two
+  await p.goto(URL + '#/settings'); await wait(800);
+  await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '5', exact: true }).click(); await wait(300);
+  await toTable(); await waitDeal();
+  await p.getByRole('button', { name: 'Clear' }).click().catch(() => {});
+  const free = p.locator('.spot.open');
+  const freeN = await free.count();
+  await free.first().click(); await wait(500);
+  const mineAfter = await p.locator('.spot.mine').count();
+  const twoHint = await p.locator('.dock').innerText();
+  await p.getByRole('button', { name: '$25 chip' }).click();
+  await p.getByRole('button', { name: 'Your spot 6' }).click();
+  await p.getByRole('button', { name: '$25 chip' }).click(); await p.getByRole('button', { name: /^Deal/ }).click();
+  // (count the circles of mine that have cards while the round plays out)
+  let twoDealt = 0;
+  for (let i = 0; i < 300; i++) {
+    twoDealt = Math.max(twoDealt, await p.evaluate(() => new Set([...document.querySelectorAll('.pc')].filter((c) => c.style.zIndex === '3').map((c) => c.dataset.hand.split(':')[0])).size));
+    for (const a of ['No insurance', 'Stand']) { const bt = p.getByRole('button', { name: a, exact: true }); if (await bt.count()) await bt.click().catch(() => {}); }
+    if (i > 5 && (await p.getByRole('button', { name: /^Deal/ }).count())) break;
+    await wait(150);
+  }
+  ok('a second hand at the table: tap the free circle beside you, bet both, both are dealt', freeN === 1 && mineAfter === 2 && /Two hands/.test(twoHint) && twoDealt === 2, `free=${freeN} mine=${mineAfter} hands dealt=${twoDealt}`);
+  // deal past the second circle with no chips on it and it is free again
+  await waitDeal();
+  await p.getByRole('button', { name: 'Clear' }).click().catch(() => {});
+  await p.getByRole('button', { name: 'Your spot 6' }).click();
+  await playHand('$25 chip', 'stand');
+  await waitDeal(); await wait(400);
+  ok('back to one hand: a circle dealt past with no chips is given up', (await p.locator('.spot.mine').count()) === 1 && (await p.locator('.spot.open').count()) === 1, `mine=${await p.locator('.spot.mine').count()} open=${await p.locator('.spot.open').count()}`);
   // put back the house game
   await p.goto(URL + '#/settings'); await wait(800);
   await openRules();
   await p.getByRole('group', { name: 'Decks' }).getByRole('button', { name: '2', exact: true }).click();
-  await p.getByRole('group', { name: 'Hands' }).getByRole('button', { name: 'One' }).click();
   await p.getByRole('group', { name: 'Your seat' }).getByRole('button', { name: '3', exact: true }).click();
   await p.getByRole('group', { name: 'Players', exact: true }).getByRole('button', { name: '4', exact: true }).click(); await wait(200);
   await p.getByRole('group', { name: 'Other players' }).getByRole('button', { name: 'Normal', exact: true }).click(); await wait(300);

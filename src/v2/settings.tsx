@@ -34,8 +34,6 @@ export interface V2Settings {
   shuffle: 'hand' | 'machine';
   /** Your spot, 1 = first base (dealer's left) .. 6 = third base. */
   seat: number;
-  /** Spots you play: 1 or 2. */
-  spots: 1 | 2;
   speed: Speed;
   tableMin: number;
   startBankroll: number;
@@ -71,7 +69,6 @@ export const DEFAULT_V2: V2Settings = {
   rules: { ...DEFAULT_RULES, decks: 2, h17: true, das: true, lateSurrender: false, penetration: 0.65, cutSpread: HAND_CUT, seats: 7 },
   players: 4,
   seat: 4,
-  spots: 1,
   speed: 'average',
   tableMin: 10,
   startBankroll: 1000,
@@ -124,7 +121,6 @@ export function mergeV2(s?: Partial<V2Settings>): V2Settings {
     rules: normalizeRules({ ...d.rules, ...(s.rules ?? {}), seats: 7 }),
     players,
     seat: Math.min(6, Math.max(1, Math.round(s.seat ?? d.seat))),
-    spots: s.spots === 2 ? 2 : 1,
     coach: levelCoach(saved, progress.level),
     progress,
     // settings saved before traffic: a player count someone chose on purpose stays fixed
