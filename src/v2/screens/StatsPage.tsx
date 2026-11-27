@@ -110,11 +110,11 @@ function Course({ stats }: { stats: V2Stats }) {
   );
 }
 
-/** True count within one, out of the times you actually gave a true count. */
+/** True counts graded right (see trueCount.ts), out of the times you actually gave one. */
 function trueCountLine(s: V2Stats): string {
   const t = s.tc?.n ? s.tc : s.tcRecent?.length ? { n: s.tcRecent.length, right: s.tcRecent.reduce((a, b) => a + b, 0) } : null;
   if (!t) return 'true count: no answers yet';
-  return `true count within one ${Math.round((100 * t.right) / t.n)}% (${t.n} answered)`;
+  return `true count right ${Math.round((100 * t.right) / t.n)}% (${t.n} answered)`;
 }
 
 export function StatsPage() {

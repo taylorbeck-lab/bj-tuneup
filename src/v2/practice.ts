@@ -67,13 +67,16 @@ function handFor(key: string, rng: Rng): { values: [number, number]; up: number 
 export function pickPractice(
   stats: V2Stats,
   rng: Rng,
-  o: { hands: number; lastPractice: number; level: 1 | 2 | 3; trueCount?: number; shoe?: number; lastPracticeShoe?: number },
+  o: { hands: number; lastPractice: number; level: 1 | 2 | 3; trueCount?: number; shoe?: number; lastPracticeShoe?: number; bigBet?: boolean },
 ): { values: [number, number]; up: number; key: string } | null {
   const gap = PRACTICE_GAP[o.level];
   if (!Number.isFinite(gap) || o.hands - o.lastPractice < gap) return null;
   // never when the cards left favour you (the stretch a counter waits for stays exactly as dealt),
   // and never more than one in a shoe
   if ((o.trueCount ?? 0) >= 1) return null;
+  // once your bets are graded (Level 2), never on a hand you've bet up: a hand you've missed before is
+  // a tough one by nature, and a set-up tough hand on a big bet would make over-betting look cursed
+  if (o.level >= 2 && o.bigBet) return null;
   if (o.shoe !== undefined && o.shoe === o.lastPracticeShoe) return null;
   // (a miss saved before the schedule existed counts as due now)
   const dueAt = (s: V2Stats['sits'][string]) => (s.sched ? s.sched.due : s.recent.slice(-3).includes(0) ? 0 : Infinity);

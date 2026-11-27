@@ -45,7 +45,7 @@ export function EndOfShoe({ table, model, onDone }: { table: Table; model?: Edge
           <>
             <div className={'coach ' + (answer === 'pass' ? '' : right ? 'ok' : 'no')}>
               <div className="head">
-                <span className="display">{answer === 'pass' ? 'The count' : right ? 'Spot on' : 'Off a bit'}</span>
+                <span className="display">{answer === 'pass' ? 'The count' : right ? 'Spot on' : Math.abs((answer as number) - rc) === 1 ? 'Off by one' : `Off by ${Math.abs((answer as number) - rc)}`}</span>
                 <span className="serif">it was {countWords(rc)}</span>
               </div>
               <p>

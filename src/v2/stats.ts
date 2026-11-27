@@ -41,7 +41,7 @@ export interface V2Stats {
    * ones graded against the exact decks left, so it isn't used for display.
    */
   tc?: { n: number; right: number };
-  /** Latest true-count checks (1 = within one), latest bets (1 = right), latest count-play spots (1 = right). */
+  /** Latest true-count checks (1 = right), latest bets (1 = right), latest count-play spots (1 = right). */
   tcRecent?: number[];
   betRecent?: number[];
   devRecent?: number[];

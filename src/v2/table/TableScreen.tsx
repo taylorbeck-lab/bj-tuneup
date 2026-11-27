@@ -34,7 +34,7 @@ export interface TableHooks {
   /** Tap on the discard tray (the count lives there). */
   onTray?: () => void;
   /** Optional practice hand for the next deal (practice my misses). */
-  practiceHand?: () => { values: [number, number]; up: number } | null;
+  practiceHand?: (bets: Record<number, number>) => { values: [number, number]; up: number } | null;
 }
 
 
@@ -136,7 +136,7 @@ export function TableScreen({ hooks = {} }: { hooks?: TableHooks }) {
     if (!t || !g.canDeal()) return;
     setLastBets(b);
     hooks.onBet?.(b, t);
-    const practice = hooks.practiceHand?.() ?? null;
+    const practice = hooks.practiceHand?.(b) ?? null;
     // a practice hand is never dealt in secret: José says so
     setPracticeDeal(!!practice);
     g.deal(b, practice);

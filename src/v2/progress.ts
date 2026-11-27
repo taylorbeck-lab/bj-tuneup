@@ -156,7 +156,7 @@ export function nextStep(s: V2Stats, p: Progress): NextStep | null {
         ok: recent.length >= t.shoeWindow && exact >= t.shoeRight,
         frac: Math.min(1, exact / t.shoeRight),
       },
-      windowCheck('True count within one', s.tcRecent ?? [], t.tcWindow, t.tcAccuracy, 'true counts answered so far'),
+      windowCheck('True count right', s.tcRecent ?? [], t.tcWindow, t.tcAccuracy, 'true counts answered so far'),
       windowCheck('Bets with the count', s.betRecent ?? [], t.betWindow, t.betAccuracy, 'bets so far'),
       windowCheck('Every hand, still', all, t.basicWindow, t.basicAccuracy, 'decisions so far'),
     ];

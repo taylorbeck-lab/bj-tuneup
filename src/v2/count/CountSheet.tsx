@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Table } from '../../engine/game';
 import { recordCount } from '../stats';
-import { trueCountCheck } from './trueCount';
+import { trueCountCheck, tcVerdict, rcVerdict } from './trueCount';
 import { countWords, padPress, padValue, padText, EMPTY_PAD, type PadState } from './words';
 
 /**
@@ -65,19 +65,19 @@ const decksWord = (n: number) => `${n} ${n === 1 ? 'deck' : 'decks'}`;
 
 /**
  * Count check: José asks the running count first, then the true count with the discard tray reading, then what it
- * means. Grading: running count must be exact; true count within ±1 of running ÷ decks left.
+ * means. Grading: the running count must be exact; the true count is graded as the estimate it is (see
+ * trueCount.ts): the worked-out value, or the whole number next to it when the division is close to the line.
  */
 export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; onClose: () => void; quiz?: boolean; onResult?: (runningRight: boolean, trueRight: boolean) => void }) {
   const rc = table.rc;
   const unseen = table.unseenCount();
-  // graded the way the sheet teaches it (tray estimate, round down), or within one of the exact value
-  const { decksLeft, raw: tcRaw, shown: tcShown } = trueCountCheck(rc, unseen);
+  const { decksLeft, shown: tcShown } = trueCountCheck(rc, unseen);
   const tcIsRight = (n: number) => trueCountCheck(rc, unseen, n).right;
   const [step, setStep] = useState<'rc' | 'tc' | 'done'>('rc');
   const [rcAns, setRcAns] = useState<number | null>(null);
   const [tcAns, setTcAns] = useState<number | null>(null);
-  const rcRight = rcAns === rc;
-  const tcRight = tcAns !== null && tcIsRight(tcAns);
+  const rcV = rcAns !== null ? rcVerdict(rc, rcAns) : null;
+  const tcV = tcAns !== null ? tcVerdict({ rc, unseen, totalCards: table.rules.decks * 52, answer: tcAns, rcAnswer: rcAns }) : null;
   const decksPlayed = Math.round(((table.rules.decks * 52 - unseen) / 52) * 2) / 2;
 
   return (
@@ -109,13 +109,13 @@ export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; o
           </>
         )}
 
-        {step !== 'rc' && rcAns !== null && (
-          <div className={'coach ' + (rcRight ? 'ok' : 'no')}>
+        {step !== 'rc' && rcV && (
+          <div className={'coach ' + (rcV.ok ? 'ok' : 'no')}>
             <div className="head">
-              <span className="display">{rcRight ? 'Spot on' : 'Off a bit'}</span>
+              <span className="display">{rcV.title}</span>
               <span className="serif">running count {countWords(rc)}</span>
             </div>
-            {!rcRight && <p>You said {countWords(rcAns)}. It happens: find your rhythm by pairing cards that cancel (a 10 and a 5 = 0) and counting the leftovers.</p>}
+            {rcV.line && <p>{rcV.line}</p>}
           </div>
         )}
 
@@ -144,19 +144,14 @@ export function CountSheet({ table, onClose, quiz, onResult }: { table: Table; o
           </>
         )}
 
-        {step === 'done' && tcAns !== null && (
+        {step === 'done' && tcV && (
           <>
-            <div className={'coach ' + (tcRight ? 'ok' : 'no')}>
+            <div className={'coach ' + (tcV.ok ? 'ok' : 'no')}>
               <div className="head">
-                <span className="display">{tcRight ? 'Nailed it' : 'Close, not quite'}</span>
+                <span className="display">{tcV.title}</span>
                 <span className="serif">true count {countWords(tcShown)}</span>
               </div>
-              <p>
-                {rc === 0
-                  ? 'Running count even, so the true count is even too'
-                  : `${countWords(rc)} ÷ ${decksWord(decksLeft)} left = ${tcRaw > 0 ? 'up' : 'down'} ${Math.abs(tcRaw).toFixed(1)} → ${countWords(tcShown)} (round down)`}
-                {!tcRight ? `. You said ${countWords(tcAns)}.` : '.'}
-              </p>
+              <p>{tcV.line}</p>
             </div>
             <div className="coach">
               <div className="head">
