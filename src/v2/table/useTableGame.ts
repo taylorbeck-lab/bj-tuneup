@@ -140,6 +140,7 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
       humanSeats,
       chart,
       seed: randomSeed(),
+      trueRandom: true,
       granularity: 0.5,
       rounding: 'floor',
       botBet: () => min * [1, 1, 1, 2, 2, 3, 4][Math.floor(Math.random() * 7)],
@@ -173,10 +174,12 @@ export function useTableGame(s: V2Settings, chart: Chart | undefined, onDecision
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setupKey]);
 
-  // save the shoe and the count whenever the table opens for bets
+  // Save the shoe and the count as every card comes out, not only between hands. If the page is
+  // reloaded in the middle of a hand (the phone closing the tab, an update, a setting changed), the
+  // cards already dealt are gone, like a dead hand at a table: they are never dealt a second time.
   useEffect(() => {
     const tb = tableRef.current;
-    if (phase !== 'betting' || !tb || restoring.current) return;
+    if (!tb || restoring.current || builtFor.current !== setupKey) return;
     void kvSet(SHOE_KEY, { key: shoeKey, shoe: tb.snapshotShoe() });
   }, [phase, tick, setupKey]);
 

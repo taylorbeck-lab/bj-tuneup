@@ -42,14 +42,15 @@ export class Shoe {
   /** How far a hand-placed cut wanders from `penetration` (0 = fixed). */
   readonly cutSpread: number;
 
-  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed(), skew = 0, cutSpread = 0) {
+  constructor(decks: number, penetration: number, burn = 1, seed = randomSeed(), skew = 0, cutSpread = 0, rng?: Rng) {
     this.skew = skew;
     this.cutSpread = cutSpread;
     this.decks = decks;
     this.seed = seed;
     this.penetration = penetration;
     this.burnCount = burn;
-    this.rng = mulberry32(seed);
+    // (the table passes the device's own random source; a seed gives a shoe that can be replayed, for tests)
+    this.rng = rng ?? mulberry32(seed);
     this.shuffle();
   }
 

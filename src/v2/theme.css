@@ -2467,3 +2467,26 @@ a,
 .course-marks .empty {
   border-color: rgba(27, 26, 23, 0.18);
 }
+
+/* your last hands, one mark each: filled = won, ring = lost, dash = tied */
+.hand-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.hand-strip span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+}
+.hand-strip .w {
+  background: #5fae7c;
+}
+.hand-strip .p {
+  height: 2px;
+  border-width: 1px 0 1px;
+  border-radius: 0;
+  align-self: center;
+  background: var(--ink);
+}

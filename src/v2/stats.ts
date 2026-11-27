@@ -64,7 +64,10 @@ export interface CardsRecord {
   run: number;
   maxRun: number;
   runs6: number;
+  /** Your latest hands, oldest first: W won, L lost, P tied (the last 60). */
+  recent?: string;
 }
+export const RECENT_HANDS = 60;
 export const EMPTY_CARDS = (): CardsRecord => ({ n: 0, win: 0, lose: 0, bj: 0, twenty: 0, pair: 0, split: 0, hot: { n: 0, win: 0, lose: 0, bj: 0 }, run: 0, maxRun: 0, runs6: 0 });
 
 /** One round's cards into the record (pure, so it can be checked on its own). */
@@ -82,6 +85,7 @@ export function addRound(c: CardsRecord, o: { net: number; bj: boolean; twenty: 
     if (o.net < 0) c.hot.lose++;
     if (o.bj) c.hot.bj++;
   }
+  c.recent = ((c.recent ?? '') + (o.net > 0 ? 'W' : o.net < 0 ? 'L' : 'P')).slice(-RECENT_HANDS);
   // a losing run: a tie neither adds to it nor ends it; a win ends it
   if (o.net < 0) {
     c.run++;
