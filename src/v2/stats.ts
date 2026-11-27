@@ -45,6 +45,55 @@ export interface V2Stats {
   tcRecent?: number[];
   betRecent?: number[];
   devRecent?: number[];
+  /**
+   * How your cards have run, for checking the deal against the odds: every round dealt from the shoe
+   * as it lay (a set-up practice hand is left out). `hot`: rounds bet at a true count of up 2 or
+   * more. `run`: losses in a row right now; `maxRun` the longest; `runs6` how many runs reached six.
+   */
+  cards?: CardsRecord;
+}
+export interface CardsRecord {
+  n: number;
+  win: number;
+  lose: number;
+  bj: number;
+  twenty: number;
+  pair: number;
+  split: number;
+  hot: { n: number; win: number; lose: number; bj: number };
+  run: number;
+  maxRun: number;
+  runs6: number;
+}
+export const EMPTY_CARDS = (): CardsRecord => ({ n: 0, win: 0, lose: 0, bj: 0, twenty: 0, pair: 0, split: 0, hot: { n: 0, win: 0, lose: 0, bj: 0 }, run: 0, maxRun: 0, runs6: 0 });
+
+/** One round's cards into the record (pure, so it can be checked on its own). */
+export function addRound(c: CardsRecord, o: { net: number; bj: boolean; twenty: boolean; pair: boolean; split: boolean; tc: number }): CardsRecord {
+  c.n++;
+  if (o.net > 0) c.win++;
+  if (o.net < 0) c.lose++;
+  if (o.bj) c.bj++;
+  if (o.twenty) c.twenty++;
+  if (o.pair) c.pair++;
+  if (o.split) c.split++;
+  if (o.tc >= 2) {
+    c.hot.n++;
+    if (o.net > 0) c.hot.win++;
+    if (o.net < 0) c.hot.lose++;
+    if (o.bj) c.hot.bj++;
+  }
+  // a losing run: a tie neither adds to it nor ends it; a win ends it
+  if (o.net < 0) {
+    c.run++;
+    if (c.run === 6) c.runs6++;
+    c.maxRun = Math.max(c.maxRun, c.run);
+  } else if (o.net > 0) c.run = 0;
+  return c;
+}
+export function recordCards(o: Parameters<typeof addRound>[1]) {
+  return mutate((s) => {
+    s.cards = addRound(s.cards ?? EMPTY_CARDS(), o);
+  });
 }
 export type HandKind = 'hard' | 'soft' | 'pair';
 const KIND_CH: Record<HandKind, string> = { hard: 'h', soft: 's', pair: 'p' };
