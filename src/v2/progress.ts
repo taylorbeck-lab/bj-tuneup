@@ -102,6 +102,16 @@ export interface Check {
   ok: boolean;
   /** 0..1, for a progress bar. */
   frac: number;
+  /**
+   * For a short window (the last 10): each result in it, oldest first (1 = right). Shown as a row of
+   * marks, so you can see why a right answer doesn't always move the number: it pushes the oldest
+   * result out, and if that one was right too the total stays where it was.
+   */
+  marks?: number[];
+  /** How many results the window holds. */
+  window?: number;
+  /** A word under the marks. */
+  note?: string;
 }
 export interface NextStep {
   kind: 'count' | 'plays' | 'tier' | 'headsUp';
@@ -123,6 +133,7 @@ function windowCheck(label: string, results: number[], n: number, need: number, 
     need: `${pct(need)} of the last ${n}`,
     ok: enough && acc >= need - 1e-9,
     frac: enough ? Math.min(1, acc / need) : Math.min(0.99, (w.length / n) * Math.min(1, acc / need || 0.5)),
+    ...(n <= 12 ? { marks: w, window: n, note: 'oldest first: each new one pushes the oldest out' } : {}),
   };
 }
 const fromLog = (log: string, kinds: string) => [...log].filter((c) => kinds.includes(c.toLowerCase())).map((c) => (c === c.toUpperCase() ? 1 : 0));
@@ -155,6 +166,9 @@ export function nextStep(s: V2Stats, p: Progress): NextStep | null {
         need: `${t.shoeRight} of the last ${t.shoeWindow}`,
         ok: recent.length >= t.shoeWindow && exact >= t.shoeRight,
         frac: Math.min(1, exact / t.shoeRight),
+        marks: recent,
+        window: t.shoeWindow,
+        note: 'oldest first: each new shoe pushes the oldest out · a count you skip is a miss',
       },
       windowCheck('True count right', s.tcRecent ?? [], t.tcWindow, t.tcAccuracy, 'true counts answered so far'),
       windowCheck('Bets with the count', s.betRecent ?? [], t.betWindow, t.betAccuracy, 'bets so far'),

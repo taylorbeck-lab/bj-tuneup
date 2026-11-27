@@ -131,4 +131,19 @@ describe('progress lines read one way only', () => {
     expect(cut.have).toBe('7 right');
     for (const c of n.checks) expect(c.have).not.toMatch(/^\d+ of \d+/);
   });
+  it('the last 10 at the cut card is a sliding window: a right answer that pushes out an older right one leaves the total where it was', () => {
+    const shoe = (recent: number[]) => nextStep({ ...base(), shoeEnd: { n: 20, right: 12, passed: 0, recent } }, P({ level: 2 }))!.checks.find((c) => c.label === 'Count exact at the cut card')!;
+    // five right, then two right in the next five: 7 of the last 10
+    const before = [1, 1, 1, 1, 1, 0, 1, 0, 0, 1];
+    expect(shoe(before).have).toBe('7 right');
+    // five more right in a row: the five that drop out were all right, so it is still 7
+    const after = [...before, 1, 1, 1, 1, 1];
+    expect(shoe(after).have).toBe('7 right');
+    expect(shoe(after).marks).toEqual([0, 1, 0, 0, 1, 1, 1, 1, 1, 1]);
+    // two more and the old misses start to leave: 8, and the line is met
+    expect(shoe([...after, 1]).have).toBe('8 right');
+    expect(shoe([...after, 1]).ok).toBe(true);
+    // the marks are what the total is counted from, always
+    for (const r of [before, after, [...after, 1, 0, 1]]) expect(shoe(r).marks!.reduce((a, b) => a + b, 0) + ' right').toBe(shoe(r).have);
+  });
 });
